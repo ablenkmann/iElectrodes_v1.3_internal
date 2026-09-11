@@ -1,0 +1,122 @@
+# Open questions for Alejandro
+
+Findings from the v2 restructuring that need a decision from the toolbox
+author. Ordered by how much they affect the science.
+
+---
+
+## 1. Planning targets are labelled at the wrong coordinate in MNI space
+
+**Where:** `labels2MNIspace`, now `src/labeling/labelElectrodesMNI.m`
+
+In the planning-targets loop the position is built as:
+
+```matlab
+pos = [prj.targets{l}.x  prj.targets{l}.y  prj.targets{l}.y];
+```
+
+`.y` appears twice and `.z` is never read, so every planning target is looked
+up at `(x, y, y)` instead of `(x, y, z)`. The electrode loop a few lines above
+uses the correct `[x y z]`, so only planning targets are affected.
+
+Every anatomical label reported for a planning target in MNI space is
+therefore taken from the wrong voxel, unless `y` happens to equal `z`.
+
+**Decision needed:** is this simply a typo to fix? If so, note that fixing it
+will change the labels of existing planning targets, so any report already
+produced from an MNI-space project carries the old values.
+
+**Status:** deliberately left unfixed. The extraction was kept
+behaviour-preserving on purpose; the fix belongs in its own commit so its
+effect can be measured separately.
+
+---
+
+## 2. Target loop iterates over the wrong array when no atlas is loaded
+
+**Where:** `labels2NativeSpace`, now `src/labeling/labelElectrodesNative.m`
+
+In the `else` branch that fills in placeholder labels when no parcellation is
+loaded, the projections of planning targets are filled like this:
+
+```matlab
+for p = 1:length(prj.electrodes{l}.projection)      % <- electrodes
+    prj.targets{l}.projection{p}.aLabels = ...      % <- targets
+```
+
+The loop bound comes from `electrodes{l}` while the writing goes into
+`targets{l}`. If there are fewer electrode arrays than targets this errors; if
+the projection counts differ it silently fills the wrong number of entries.
+
+This branch only runs when no parcellation is loaded, which is why it has
+probably never been hit in practice.
+
+**Decision needed:** confirm it should read `prj.targets{l}.projection`, and
+whether that same `else` branch is worth keeping at all.
+
+**Status:** left unfixed, same reasoning as above.
+
+---
+
+## 3. Which coordinate should subdural arrays be labelled from?
+
+**Where:** anatomical labelling in general
+
+Running the labelling on `examples/exampleNativeSpace.iel`:
+
+| array | type | contacts | result |
+|---|---|---:|---|
+| G | grid | 20 | labelled, e.g. `97% ctx-rh-caudalmiddlefrontal` |
+| TR | depth | 10 | labelled, e.g. `94% Right-Hippocampus` |
+| TL | depth | 10 | labelled, e.g. `46% Left-Amygdala \| 30% Left-Inf-Lat-Vent` |
+| s | strip | 4 | **every contact `unknown`** |
+
+The strip's contacts appear to fall outside the wmparc volume, which is
+plausible: a subdural strip sits on the surface while the parcellation covers
+brain tissue. The projected coordinates would land inside the cortex, and the
+code already computes and labels those separately.
+
+**Decision needed:** for subdural grids and strips, should the anatomical
+label shown in the GUI and written into reports come from the localised
+coordinate or from the projected one? If the projected one, should that be the
+default or an option?
+
+---
+
+## 4. Repository contains a file too large for GitHub
+
+**Where:** `extras/r256TAC_PATRON_frame_down_1mm.nii` — 134 MB
+
+GitHub refuses any single file over 100 MB. `third_party/.../tpm/TPM.nii`
+(51 MB) is also over GitHub's 50 MB warning threshold. The file is already in
+the git history, so if the project later moves to GitHub — as the reference
+architecture discussion recommends — the history would have to be rewritten or
+the file moved to Git LFS.
+
+Not urgent while development stays local.
+
+**Decision needed, eventually:** is that CT template still needed by
+`extras/corregistroMarco.m`? Options are Git LFS, distributing it separately
+from the repository, or dropping it.
+
+---
+
+## 5. Licence metadata inconsistency
+
+Raised in the reference architecture discussion, repeated here so it is not
+lost: the SourceForge project page states the GNU Free Documentation License,
+while `license.txt` and the source headers use GPLv3.
+
+**Decision needed:** correct the project metadata, and review the licences of
+the bundled third-party code in `third_party/` before any v2 release.
+
+---
+
+## 6. Oldest MATLAB release to support
+
+The reference discussion suggests choosing R2024b as the oldest supported
+release for v2 and keeping v1 available for older installations, with the
+final choice made after asking a few active users what they actually run.
+
+**Decision needed:** which MATLAB releases must v2 support? This affects
+whether App Designer features introduced in recent releases can be used.
