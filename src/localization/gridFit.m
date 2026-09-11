@@ -761,13 +761,13 @@ switch exitflag
         disp(['Second minimization completed in ' num2str(round(tt)) ' seconds with no errors'])
     case 0  
         warning('GridFit solution might be inacurate. Algorithm stopped due to too many function evaluations or iterations.')
-        disp('You can change GridFit parameters in priv/default_ielectrodes_options.m, update configuration in iElectrodes, and try again.')
+        disp('You can change GridFit parameters in src/project/default_ielectrodes_options.m, update configuration in iElectrodes, and try again.')
     case -1 
         warning('GridFit solution might be inacurate. Algorithm stopped by output/plot function.')
-        disp('You can change GridFit parameters in priv/default_ielectrodes_options.m,update configuration in iElectrodes, and try again.')
+        disp('You can change GridFit parameters in src/project/default_ielectrodes_options.m,update configuration in iElectrodes, and try again.')
     case -2 
         warning('GridFit solution might be inacurate. No feasible point found.')
-        disp('You can change GridFit parameters in priv/default_ielectrodes_options.m, update configuration in iElectrodes, and try again.')
+        disp('You can change GridFit parameters in src/project/default_ielectrodes_options.m, update configuration in iElectrodes, and try again.')
 end
 
 pos_elec = pos_fix2(indexElecGrid,:);

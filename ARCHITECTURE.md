@@ -38,7 +38,7 @@ iElectrodes/
 │   │                 sphere fitting, coordinate transforms
 │   └── export/       text exports and FieldTrip neighbour structures
 │
-├── resources/      atlases, look-up tables, MNI meshes, application icon
+├── assets/         atlases, look-up tables, MNI meshes, application icon
 ├── third_party/    bundled external toolboxes: SPM12, iso2mesh, NIfTI tools,
 │                   refinepatch (mex). Not iElectrodes code.
 ├── examples/       sample .iel projects (native and MNI space)
@@ -71,7 +71,7 @@ This matches Phase 3 of the reference plan — *move one workflow at a time out 
 
 ## Path setup
 
-`electrodes_gui_OpeningFcn` adds `src/`, `app/`, `resources/` and `third_party/`
+`electrodes_gui_OpeningFcn` adds `src/`, `app/`, `assets/` and `third_party/`
 recursively with `genpath`, using `fullfile()` so the same code runs on Windows,
 macOS and Linux. If a `priv/` folder still exists it is also added, so the
 toolbox cannot break half-way through the migration.

@@ -120,11 +120,30 @@ handles.output = hObject;
 global debugging;
 debugging=0;
 
-if isunix
-    addpath(genpath([handles.pathstr '/priv']));
-else
-    addpath(genpath([handles.pathstr '\priv']));
+% ---------------------------------------------------------------------
+% iElectrodes 2 folder layout (see ARCHITECTURE.md)
+%   src/         BACKEND  - GUI-free scientific code (headless-callable)
+%   app/         FRONTEND - dialogs, rendering helpers, GUI configuration
+%   assets/      atlases, look-up tables, MNI meshes, icons
+%   third_party/ bundled external toolboxes (SPM, iso2mesh, NIfTI tools)
+%   priv/        migration safety net - empty in a completed migration
+%
+% NOTE: the assets folder must NOT be called "resources". MATLAB reserves
+% that name for toolbox metadata and refuses to add it to the path, which
+% silently breaks every bare-name load such as "load MNImesh.mat".
+%
+% fullfile() is used so the same code works on Windows, macOS and Linux,
+% and each folder is checked with isfolder() so a missing one is skipped
+% instead of raising an error.
+% ---------------------------------------------------------------------
+iElectrodesFolders = {'src','app','assets','third_party','priv'};
+for iFolder = 1:numel(iElectrodesFolders)
+    thisFolder = fullfile(handles.pathstr, iElectrodesFolders{iFolder});
+    if isfolder(thisFolder)
+        addpath(genpath(thisFolder));
+    end
 end
+clear iElectrodesFolders iFolder thisFolder
 
 spm('defaults','PET');
 
@@ -3245,7 +3264,7 @@ else
     if ~isempty(ind)
          if length(ind)> handles.options.scatter3D_elem_limit %arbitrary limit value
              warning([num2str(length(ind)) ' voxels thresholded. Only a random selection of ' num2str(handles.options.scatter3D_elem_limit) ' voxels are plotted']);
-             disp(['The limit value can be channged in /electrodes_gui/priv/default_ielectrodes_options.m'])
+             disp(['The limit value can be changed in src/project/default_ielectrodes_options.m'])
              ind=ind(randperm(length(ind),handles.options.scatter3D_elem_limit)); % take a random selection of points
          end     
         vTAC=handles.TAC.img(ind); %values
