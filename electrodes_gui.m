@@ -1317,136 +1317,15 @@ guidata(hObject, handles);
 % --------------------------------------------------------------------
 %%%%%%%%%%%%%%%           Labels to MNI space               %%%%%%%%%%%%%%%
 function handles=labels2MNIspace(handles)
-% update handles to MNI space for electrodes and planning electrodes
-
-%anatomical labeling of all electrodes
-if ~isempty(handles.electrodes)
-    L=length(handles.electrodes);
-    for l=1:L
-        pos=[handles.electrodes{l}.x handles.electrodes{l}.y handles.electrodes{l}.z];
-        %        handles.electrodes{l}.aLabels=anatomicLabel(pos,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-        [handles.electrodes{l}.aLabels,handles.electrodes{l}.validAnatLabels,handles.electrodes{l}.anatInd]=...
-            anatomicLabel(pos,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-        %         if isfield(handles.electrodes{l},'projection') && ~isempty(handles.electrodes{l}.projection)
-        for p=1:length(handles.electrodes{l}.projection)
-            pos=[handles.electrodes{l}.projection{p}.x handles.electrodes{l}.projection{p}.y...
-                handles.electrodes{l}.projection{p}.z];
-            [handles.electrodes{l}.projection{p}.aLabels,handles.electrodes{l}.projection{p}.validAnatLabels,...
-                handles.electrodes{l}.projection{p}.anatInd]=...
-                anatomicLabel(pos,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-            %             end
-        end
-    end
-end
-
-%anatomical labeling of all planning electrodes
-if ~isempty(handles.targets)
-    L=length(handles.targets);
-    for l=1:L
-        pos=[handles.targets{l}.x handles.targets{l}.y handles.targets{l}.y];
-%        handles.targets(l).aLabels=anatomicLabel(pos,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-        [handles.targets{l}.aLabels,handles.targets{l}.validAnatLabels,handles.targets{l}.anatInd]=...
-            anatomicLabel(pos,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-    end
-end
+% Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
+% be called from a script or a test without opening a figure.
+handles = labelElectrodesMNI(handles);
 
 %%%%%%%%%%%%%%%           Labels to Native space            %%%%%%%%%%%%%%%
 function handles=labels2NativeSpace(handles)
-% update handles to Native space for electrodes and planning electrodes
-
-opt.radio=handles.options.atlasLabelingRadio;
-opt.mode=handles.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities 
-opt.minProb=handles.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob' 
-
-if opt.radio>0
-    lookAround=1;
-
-else
-    lookAround=0;
-end
-
-
-%anatomical labeling of all electrodes
-if ~isempty(handles.electrodes)
-    L=length(handles.electrodes);
-    for l=1:L
-        pos=[handles.electrodes{l}.x handles.electrodes{l}.y handles.electrodes{l}.z];
-        
-        if ~isempty(handles.wmparc)
-            [handles.electrodes{l}.aLabels,handles.electrodes{l}.validAnatLabels,handles.electrodes{l}.anatInd]=...
-                anatomicLabelFS(pos,[],handles.options.atlasLUTFile,lookAround,handles.wmparc.img,handles.wmparcS,[],[],opt);
-            %    if isfield(handles.electrodes{l},'projection') && ~isempty(handles.electrodes{l}.projection)
-            for p=1:length(handles.electrodes{l}.projection)
-                pos=[handles.electrodes{l}.projection{p}.x handles.electrodes{l}.projection{p}.y...
-                    handles.electrodes{l}.projection{p}.z];
-                [handles.electrodes{l}.projection{p}.aLabels,handles.electrodes{l}.projection{p}.validAnatLabels...
-                    ,handles.electrodes{l}.projection{p}.anatInd]=...
-                    anatomicLabelFS(pos,[],handles.options.atlasLUTFile,lookAround,handles.wmparc.img,handles.wmparcS,[],[],opt);
-            end
-            %     end
-        else
-            handles.electrodes{l}.aLabels=repmat({'no atlas loaded'},handles.electrodes{l}.nElectrodes,1);
-            handles.electrodes{l}.validAnatLabels={};
-            handles.electrodes{l}.anatInd=[];
-            %     if isfield(handles.electrodes{l},'projection') && ~isempty(handles.electrodes{l}.projection)
-            for p=1:length(handles.electrodes{l}.projection)
-                handles.electrodes{l}.projection{p}.aLabels=repmat({'no atlas loaded'},handles.electrodes{l}.nElectrodes,1);
-                handles.electrodes{l}.projection{p}.validAnatLabels={};
-                handles.electrodes{l}.projection{p}.anatInd=[];
-            end
-        end
-    end
-end
-
-% anatomical labeling of all planning electrodes - OLD
-% if ~isempty(handles.targets)
-%     L=length(handles.targets);
-%     for l=1:L
-%         pos=[handles.targets(l).coordinates(:,1) handles.targets(l).coordinates(:,2) handles.targets(l).coordinates(:,3)];
-% 
-%         if ~isempty(handles.wmparc)
-% %            handles.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.wmparc.img,handles.wmparcS,radio);
-%             [handles.targets(l).aLabels,handles.targets(l).validAnatLabels,handles.targets(l).anatInd]=...
-%                 anatomicLabelFS(pos, [],lookAround,handles.wmparc.img,handles.wmparcS,opt);
-%         else
-%             handles.targets(l).aLabels=repmat({'no atlas loaded'},handles.targets(l).nElectrodes,1);
-%             handles.targets(l).validAnatLabels={};
-%             handles.targets(l).anatInd=[];
-%         end
-%     end
-% end
-
-% anatomical labeling of all planning electrodes
-if ~isempty(handles.targets)
-    L=length(handles.targets);
-    for l=1:L
-        pos=[handles.targets{l}.x handles.targets{l}.y handles.targets{l}.z];
-        
-        if ~isempty(handles.wmparc)
-            [handles.targets{l}.aLabels,handles.targets{l}.validAnatLabels,handles.targets{l}.anatInd]=...
-                 anatomicLabelFS(pos,[],handles.options.atlasLUTFile,lookAround,handles.wmparc.img,handles.wmparcS,[],[],opt);
-
-             %             if isfield(handles.targets{l},'projection') && ~isempty(handles.targets{l}.projection.x)
-             for p=1:length(handles.targets{l}.projection)
-                 pos=[handles.targets{l}.projection{p}.x handles.targets{l}.projection{p}.y...
-                    handles.targets{l}.projection{p}.z];
-                [handles.targets{l}.projection{p}.aLabels,handles.targets{l}.projection{p}.validAnatLabels...
-                    ,handles.targets{l}.projection{p}.anatInd]=...
-                 anatomicLabelFS(pos,[],handles.options.atlasLUTFile,lookAround,handles.wmparc.img,handles.wmparcS,[],[],opt);
-            end
-        else
-            handles.targets{l}.aLabels=repmat({'no atlas loaded'},handles.targets{l}.nElectrodes,1);
-            handles.targets{l}.validAnatLabels={};
-            handles.targets{l}.anatInd=[];
-%             if isfield(handles.targets{l},'projection') && ~isempty(handles.targets{l}.projection.x)
-            for p=1:length(handles.electrodes{l}.projection)    
-                handles.targets{l}.projection{p}.aLabels=repmat({'no atlas loaded'},handles.targets{l}.ntargets,1);
-                handles.targets{l}.projection{p}.validAnatLabels={};
-                handles.targets{l}.projection{p}.anatInd=[];
-            end
-        end
-    end
-end
+% Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
+% be called from a script or a test without opening a figure.
+handles = labelElectrodesNative(handles);
 
 
 % --------------------------------------------------------------------
