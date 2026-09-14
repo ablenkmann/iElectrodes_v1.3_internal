@@ -196,16 +196,41 @@ the controls displaying and editing them rather than storing them.
 
 ## Differences from the proposal in the discussion
 
-The mapping above agrees with the discussion on every structural point. Three
+The mapping above agrees with the discussion on every structural point. Two
 corrections come from reading the current source:
 
-- `handles.hlink` and `handles.buttonDown` are listed there under `ui`. Neither
-  exists in this version — zero references in `electrodes_gui.m`.
 - The field count is 166 here rather than 164, and 106 of them are GUIDE
-  controls that need no individual decision.
+  controls that need no individual decision. That census covered
+  `electrodes_gui.m` only; adding the two fields named in the correction below
+  brings the total to 168.
 - `wmparcColors`, `AnnotColor_L` and `AnnotColor_R` are correctly identified
   there as derived display caches, but they are *also* written to `.iel`
   today, which the proposal does not mention. See case 1.
+
+### Correction to an earlier draft of this document
+
+An earlier version of this section claimed that `handles.hlink` and
+`handles.buttonDown` do not exist in this codebase. That was wrong, and the
+error is worth recording because it shows how easy it is to mis-map state in a
+GUIDE application: the census behind it searched `electrodes_gui.m` alone, and
+both fields are created somewhere else.
+
+Both are set in `app/config/defaultGuiVariables.m`:
+
+| field | created at | what it is |
+|---|---|---|
+| `buttonDown` | line 24, `handles.buttonDown=0` | flag saying a mouse button is held down on an axis, so motion callbacks know a drag is in progress |
+| `hlink` | line 74, `linkprop([handles.axes1,handles.axes2],{'CameraPosition','CameraUpVector'})` | a `linkprop` object keeping the two 3-D axes pointing the same way |
+
+The discussion's placement of both under `ui` is correct. `hlink` holds live
+graphics handles and must never be saved; `buttonDown` is transient interaction
+state with no meaning outside a figure.
+
+The practical lesson: `defaultGuiVariables.m` writes into the same flat
+`handles` struct as the GUI file, so it is a second, silent source of state.
+Any future field census has to cover it — and it is also the reason
+`liftToProject` is called *after* `defaultGuiVariables` in `OpeningFcn` rather
+than before.
 
 ## Suggested migration order
 

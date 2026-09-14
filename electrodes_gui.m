@@ -160,7 +160,6 @@ handles=checkUpdates(handles);
 
 % make project structure
 handles=checkProjectStructure([],handles);
-handles=liftToProject(handles);   % patient data -> handles.project
 
 % load default options
 options=[];
@@ -171,6 +170,11 @@ handles.colors=defaultColors(colors);
 
 % reset gui variables
 handles=defaultGuiVariables(handles);
+
+% Patient data -> handles.project. This must come AFTER defaultGuiVariables,
+% which still assigns a flat handles.project.currentSpace; lifting last guarantees a
+% single authoritative copy of every migrated field.
+handles=liftToProject(handles);
 
 % layout 
 if ~handles.options.showLocalizeTools
@@ -735,11 +739,11 @@ if FileName ~=0
     handles.FileName=FileName;
     handles.PathName=PathName;
     
-    if ~isempty(handles.electrodes)
+    if ~isempty(handles.project.electrodes)
         set(handles.arrayNumberText,'String','1');
         set(handles.elecNumberText,'String','1');
-        set(handles.editArrayName,'String',handles.electrodes{1}.Name);
-        set(handles.editElecLabels,'string',handles.electrodes{1}.ch_label{1});
+        set(handles.editArrayName,'String',handles.project.electrodes{1}.Name);
+        set(handles.editElecLabels,'string',handles.project.electrodes{1}.ch_label{1});
         
     else
         
@@ -749,12 +753,12 @@ if FileName ~=0
         set(handles.elecNumberText,'string','0');
     end
     
-    if ~isempty(handles.targets)        
+    if ~isempty(handles.project.targets)        
         
         set(handles.arrayPlanningNumberText,'String','1');
         set(handles.elecPlanningNumberText,'String','1');
-        set(handles.editPlanningArrayName,'String',handles.targets{1}.Name);
-        set(handles.editPlanningElecLabel,'string',handles.targets{1}.ch_label{1});
+        set(handles.editPlanningArrayName,'String',handles.project.targets{1}.Name);
+        set(handles.editPlanningElecLabel,'string',handles.project.targets{1}.ch_label{1});
         
         % THIS NEEDS to be FIXED
 %        UpdateTargetEditBox(hObject, eventdata, handles);   %this modifies handles
@@ -815,7 +819,7 @@ function SaveElectrodespushtool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty (handles.electrodes)
+if isempty (handles.project.electrodes)
     warning('Electrodes is empty');
     return;
 end
@@ -831,7 +835,7 @@ end
 
 % fetch coordinates 
 if valid
-    electrodes=handles.electrodes;
+    electrodes=handles.project.electrodes;
     i=1; x=[]; y=[]; z=[];
 
     if find (selection==[2 4 6]) % export coordinates electrodes
@@ -924,7 +928,7 @@ if valid
             % elec.chanpos= []; 
             % elec.tra = []; combination to make channels
             elec.unit='mm';
-            elec.coordsys=handles.currentSpace; % 'MNI' or 'Native' (defined by user)
+            elec.coordsys=handles.project.currentSpace; % 'MNI' or 'Native' (defined by user)
             elec.adjMat=concatenateAdjMat(electrodes); % Adjacency Matrix
             elec.cfg.method = 'iElectrodes';
             elec.cfg.projection='No';
@@ -944,7 +948,7 @@ if valid
             % elec.chanpos= []; 
             % elec.tra = []; combination to make channels
             elec.unit='mm';
-            elec.coordsys=handles.currentSpace; % 'MNI' or 'Native' (defined by user)
+            elec.coordsys=handles.project.currentSpace; % 'MNI' or 'Native' (defined by user)
             elec.adjMat=concatenateAdjMat(electrodes); % Adjacency Matrix
             elec.cfg.method = 'iElectrodes';
             elec.cfg.projection='Yes';
@@ -1144,16 +1148,16 @@ if valid
         end
     end
      
-    handles.electrodes=[handles.electrodes elecNew]; %append new elecs to old ones
+    handles.project.electrodes=[handles.project.electrodes elecNew]; %append new elecs to old ones
     
     set(handles.arrayNumberText,'String','1');
     set(handles.elecNumberText,'String','1');
-    set(handles.editArrayName,'String',handles.electrodes{1}.Name);
-    set(handles.editElecLabels,'string',handles.electrodes{1}.ch_label{1});
+    set(handles.editArrayName,'String',handles.project.electrodes{1}.Name);
+    set(handles.editElecLabels,'string',handles.project.electrodes{1}.ch_label{1});
     
 
     % anatomical labeling (electrodes and projections)
-    if strcmp(handles.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+    if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
         handles=labels2MNIspace(handles);
     else
         handles=labels2NativeSpace(handles);
@@ -1191,11 +1195,11 @@ optionsList={'Localized coordinates', 'SCE-projected coordinates'};
     'ListSize', [300 150]);
 
 
-if valid & ~isempty(handles.electrodes)
+if valid & ~isempty(handles.project.electrodes)
       
     [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.PathName);
     if FileName~=0
-        aLabels2txt_new(handles.electrodes,[PathName FileName],optionsList{selection});
+        aLabels2txt_new(handles.project.electrodes,[PathName FileName],optionsList{selection});
         disp (['Report saved in ' PathName, FileName])
 
     end
@@ -1213,7 +1217,7 @@ function LoadFSlabelsuipushtool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Not changing handles.currentSpace since can be both 'MNI' or 'Native' space 
+% Not changing handles.project.currentSpace since can be both 'MNI' or 'Native' space 
 
 % MRI should be loaded first
 if isempty(handles.project.T1)
@@ -1247,25 +1251,25 @@ if ~isequal(wmparcFile,0)
     disp (['Loaded FS labels from ' PathName, wmparcFile])
     
 %     %anatomical labeling of all electrodes
-%     if ~isempty(handles.electrodes)
-%         L=length(handles.electrodes);
+%     if ~isempty(handles.project.electrodes)
+%         L=length(handles.project.electrodes);
 %         for l=1:L
-%             pos=[handles.electrodes{l}.x handles.electrodes{l}.y handles.electrodes{l}.z];
+%             pos=[handles.project.electrodes{l}.x handles.project.electrodes{l}.y handles.project.electrodes{l}.z];
 %             lookAround=1; radio=1;
 %             if ~isempty(handles.project.wmparc)
-%                 handles.electrodes{l}.aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
+%                 handles.project.electrodes{l}.aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
 %             end
 %         end
 %     end
 %     
 %     %anatomical labeling of all planning electrodes
-%     if ~isempty(handles.targets)
-%         L=length(handles.targets);
+%     if ~isempty(handles.project.targets)
+%         L=length(handles.project.targets);
 %         for l=1:L
-%             pos=[handles.targets(l).coordinates(:,1) handles.targets(l).coordinates(:,2) handles.targets(l).coordinates(:,3)];
+%             pos=[handles.project.targets(l).coordinates(:,1) handles.project.targets(l).coordinates(:,2) handles.project.targets(l).coordinates(:,3)];
 %             lookAround=1; radio=1;
 %             if ~isempty(handles.project.wmparc)
-%                 handles.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
+%                 handles.project.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
 %             end
 %         end
 %     end
@@ -1290,7 +1294,7 @@ function MNILabelstogglebutton_OnCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
+handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 handles=labels2MNIspace(handles);
 handles.updatePlots.surfaces=1;
 
@@ -1307,7 +1311,7 @@ function MNILabelstogglebutton_OffCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.currentSpace='Native'; % options are 'Native' 'MNI' 
+handles.project.currentSpace='Native'; % options are 'Native' 'MNI' 
 handles=labels2NativeSpace(handles);
 handles.updatePlots.surfaces=1;
 
@@ -1322,13 +1326,37 @@ guidata(hObject, handles);
 function handles=labels2MNIspace(handles)
 % Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
 % be called from a script or a test without opening a figure.
-handles = labelElectrodesMNI(handles);
+%
+% labelElectrodesMNI takes a project struct. The patient data now lives in
+% handles.project, but the MNI atlas is a shared resource loaded once at
+% start-up by defaultGuiVariables and still sits flat on handles, so it is
+% passed in alongside. Only the two fields the labelling writes are merged
+% back, which keeps handles.project the single authoritative copy.
+prj              = handles.project;
+prj.MNI_S_matrix = handles.MNI_S_matrix;
+prj.MNIlabels    = handles.MNIlabels;
+prj.MNIprob      = handles.MNIprob;
+
+prj = labelElectrodesMNI(prj);
+
+handles.project.electrodes = prj.electrodes;
+handles.project.targets    = prj.targets;
 
 %%%%%%%%%%%%%%%           Labels to Native space            %%%%%%%%%%%%%%%
 function handles=labels2NativeSpace(handles)
 % Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
 % be called from a script or a test without opening a figure.
-handles = labelElectrodesNative(handles);
+%
+% Same boundary as labels2MNIspace above: handles.project carries the patient
+% data including the wmparc parcellation, while the labelling options are
+% session settings that still live flat on handles.
+prj         = handles.project;
+prj.options = handles.options;
+
+prj = labelElectrodesNative(prj);
+
+handles.project.electrodes = prj.electrodes;
+handles.project.targets    = prj.targets;
 
 
 % --------------------------------------------------------------------
@@ -1479,7 +1507,7 @@ switch choice
         return;
 end
 
-handles.currentSpace='Native'; % options are 'Native' 'MNI'
+handles.project.currentSpace='Native'; % options are 'Native' 'MNI'
 % Update handles structure
 guidata(hObject, handles);
 %lock MNI labels button
@@ -1514,7 +1542,7 @@ handles.project.AnnotColortable_L=[];
 handles.AnnotColor_R=[];
 handles.AnnotColor_L=[];
 
-handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
+handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 handles.updatePlots.surfaces=1;
 % Update handles structure
 guidata(hObject, handles);
@@ -1639,7 +1667,7 @@ switch type
         
 end
 
-handles.currentSpace='Native'; % options are 'Native' 'MNI'
+handles.project.currentSpace='Native'; % options are 'Native' 'MNI'
 % Update handles structure
 guidata(hObject, handles);
 set(handles.MNILabelstogglebutton,'State','Off'); % this will call to labels2NativeSpace and updateElectrodes3D
@@ -1662,7 +1690,7 @@ handles.project.vertices_SCE_L=[];
 handles.project.faces_SCE_R=[];
 handles.project.faces_SCE_L=[];
 
-handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
+handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 % Update handles structure
 guidata(hObject, handles);
 
@@ -1680,10 +1708,10 @@ if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then do the planning...')
     return
 end
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty')
 else
-    targets=handles.targets;
+    targets=handles.project.targets;
     [FileName,PathName] = uiputfile('*.mat','Save planning structure', handles.PathName);
     if FileName~=0
     handles.PathName=PathName;
@@ -1711,7 +1739,7 @@ end
 if FileName~=0
     handles.PathName=PathName;
     load([handles.PathName, FileName],'targets');
-    handles.targets=targets;
+    handles.project.targets=targets;
     disp (['Loaded targets from ' handles.PathName, FileName])
 
     
@@ -1743,10 +1771,10 @@ if isempty(handles.project.T1)
     return
 end
 
-if ~isempty(handles.targets)
+if ~isempty(handles.project.targets)
     [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.PathName);
     if FileName~=0
-        aLabelsTargets2txt_new(handles.targets,[PathName FileName]);
+        aLabelsTargets2txt_new(handles.project.targets,[PathName FileName]);
         disp (['Saved targets report in ' handles.PathName, FileName])
 
     end
@@ -1977,7 +2005,7 @@ handles.updatePlots.views2D=[1 1 1]; % Force update all slices
 handles.updatePlots.resetTAC=1;      % reset 2D views axes
 
 % update elec labels
-if strcmp (handles.currentSpace, 'Native') % options are 'Native' 'MNI' 
+if strcmp (handles.project.currentSpace, 'Native') % options are 'Native' 'MNI' 
     handles=labels2NativeSpace(handles);
 else
      handles=labels2MNIspace(handles);
@@ -2073,8 +2101,8 @@ if updateSlice(1)
     %overlay electrodes
     if get(handles.ElecOverlaycheckbox,'value')
         if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.electrodes)
-                if strcmp(handles.electrodes{i}.Type,'grid')
+            for i=1:length(handles.project.electrodes)
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2083,9 +2111,9 @@ if updateSlice(1)
                 end
                     
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2098,7 +2126,7 @@ if updateSlice(1)
         else %plot only selected electrode
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
-                if strcmp(handles.electrodes{i}.Type,'grid')
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2106,9 +2134,9 @@ if updateSlice(1)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2124,11 +2152,11 @@ if updateSlice(1)
     %overlay planning electrodes
     if get(handles.planningOverlaycheckbox,'value')
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.targets)
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+            for i=1:length(handles.project.targets)
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2141,10 +2169,10 @@ if updateSlice(1)
         else %plot only selected planning electrode
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2197,8 +2225,8 @@ if updateSlice(2)
     %overlay electrodes
     if get(handles.ElecOverlaycheckbox,'value')
         if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.electrodes)
-                if strcmp(handles.electrodes{i}.Type,'grid')
+            for i=1:length(handles.project.electrodes)
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2207,9 +2235,9 @@ if updateSlice(2)
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2222,7 +2250,7 @@ if updateSlice(2)
         else %plot only selected electrode
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
-                if strcmp(handles.electrodes{i}.Type,'grid')
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2230,9 +2258,9 @@ if updateSlice(2)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2247,11 +2275,11 @@ if updateSlice(2)
     %overlay planning electrodes
     if get(handles.planningOverlaycheckbox,'value')
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.targets)
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+            for i=1:length(handles.project.targets)
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2264,10 +2292,10 @@ if updateSlice(2)
         else %plot only selected planning electrode
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2318,8 +2346,8 @@ if updateSlice(3)
     %overlay electrodes
     if get(handles.ElecOverlaycheckbox,'value')
         if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.electrodes)
-                if strcmp(handles.electrodes{i}.Type,'grid')
+            for i=1:length(handles.project.electrodes)
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2328,9 +2356,9 @@ if updateSlice(3)
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2343,7 +2371,7 @@ if updateSlice(3)
         else %plot only selected electrode
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
-                if strcmp(handles.electrodes{i}.Type,'grid')
+                if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.colors.electrodesGrid2D;
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 else
@@ -2351,9 +2379,9 @@ if updateSlice(3)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
+                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2368,11 +2396,11 @@ if updateSlice(3)
     %overlay planning electrodes
     if get(handles.planningOverlaycheckbox,'value')
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.targets)
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+            for i=1:length(handles.project.targets)
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2385,10 +2413,10 @@ if updateSlice(3)
         else %plot only selected planning electrode
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
-                if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
+                if isempty(handles.project.targets{i}.projection)
+                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2406,7 +2434,7 @@ end
 % Update anatomical Labels in Coordinates box
 
 lookAround=1;
-if strcmp(handles.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
     aL=anatomicLabel(handles.cursor,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
     set(handles.aLabelText,'String',aL);
 elseif ~isempty(handles.project.wmparc) % Native space
@@ -2448,11 +2476,11 @@ if handles.updatePlots.cla
     axis image
     xlabel(handles.axes2,'x'); ylabel(handles.axes2,'y'); zlabel(handles.axes2,'z');
     handles.plot3Dhandles.GS=[];
-    handles.plot3Dhandles.electrodes=[];
+    handles.plot3Dhandles.project.electrodes=[];
     handles.plot3Dhandles.labels=[];
     handles.plot3Dhandles.targetLabels=[];
     handles.plot3Dhandles.elecLines=[];
-    handles.plot3Dhandles.targets=[];
+    handles.plot3Dhandles.project.targets=[];
     handles.plot3Dhandles.targetLines=[];
     handles.plot3Dhandles.surfaces=[];
     handles.plot3Dhandles.hcam=[];
@@ -2479,10 +2507,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get plotlist for electrodes, labels, connections  
 
-if ~isempty(handles.electrodes)>0 % plot electrodes (labeled or indexed)
+if ~isempty(handles.project.electrodes)>0 % plot electrodes (labeled or indexed)
     %plot all electrode arrays
     if get(handles.plotAllRadiobutton,'value')
-        plotList=1:length(handles.electrodes);
+        plotList=1:length(handles.project.electrodes);
     else %plot one electrode array
         plotList=str2double (get(handles.arrayNumberText,'String'));
     end
@@ -2492,41 +2520,41 @@ end
 % plot electrodes
 if handles.updatePlots.electrodes %plot
     %clear and replace
-    dlt=ishandle(handles.plot3Dhandles.electrodes);
+    dlt=ishandle(handles.plot3Dhandles.project.electrodes);
     if any(dlt) 
-        delete(handles.plot3Dhandles.electrodes(dlt));
+        delete(handles.plot3Dhandles.project.electrodes(dlt));
     end
     
-    if ~isempty(handles.electrodes)>0 % plot electrodes
+    if ~isempty(handles.project.electrodes)>0 % plot electrodes
         for j=plotList
             if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                x=handles.electrodes{j}.projection{1}.x;
-                y=handles.electrodes{j}.projection{1}.y;
-                z=handles.electrodes{j}.projection{1}.z;
+                x=handles.project.electrodes{j}.projection{1}.x;
+                y=handles.project.electrodes{j}.projection{1}.y;
+                z=handles.project.electrodes{j}.projection{1}.z;
             else %without projection
-                x=handles.electrodes{j}.x;
-                y=handles.electrodes{j}.y;
-                z=handles.electrodes{j}.z;
+                x=handles.project.electrodes{j}.x;
+                y=handles.project.electrodes{j}.y;
+                z=handles.project.electrodes{j}.z;
             end
             %plot electrodes
-            if isfield (handles.electrodes{j},'Type') & strcmp(handles.electrodes{j}.Type,'grid');
+            if isfield (handles.project.electrodes{j},'Type') & strcmp(handles.project.electrodes{j}.Type,'grid');
                 %grids
-                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesGrid3D,handles.colors.electrodesMarker3D, 'filled');%'ro'
+                handles.plot3Dhandles.project.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesGrid3D,handles.colors.electrodesMarker3D, 'filled');%'ro'
             else
                 %depth
-                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesDepth3D,handles.colors.electrodesMarker3D, 'filled');%'bo'
+                handles.plot3Dhandles.project.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesDepth3D,handles.colors.electrodesMarker3D, 'filled');%'bo'
             end
         end
         
         % plot selected electrode in black
         a=str2double(get(handles.arrayNumberText,'String'));
         l=str2double(get(handles.elecNumberText,'String'));
-        if get(handles.projectSCEcheckbox,'Value')  && isfield(handles.electrodes{a},'projection')% projection to SCE
-            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.electrodes{a}.projection{1}.x(l),...
-                handles.electrodes{a}.projection{1}.y(l),handles.electrodes{a}.projection{1}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
+        if get(handles.projectSCEcheckbox,'Value')  && isfield(handles.project.electrodes{a},'projection')% projection to SCE
+            handles.plot3Dhandles.project.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
+                handles.project.electrodes{a}.projection{1}.y(l),handles.project.electrodes{a}.projection{1}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
         else
-            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.electrodes{a}.x(l),...
-                handles.electrodes{a}.y(l),handles.electrodes{a}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
+            handles.plot3Dhandles.project.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.x(l),...
+                handles.project.electrodes{a}.y(l),handles.project.electrodes{a}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
         end
     end
 
@@ -2535,7 +2563,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot lines(cylinders) between electrodes
- if ~isempty(handles.electrodes)>0 && handles.updatePlots.elecLines %% && get(handles.PlotConnCheckbox,'Value')
+ if ~isempty(handles.project.electrodes)>0 && handles.updatePlots.elecLines %% && get(handles.PlotConnCheckbox,'Value')
     %clear and replace
     for k=1:length(handles.plot3Dhandles.elecLines)
         dlt=ishandle(handles.plot3Dhandles.elecLines{k});
@@ -2547,22 +2575,22 @@ end
         
         for j=plotList
             if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                x=handles.electrodes{j}.projection{1}.x;
-                y=handles.electrodes{j}.projection{1}.y;
-                z=handles.electrodes{j}.projection{1}.z;
+                x=handles.project.electrodes{j}.projection{1}.x;
+                y=handles.project.electrodes{j}.projection{1}.y;
+                z=handles.project.electrodes{j}.projection{1}.z;
             else %without projection
-                x=handles.electrodes{j}.x;
-                y=handles.electrodes{j}.y;
-                z=handles.electrodes{j}.z;
+                x=handles.project.electrodes{j}.x;
+                y=handles.project.electrodes{j}.y;
+                z=handles.project.electrodes{j}.z;
             end
             
             X=[x,y,z];
-            if isfield (handles.electrodes{j},'Type') && strcmp(handles.electrodes{j}.Type,'grid')
+            if isfield (handles.project.electrodes{j},'Type') && strcmp(handles.project.electrodes{j}.Type,'grid')
                 color=handles.colors.cylColorGrid;
             else
                 color=handles.colors.cylColorDepth;
             end
-            handles.plot3Dhandles.elecLines{j}=plotElectrodesLines(X,handles.electrodes{j}.rows,handles.electrodes{j}.columns,color);
+            handles.plot3Dhandles.elecLines{j}=plotElectrodesLines(X,handles.project.electrodes{j}.rows,handles.project.electrodes{j}.columns,color);
 %            set(handles.plot3Dhandles.elecLines{j},'FaceAlpha',handles.options.cylAlpha);
         end
     end
@@ -2572,35 +2600,35 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot electrode labels
 
-if ~isempty(handles.electrodes)>0 && handles.updatePlots.labels
+if ~isempty(handles.project.electrodes)>0 && handles.updatePlots.labels
     %clear and replace
     dlt=ishandle(handles.plot3Dhandles.labels);
     if any(dlt) 
         delete(handles.plot3Dhandles.labels(dlt));
     end
      
-     %     if isfield(handles.electrodes{j},'recorded_channels') %for compatiblillity with previous versions
-     %             labelList=handles.electrodes{j}.recorded_channels;
-     %             ch_label=cell(1,handles.electrodes{j}.nElectrodes);
-     %             ch_label(labelList)=handles.electrodes{j}.ch_label;
+     %     if isfield(handles.project.electrodes{j},'recorded_channels') %for compatiblillity with previous versions
+     %             labelList=handles.project.electrodes{j}.recorded_channels;
+     %             ch_label=cell(1,handles.project.electrodes{j}.nElectrodes);
+     %             ch_label(labelList)=handles.project.electrodes{j}.ch_label;
      %         else
-     %             labelList=1:handles.electrodes{j}.nElectrodes;
-     %             ch_label=handles.electrodes{j}.ch_label;
+     %             labelList=1:handles.project.electrodes{j}.nElectrodes;
+     %             ch_label=handles.project.electrodes{j}.ch_label;
      %         end
      k=1;
      for j=plotList
         if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-            x=handles.electrodes{j}.projection{1}.x;
-            y=handles.electrodes{j}.projection{1}.y;
-            z=handles.electrodes{j}.projection{1}.z;
+            x=handles.project.electrodes{j}.projection{1}.x;
+            y=handles.project.electrodes{j}.projection{1}.y;
+            z=handles.project.electrodes{j}.projection{1}.z;
         else %without projection
-            x=handles.electrodes{j}.x;
-            y=handles.electrodes{j}.y;
-            z=handles.electrodes{j}.z;
+            x=handles.project.electrodes{j}.x;
+            y=handles.project.electrodes{j}.y;
+            z=handles.project.electrodes{j}.z;
         end
         
-         labelList=1:handles.electrodes{j}.nElectrodes;
-         ch_label=handles.electrodes{j}.ch_label;
+         labelList=1:handles.project.electrodes{j}.nElectrodes;
+         ch_label=handles.project.electrodes{j}.ch_label;
          
          if get(handles.DispLabelsCheckbox,'Value')
              for i=labelList
@@ -2621,10 +2649,10 @@ if ~isempty(handles.electrodes)>0 && handles.updatePlots.labels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % get plotlist for Targerts
 plotList=[];
-if ~isempty(handles.targets)>0 % plot targets
+if ~isempty(handles.project.targets)>0 % plot targets
     %plot all targets array
     if get(handles.plotAllPlanningRadioButton,'value')
-        plotList=1:length(handles.targets);
+        plotList=1:length(handles.project.targets);
     else %plot one target array
         plotList=str2double (get(handles.arrayPlanningNumberText,'String'));
     end
@@ -2633,39 +2661,39 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot targets
    
-if ~isempty(handles.targets)>0 && handles.updatePlots.targets
+if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
 
     %clear and replace    
-    for k=1:length(handles.plot3Dhandles.targets)
-        dlt=ishandle(handles.plot3Dhandles.targets{k});
+    for k=1:length(handles.plot3Dhandles.project.targets)
+        dlt=ishandle(handles.plot3Dhandles.project.targets{k});
         if any(dlt)
-            delete(handles.plot3Dhandles.targets{k});
+            delete(handles.plot3Dhandles.project.targets{k});
         end
     end
         
     for j=plotList
-        if ~isempty(handles.targets{j}.projection)
-            x=handles.targets{j}.projection{1}.x;
-            y=handles.targets{j}.projection{1}.y;
-            z=handles.targets{j}.projection{1}.z;
+        if ~isempty(handles.project.targets{j}.projection)
+            x=handles.project.targets{j}.projection{1}.x;
+            y=handles.project.targets{j}.projection{1}.y;
+            z=handles.project.targets{j}.projection{1}.z;
         else
-            x=handles.targets{j}.x;
-            y=handles.targets{j}.y;
-            z=handles.targets{j}.z;
+            x=handles.project.targets{j}.x;
+            y=handles.project.targets{j}.y;
+            z=handles.project.targets{j}.z;
         end
-        handles.plot3Dhandles.targets{j}=scatter3(handles.axes2,x,y,z,handles.colors.targetSize3D,handles.colors.target3D,handles.colors.targetMarker3D, 'filled');%'go'
+        handles.plot3Dhandles.project.targets{j}=scatter3(handles.axes2,x,y,z,handles.colors.targetSize3D,handles.colors.target3D,handles.colors.targetMarker3D, 'filled');%'go'
     end
     
     % plot selected target in black
     a=str2double(get(handles.arrayPlanningNumberText,'String'));
     l=str2double(get(handles.elecPlanningNumberText,'String'));
     
-    if ~isempty(handles.targets{j}.projection)
-        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.targets{a}.projection{1}.x(l),...
-            handles.targets{a}.projection{1}.y(l),handles.targets{a}.projection{1}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
+    if ~isempty(handles.project.targets{j}.projection)
+        handles.plot3Dhandles.project.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
+            handles.project.targets{a}.projection{1}.y(l),handles.project.targets{a}.projection{1}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
     else
-        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.targets{a}.x(l),...
-            handles.targets{a}.y(l),handles.targets{a}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
+        handles.plot3Dhandles.project.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.x(l),...
+            handles.project.targets{a}.y(l),handles.project.targets{a}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
     end
     handles.updatePlots.targets=0;    
 end
@@ -2673,7 +2701,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot targetLines
 
-if ~isempty(handles.targets)>0 && handles.updatePlots.targetLines
+if ~isempty(handles.project.targets)>0 && handles.updatePlots.targetLines
     %clear and replace
     for k=1:length(handles.plot3Dhandles.targetLines)
         dlt=ishandle(handles.plot3Dhandles.targetLines{k});
@@ -2686,18 +2714,18 @@ if ~isempty(handles.targets)>0 && handles.updatePlots.targetLines
     for j=plotList
         if get(handles.PlotConnCheckbox,'Value')
             
-        if ~isempty(handles.targets{j}.projection)
-            x=handles.targets{j}.projection{1}.x;
-            y=handles.targets{j}.projection{1}.y;
-            z=handles.targets{j}.projection{1}.z;
+        if ~isempty(handles.project.targets{j}.projection)
+            x=handles.project.targets{j}.projection{1}.x;
+            y=handles.project.targets{j}.projection{1}.y;
+            z=handles.project.targets{j}.projection{1}.z;
         else
-            x=handles.targets{j}.x;
-            y=handles.targets{j}.y;
-            z=handles.targets{j}.z;
+            x=handles.project.targets{j}.x;
+            y=handles.project.targets{j}.y;
+            z=handles.project.targets{j}.z;
         end
             X=[x,y,z];
             color=handles.colors.cylColorTargets;
-            handles.plot3Dhandles.targetLines{j}=plotElectrodesLines(X,handles.targets{j}.rows,handles.targets{j}.columns,color);
+            handles.plot3Dhandles.targetLines{j}=plotElectrodesLines(X,handles.project.targets{j}.rows,handles.project.targets{j}.columns,color);
 %            set(handles.plot3Dhandles.targetLines{j},'FaceAlpha',handles.colors.cylAlphaTages);
         end
     end    
@@ -2721,7 +2749,7 @@ if handles.updatePlots.surfaces
     end
     
     % use subject surface
-    if strcmp(handles.currentSpace,'Native')
+    if strcmp(handles.project.currentSpace,'Native')
         if ~isempty(handles.project.verticesR) %plot pials
             if get(handles.Rightcheckbox,'Value')
                 if get(handles.Annotationcheckbox,'Value')
@@ -3130,8 +3158,8 @@ else
     if get(handles.LocalizedCheckbox,'value')
         
         localizedCrd=[];
-        for j=1:length(handles.electrodes)
-            localizedCrd=[localizedCrd; handles.electrodes{j}.brushCrd];
+        for j=1:length(handles.project.electrodes)
+            localizedCrd=[localizedCrd; handles.project.electrodes{j}.brushCrd];
         end
         
         localizedCTCords=round(AnatSpace2Mesh(localizedCrd,handles.project.S2));
@@ -3849,7 +3877,7 @@ end
 electrodes.clusters=clusters; 
 electrodes.brushCrd=clusteredCrd;
 electrodes.brushWeight=clusteredWeight;
-electrodes.space = handles.currentSpace; % 'Native'  or 'MNI'
+electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
 electrodes.method = 'grid_fit';
 electrodes.methodParameters = options; % store gridFit configuration parameters
 
@@ -4150,7 +4178,7 @@ if isempty(handles.GS)
     % retrive array number
     l = str2double(get(handles.arrayNumberText,'String'));
 
-    electrodes = handles.electrodes{l};
+    electrodes = handles.project.electrodes{l};
     
     pos = [electrodes.x electrodes.y electrodes.z];
     
@@ -4199,7 +4227,7 @@ else
     electrodes.clusters=handles.clusters;
     electrodes.brushCrd=handles.brushCrd;
     electrodes.brushWeight=handles.brushWeight;
-    electrodes.space = handles.currentSpace; % 'Native'  or 'MNI'
+    electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
     electrodes.method = 'clustering';
     electrodes.methodParameters.indexing_projection_method = handles.options.indexing_projection_method;
 
@@ -4214,26 +4242,26 @@ end
 guidata(hObject, handles);
 
 function handles = addElectrode2structure(handles,electrodes,array)
-% Add electrodes to handles.electrodes 
+% Add electrodes to handles.project.electrodes 
 % if arrray is empty, make a new electrode cell at the endl
 % Otherwise, replce electrode
 
 if isempty(array)
     % add to structure
-    L=length(handles.electrodes);
+    L=length(handles.project.electrodes);
     l=L+1; % new electrode array
 else
     %overwrite
     L=array;
     l=L;
 end
-handles.electrodes{l}=electrodes;
+handles.project.electrodes{l}=electrodes;
 
 % process projections if needed
 handles=processProjections(handles);
 
 % anatomical labeling (electrodes and projections)
-if strcmp(handles.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
     handles=labels2MNIspace(handles);
 else
     handles=labels2NativeSpace(handles);
@@ -4257,13 +4285,13 @@ end
 %set visualization to this electrode
 set(handles.arrayNumberText,'String',num2str(l));
 set(handles.elecNumberText,'String',num2str(1));
-set(handles.editArrayName,'String',handles.electrodes{l}.Name);
-set(handles.editElecLabels,'string',handles.electrodes{l}.ch_label{1});
+set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
+set(handles.editElecLabels,'string',handles.project.electrodes{l}.ch_label{1});
 
 % go to first electrode coordinate for checking
-d1=handles.electrodes{l}.x(1);
-d2=handles.electrodes{l}.y(1);
-d3=handles.electrodes{l}.z(1);
+d1=handles.project.electrodes{l}.x(1);
+d2=handles.project.electrodes{l}.y(1);
+d3=handles.project.electrodes{l}.z(1);
 
 D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
 set(handles.sliderX,'Value',D(1));
@@ -4287,14 +4315,14 @@ function rLpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 a=str2double(get(handles.arrayNumberText,'String'));
 
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
     warning('rows ~= columns');
     
@@ -4326,7 +4354,7 @@ else
 %     
 %     % no need to change adjMat
     
-    handles.electrodes{a}=electrodes;    
+    handles.project.electrodes{a}=electrodes;    
 
     handles.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
@@ -4341,14 +4369,14 @@ function rRpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to rRpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 a=str2double(get(handles.arrayNumberText,'String'));
 
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
     warning('rows ~= columns');
 else
@@ -4380,7 +4408,7 @@ else
 %     
 %     % no need to change adjMat
     
-    handles.electrodes{a}=electrodes;    
+    handles.project.electrodes{a}=electrodes;    
 
     handles.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
@@ -4395,14 +4423,14 @@ function fLRpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to fLRpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 a=str2double(get(handles.arrayNumberText,'String'));
 
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 
 newOrder=1:electrodes.nElectrodes;
 newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
@@ -4431,7 +4459,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 % 
 % % no need to change adjMat
 % 
-handles.electrodes{a}=electrodes;
+handles.project.electrodes{a}=electrodes;
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4444,14 +4472,14 @@ function fUDpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to fUDpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 a=str2double(get(handles.arrayNumberText,'String'));
 
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 
 newOrder=1:electrodes.nElectrodes;
 newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
@@ -4481,7 +4509,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 % 
 % % no need to change adjMat
 % 
-handles.electrodes{a}=electrodes;
+handles.project.electrodes{a}=electrodes;
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4503,7 +4531,7 @@ if a==0
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 
 newOrder=fliplr(1:electrodes.nElectrodes);
 electrodes=reorderElectrodes(electrodes,newOrder(:));
@@ -4526,7 +4554,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 % end
 % electrodes.clusters=tmp;
 
-handles.electrodes{a}=electrodes;
+handles.project.electrodes{a}=electrodes;
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4543,14 +4571,14 @@ function manualIndexpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 a=str2double(get(handles.arrayNumberText,'String'));
 
-electrodes=handles.electrodes{a};
+electrodes=handles.project.electrodes{a};
 
 [newOrder, chLabelsOut]=movelist(electrodes.ch_label);
 
@@ -4559,7 +4587,7 @@ if all(strcmp(chLabelsOut, electrodes.ch_label)) %all channels the same
 end
 electrodes=reorderElectrodes(electrodes,newOrder(:));
  
-handles.electrodes{a}=electrodes;
+handles.project.electrodes{a}=electrodes;
 
 handles.updatePlots.electrodes=1;
 handles.updatePlots.labels=1;
@@ -4581,22 +4609,22 @@ function LabelAutoPushbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % works over the current electrode array
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First index some electrodes');
     return;
 end
 l=str2double(get(handles.arrayNumberText,'String'));
-N=handles.electrodes{l}.nElectrodes;
+N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
-handles.electrodes{l}.Name = elecBaseName;
+handles.project.electrodes{l}.Name = elecBaseName;
 
 for i=1:N
-    handles.electrodes{l}.ch_label{i}=[elecBaseName int2str(i)];
+    handles.project.electrodes{l}.ch_label{i}=[elecBaseName int2str(i)];
 end
 
 set(handles.elecNumberText,'String',num2str(1));
-set(handles.editArrayName,'String', handles.electrodes{l}.Name);
-set(handles.editElecLabels,'string', handles.electrodes{l}.ch_label{1});
+set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
+set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4612,18 +4640,18 @@ function LabelListPushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 % works over the current electrode array
 l=str2double(get(handles.arrayNumberText,'String'));
-N=handles.electrodes{l}.nElectrodes;
+N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
-handles.electrodes{l}.Name = elecBaseName;
+handles.project.electrodes{l}.Name = elecBaseName;
     
 %get labels from file
-if isempty(handles.elecListLabels)
+if isempty(handles.project.elecListLabels)
     temp=getLabelsFromFile(handles.PathName);
     
 %     temp={
@@ -4640,7 +4668,7 @@ if isempty(handles.elecListLabels)
     if isempty(temp)
         return;
     end
-    handles.elecListLabels=temp;
+    handles.project.elecListLabels=temp;
 else
     % add option to go again into electrodes list
     choice = questdlg('Do you want to load new labels from file?', ...
@@ -4652,7 +4680,7 @@ else
             if isempty(temp)
                 return;
             end
-            handles.elecListLabels=temp;            
+            handles.project.elecListLabels=temp;            
         case 'No'
             % do nothing
         case 'Cancel'
@@ -4662,8 +4690,8 @@ else
     end
 end
 
-left=handles.elecListLabels;
-right=handles.electrodes{l}.ch_label;
+left=handles.project.elecListLabels;
+right=handles.project.electrodes{l}.ch_label;
 
 while true
     [right,left]=addremovelist(...
@@ -4682,16 +4710,16 @@ while true
     
 end
 
-handles.elecListLabels=left;
+handles.project.elecListLabels=left;
 
 %label
 for i=1:N
-    handles.electrodes{l}.ch_label{i}=right{i};
+    handles.project.electrodes{l}.ch_label{i}=right{i};
 end
 
-set(handles.editArrayName,'String',handles.electrodes{l}.Name);
+set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 set(handles.elecNumberText,'String',num2str(1));
-set(handles.editElecLabels,'string', handles.electrodes{l}.ch_label{1});
+set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4716,7 +4744,7 @@ function projectSCEcheckbox_Callback(hObject, eventdata, handles)
 % global debugging
 % debugging=1;
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -4740,8 +4768,8 @@ function handles=processProjections(handles)
 
 if get(handles.projectSCEcheckbox,'Value') % calculate projection
     
-    for i=1:length(handles.electrodes)
-        isgrid(i)=strcmp({handles.electrodes{i}.Type},'grid') || strcmp({handles.electrodes{i}.Type},'strip');
+    for i=1:length(handles.project.electrodes)
+        isgrid(i)=strcmp({handles.project.electrodes{i}.Type},'grid') || strcmp({handles.project.electrodes{i}.Type},'strip');
     end
     if ~any(isgrid)
         warning('It is not posible to project electrodes to SCE. No grids localized yet. Please localize grids first.');
@@ -4751,9 +4779,9 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
         
         % Deal with previous projections
         projDone=[];
-        for i=1:length(handles.electrodes)
-            %projDone(i)=isfield(handles.electrodes{i},'projection');
-            projDone(i)=~isempty(handles.electrodes{i}.projection);
+        for i=1:length(handles.project.electrodes)
+            %projDone(i)=isfield(handles.project.electrodes{i},'projection');
+            projDone(i)=~isempty(handles.project.electrodes{i}.projection);
 
         end
         
@@ -4776,13 +4804,13 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
         
         % Do the projections
         if sum(~projDone)>0
-            if strcmp(handles.currentSpace,'MNI') % MNI space
-                handles.electrodes=electrodes2hullCorrection(handles.electrodes,handles.v_MNI_SCE,handles.f_MNI_SCE, handles.options, projDone);
+            if strcmp(handles.project.currentSpace,'MNI') % MNI space
+                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.v_MNI_SCE,handles.f_MNI_SCE, handles.options, projDone);
                 
             else  % Native space
                 if ~isempty(handles.project.vertices_SCE_L)
                     [vertices,faces]=mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
-                    handles.electrodes=electrodes2hullCorrection(handles.electrodes,vertices,faces,handles.options,projDone);
+                    handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,vertices,faces,handles.options,projDone);
                 else
                     warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
                     set(handles.projectSCEcheckbox,'Value',0);
@@ -4790,7 +4818,7 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
             end
 
             % anatomical labeling (electrodes and projections)
-            if strcmp(handles.currentSpace,'MNI'); % options are 'Native' 'MNI'       
+            if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'       
                 handles=labels2MNIspace(handles);
             else
                 handles=labels2NativeSpace(handles);
@@ -4813,7 +4841,7 @@ function editArrayName_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editArrayName as text
 %        str2double(get(hObject,'String')) returns contents of editArrayName as a double
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -4821,13 +4849,13 @@ end
 str=get(handles.editArrayName,'String');
 a=str2double(get(handles.arrayNumberText,'String'));
 
-handles.electrodes{a}.Name=str;
+handles.project.electrodes{a}.Name=str;
 
 % Electrode labels and Array are independent now
-% N=handles.electrodes{a}.nElectrodes;
+% N=handles.project.electrodes{a}.nElectrodes;
 % 
 % for i=1:N
-%     handles.electrodes{a}.ch_label{i}=[str int2str(i)];
+%     handles.project.electrodes{a}.ch_label{i}=[str int2str(i)];
 % end
 
 handles.updatePlots.labels=1;
@@ -4846,7 +4874,7 @@ function editElecLabels_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editElecLabels as text
 %        str2double(get(hObject,'String')) returns contents of editElecLabels as a double
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -4855,7 +4883,7 @@ str=get(handles.editElecLabels,'String');
 a=str2double(get(handles.elecNumberText,'String'));
 l=str2double(get(handles.arrayNumberText,'String'));
 
-handles.electrodes{l}.ch_label{a}=str;
+handles.project.electrodes{l}.ch_label{a}=str;
 
 handles.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -4870,7 +4898,7 @@ function setElecCoordpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -4883,13 +4911,13 @@ crd=handles.cursor;
 
 % apply to current electrode
 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-    handles.electrodes{l}.projection{1}.x(a)=crd(1);
-    handles.electrodes{l}.projection{1}.y(a)=crd(2);
-    handles.electrodes{l}.projection{1}.z(a)=crd(3);
+    handles.project.electrodes{l}.projection{1}.x(a)=crd(1);
+    handles.project.electrodes{l}.projection{1}.y(a)=crd(2);
+    handles.project.electrodes{l}.projection{1}.z(a)=crd(3);
 else %without projection
-    handles.electrodes{l}.x(a)=crd(1);
-    handles.electrodes{l}.y(a)=crd(2);
-    handles.electrodes{l}.z(a)=crd(3);
+    handles.project.electrodes{l}.x(a)=crd(1);
+    handles.project.electrodes{l}.y(a)=crd(2);
+    handles.project.electrodes{l}.z(a)=crd(3);
 end
 
 handles.updatePlots.electrodes=1;
@@ -4909,13 +4937,13 @@ function NextArrayPushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to NextArrayPushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
 
 l=str2double(get(handles.arrayNumberText,'String'));
-if l < length(handles.electrodes)
+if l < length(handles.project.electrodes)
     a=1; %set electrode to 1
     
     set(handles.arrayNumberText,'String',num2str(l+1));
@@ -4923,13 +4951,13 @@ if l < length(handles.electrodes)
     
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-        d1=handles.electrodes{l+1}.projection{1}.x(a);
-        d2=handles.electrodes{l+1}.projection{1}.y(a);
-        d3=handles.electrodes{l+1}.projection{1}.z(a);
+        d1=handles.project.electrodes{l+1}.projection{1}.x(a);
+        d2=handles.project.electrodes{l+1}.projection{1}.y(a);
+        d3=handles.project.electrodes{l+1}.projection{1}.z(a);
     else %without projection
-        d1=handles.electrodes{l+1}.x(a);
-        d2=handles.electrodes{l+1}.y(a);
-        d3=handles.electrodes{l+1}.z(a);
+        d1=handles.project.electrodes{l+1}.x(a);
+        d2=handles.project.electrodes{l+1}.y(a);
+        d3=handles.project.electrodes{l+1}.z(a);
     end
 
     
@@ -4945,8 +4973,8 @@ if l < length(handles.electrodes)
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editArrayName,'String',handles.electrodes{l+1}.Name);
-    set(handles.editElecLabels,'string', handles.electrodes{l+1}.ch_label{a});
+    set(handles.editArrayName,'String',handles.project.electrodes{l+1}.Name);
+    set(handles.editElecLabels,'string', handles.project.electrodes{l+1}.ch_label{a});
 
     
 end
@@ -4960,7 +4988,7 @@ function PrevArrayPushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -4974,13 +5002,13 @@ if l>1
     set(handles.elecNumberText,'String',num2str(a));
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-        d1=handles.electrodes{l-1}.projection{1}.x(a);
-        d2=handles.electrodes{l-1}.projection{1}.y(a);
-        d3=handles.electrodes{l-1}.projection{1}.z(a);
+        d1=handles.project.electrodes{l-1}.projection{1}.x(a);
+        d2=handles.project.electrodes{l-1}.projection{1}.y(a);
+        d3=handles.project.electrodes{l-1}.projection{1}.z(a);
     else %without projection
-        d1=handles.electrodes{l-1}.x(a);
-        d2=handles.electrodes{l-1}.y(a);
-        d3=handles.electrodes{l-1}.z(a);
+        d1=handles.project.electrodes{l-1}.x(a);
+        d2=handles.project.electrodes{l-1}.y(a);
+        d3=handles.project.electrodes{l-1}.z(a);
     end
 
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
@@ -4995,8 +5023,8 @@ if l>1
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editArrayName,'String',handles.electrodes{l-1}.Name);
-    set(handles.editElecLabels,'string', handles.electrodes{l-1}.ch_label{a});
+    set(handles.editArrayName,'String',handles.project.electrodes{l-1}.Name);
+    set(handles.editElecLabels,'string', handles.project.electrodes{l-1}.ch_label{a});
 end
 
 % Update handles structure
@@ -5008,7 +5036,7 @@ function NextElecPushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to NextElecPushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -5016,18 +5044,18 @@ end
 l=str2double(get(handles.elecNumberText,'String'))+1;
 a=str2double(get(handles.arrayNumberText,'String'));
 
-if l <= handles.electrodes{a}.nElectrodes
+if l <= handles.project.electrodes{a}.nElectrodes
     set(handles.elecNumberText,'String',num2str(l));
-    set(handles.editElecLabels,'string', handles.electrodes{a}.ch_label{l});
+    set(handles.editElecLabels,'string', handles.project.electrodes{a}.ch_label{l});
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-        d1=handles.electrodes{a}.projection{1}.x(l);
-        d2=handles.electrodes{a}.projection{1}.y(l);
-        d3=handles.electrodes{a}.projection{1}.z(l);
+        d1=handles.project.electrodes{a}.projection{1}.x(l);
+        d2=handles.project.electrodes{a}.projection{1}.y(l);
+        d3=handles.project.electrodes{a}.projection{1}.z(l);
     else %without projection
-        d1=handles.electrodes{a}.x(l);
-        d2=handles.electrodes{a}.y(l);
-        d3=handles.electrodes{a}.z(l);
+        d1=handles.project.electrodes{a}.x(l);
+        d2=handles.project.electrodes{a}.y(l);
+        d3=handles.project.electrodes{a}.z(l);
     end
 
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
@@ -5051,7 +5079,7 @@ function PrevElecPushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to PrevElecPushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.electrodes)
+if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
@@ -5061,16 +5089,16 @@ a=str2double(get(handles.arrayNumberText,'String'));
 
 if l >= 1
     set(handles.elecNumberText,'String',num2str(l));
-    set(handles.editElecLabels,'string', handles.electrodes{a}.ch_label{l});
+    set(handles.editElecLabels,'string', handles.project.electrodes{a}.ch_label{l});
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-        d1=handles.electrodes{a}.projection{1}.x(l);
-        d2=handles.electrodes{a}.projection{1}.y(l);
-        d3=handles.electrodes{a}.projection{1}.z(l);
+        d1=handles.project.electrodes{a}.projection{1}.x(l);
+        d2=handles.project.electrodes{a}.projection{1}.y(l);
+        d3=handles.project.electrodes{a}.projection{1}.z(l);
     else %without projection
-        d1=handles.electrodes{a}.x(l);
-        d2=handles.electrodes{a}.y(l);
-        d3=handles.electrodes{a}.z(l);
+        d1=handles.project.electrodes{a}.x(l);
+        d2=handles.project.electrodes{a}.y(l);
+        d3=handles.project.electrodes{a}.z(l);
     end
     
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
@@ -5112,7 +5140,7 @@ function RemoveArrayPushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isempty(handles.electrodes) 
+if ~isempty(handles.project.electrodes) 
     
     l=str2double(get(handles.arrayNumberText,'String')); %actual elec to remove
 % add warning image
@@ -5122,8 +5150,8 @@ if ~isempty(handles.electrodes)
     if strcmp(choice,'No')
        return;
     end
-    handles.electrodes(l)=[];
-    if isempty(handles.electrodes)
+    handles.project.electrodes(l)=[];
+    if isempty(handles.project.electrodes)
         set(handles.arrayNumberText,'String','0');
         set(handles.elecNumberText,'String','0');
 
@@ -5137,9 +5165,9 @@ if ~isempty(handles.electrodes)
         end
         set(handles.elecNumberText,'String','1');
         
-        d1=handles.electrodes{a}.x(1);
-        d2=handles.electrodes{a}.y(1);
-        d3=handles.electrodes{a}.z(1);
+        d1=handles.project.electrodes{a}.x(1);
+        d2=handles.project.electrodes{a}.y(1);
+        d3=handles.project.electrodes{a}.z(1);
         
         D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
         set(handles.sliderX,'Value',D(1));
@@ -5252,7 +5280,7 @@ function TargetNameedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetNameedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetNameedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.Name=get(handles.TargetNameedit,'String');
+handles.project.targets{l}.Name=get(handles.TargetNameedit,'String');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -5266,7 +5294,7 @@ function FirstSecondTargetedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of FirstSecondTargetedit as text
 %        str2double(get(hObject,'String')) returns contents of FirstSecondTargetedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.FirstSecond=str2double(get(handles.FirstSecondTargetedit,'String'));
+handles.project.targets{l}.FirstSecond=str2double(get(handles.FirstSecondTargetedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5286,7 +5314,7 @@ function SecondLastTargetEdit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of SecondLastTargetEdit as text
 %        str2double(get(hObject,'String')) returns contents of SecondLastTargetEdit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.SecondLast=str2double(get(handles.SecondLastTargetEdit,'String'));
+handles.project.targets{l}.SecondLast=str2double(get(handles.SecondLastTargetEdit,'String'));
 handles=updateTarget(handles);
 
 handles.updatePlots.views2D=[1 1 1];
@@ -5307,7 +5335,7 @@ function nTargetEdit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of nTargetEdit as text
 %        str2double(get(hObject,'String')) returns contents of nTargetEdit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.nElectrodes=str2double(get(handles.nTargetEdit,'String'));
+handles.project.targets{l}.nElectrodes=str2double(get(handles.nTargetEdit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5331,7 +5359,7 @@ if isempty(handles.project.T1)
     return
 end
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('First create a new target');
     return;
 end
@@ -5372,11 +5400,11 @@ end
 coords=mesh2AnatSpace([x y z], handles.project.S2);
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetIn.x=coords(1);
-handles.targets{l}.targetIn.y=coords(2);
-handles.targets{l}.targetIn.z=coords(3);
+handles.project.targets{l}.targetIn.x=coords(1);
+handles.project.targets{l}.targetIn.y=coords(2);
+handles.project.targets{l}.targetIn.z=coords(3);
 
-%handles.targets(l).frameDown = handles.targets(l).coordinates(handles.targets(l).n,3) < 0; %handles.targets(l).targetIn.z < 0;
+%handles.project.targets(l).frameDown = handles.project.targets(l).coordinates(handles.project.targets(l).n,3) < 0; %handles.project.targets(l).targetIn.z < 0;
 
 
 
@@ -5412,7 +5440,7 @@ if isempty(handles.project.T1)
     return
 end
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('First create a new target')
     return;
 end
@@ -5460,9 +5488,9 @@ end
 coords=mesh2AnatSpace([x y z], handles.project.S2);
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetOut.x=coords(1);
-handles.targets{l}.targetOut.y=coords(2);
-handles.targets{l}.targetOut.z=coords(3);
+handles.project.targets{l}.targetOut.x=coords(1);
+handles.project.targets{l}.targetOut.y=coords(2);
+handles.project.targets{l}.targetOut.z=coords(3);
 
 
 if verLessThan('matlab','8.4.0')
@@ -5496,7 +5524,7 @@ function TargetInXedit_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of TargetInXedit as a double
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetIn.x=str2double(get(handles.TargetInXedit,'String'));
+handles.project.targets{l}.targetIn.x=str2double(get(handles.TargetInXedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5516,7 +5544,7 @@ function TargetInYedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetInYedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetInYedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetIn.y=str2double(get(handles.TargetInYedit,'String'));
+handles.project.targets{l}.targetIn.y=str2double(get(handles.TargetInYedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5536,9 +5564,9 @@ function TargetInZedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetInZedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetInZedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetIn.z=str2double(get(handles.TargetInZedit,'String'));
+handles.project.targets{l}.targetIn.z=str2double(get(handles.TargetInZedit,'String'));
 
-%handles.targets{l}.frameDown = handles.targets(l).coordinates(handles.targets(l).n,3) < 0; % handles.targets(l).targetIn.z < 0;
+%handles.project.targets{l}.frameDown = handles.project.targets(l).coordinates(handles.project.targets(l).n,3) < 0; % handles.project.targets(l).targetIn.z < 0;
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5558,7 +5586,7 @@ function TargetOutXedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetOutXedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutXedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetOut.x=str2double(get(handles.TargetOutXedit,'String'));
+handles.project.targets{l}.targetOut.x=str2double(get(handles.TargetOutXedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5578,7 +5606,7 @@ function TargetOutYedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetOutYedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutYedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetOut.y=str2double(get(handles.TargetOutYedit,'String'));
+handles.project.targets{l}.targetOut.y=str2double(get(handles.TargetOutYedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5598,7 +5626,7 @@ function TargetOutZedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetOutZedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutZedit as a double
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-handles.targets{l}.targetOut.z=str2double(get(handles.TargetOutZedit,'String'));
+handles.project.targets{l}.targetOut.z=str2double(get(handles.TargetOutZedit,'String'));
 handles=updateTarget(handles);
 handles.updatePlots.views2D=[1 1 1];
 handles.updatePlots.targets=1;
@@ -5652,14 +5680,14 @@ guidata(hObject, handles);
 function handles=angleChange(handles)
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-n=handles.targets{l}.Electrodes;
-fs_dist=handles.targets{l}.FirstSecond;
-sl_dist=handles.targets{l}.SecondLast;
+n=handles.project.targets{l}.Electrodes;
+fs_dist=handles.project.targets{l}.FirstSecond;
+sl_dist=handles.project.targets{l}.SecondLast;
 
 %punto Target IN
-xi(1)= handles.targets{l}.targetIn.x;
-xi(2)= handles.targets{l}.targetIn.y;
-xi(3)= handles.targets{l}.targetIn.z;
+xi(1)= handles.project.targets{l}.targetIn.x;
+xi(2)= handles.project.targets{l}.targetIn.y;
+xi(3)= handles.project.targets{l}.targetIn.z;
 
 az=str2double( get(handles.AzimuthTargetedit,'String') );
 el=str2double( get(handles.ElevacionTargetedit,'String') );
@@ -5683,9 +5711,9 @@ dist=fs_dist+(n-2)*sl_dist; %length from first to last
 
 xo=xi+dist*delta;
 
-handles.targets{l}.targetOut.x=xo(1);
-handles.targets{l}.targetOut.y=xo(2);
-handles.targets{l}.targetOut.z=xo(3);
+handles.project.targets{l}.targetOut.x=xo(1);
+handles.project.targets{l}.targetOut.y=xo(2);
+handles.project.targets{l}.targetOut.z=xo(3);
 
 
 if verLessThan('matlab','8.4.0')
@@ -5712,36 +5740,36 @@ function handles=updateTarget(handles)
 % read defined values
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-n=handles.targets{l}.nElectrodes;
+n=handles.project.targets{l}.nElectrodes;
 
-fs_dist=handles.targets{l}.FirstSecond;
+fs_dist=handles.project.targets{l}.FirstSecond;
 
-sl_dist=handles.targets{l}.SecondLast;
+sl_dist=handles.project.targets{l}.SecondLast;
 
 %punto Target IN
-xi(1)=handles.targets{l}.targetIn.x;
-xi(2)=handles.targets{l}.targetIn.y;
-xi(3)=handles.targets{l}.targetIn.z;
+xi(1)=handles.project.targets{l}.targetIn.x;
+xi(2)=handles.project.targets{l}.targetIn.y;
+xi(3)=handles.project.targets{l}.targetIn.z;
 
 %punto taget Out
-xo(1)=handles.targets{l}.targetOut.x;
-xo(2)=handles.targets{l}.targetOut.y;
-xo(3)=handles.targets{l}.targetOut.z;
+xo(1)=handles.project.targets{l}.targetOut.x;
+xo(2)=handles.project.targets{l}.targetOut.y;
+xo(3)=handles.project.targets{l}.targetOut.z;
 
-dx=handles.targets{l}.targetOut.x - handles.targets{l}.targetIn.x;
-dy=handles.targets{l}.targetOut.y - handles.targets{l}.targetIn.y;
-dz=handles.targets{l}.targetOut.z - handles.targets{l}.targetIn.z;
+dx=handles.project.targets{l}.targetOut.x - handles.project.targets{l}.targetIn.x;
+dy=handles.project.targets{l}.targetOut.y - handles.project.targets{l}.targetIn.y;
+dz=handles.project.targets{l}.targetOut.z - handles.project.targets{l}.targetIn.z;
 
 % compute az, el, coordinates, distances
 delta=[dx dy dz] / norm([dx dy dz]);
-handles.targets{l}.delta=delta;
+handles.project.targets{l}.delta=delta;
 [az,el,~] =cart2sph(delta(1), delta(2), delta(3));
 %convert from radians to degres
 az=az*180/pi;
 el=el*180/pi;
 
-handles.targets{l}.azimut=az;
-handles.targets{l}.elevation=el;
+handles.project.targets{l}.azimut=az;
+handles.project.targets{l}.elevation=el;
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
@@ -5766,10 +5794,10 @@ distances= [0 fs_dist fs_dist + ((1:(n-2))*sl_dist)];
 for i=1:n
     coordinates(i,:)= xi+ distances(i) * delta;
 end
-handles.targets{l}.distances=distances;
-handles.targets{l}.x=coordinates(:,1);
-handles.targets{l}.y=coordinates(:,2);
-handles.targets{l}.z=coordinates(:,3);
+handles.project.targets{l}.distances=distances;
+handles.project.targets{l}.x=coordinates(:,1);
+handles.project.targets{l}.y=coordinates(:,2);
+handles.project.targets{l}.z=coordinates(:,3);
 
 % %anatomical labels
 % lookAround=1;
@@ -5779,14 +5807,14 @@ handles.targets{l}.z=coordinates(:,3);
 % 
 
 % if strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-%     handles.targets(l).aLabels=anatomicLabel(coordinates,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
+%     handles.project.targets(l).aLabels=anatomicLabel(coordinates,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
 % elseif ~isempty(handles.project.wmparc)
-%     handles.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
+%     handles.project.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
 % end
 
 
 % anatomical labeling (electrodes and projections)
-if strcmp(handles.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
     handles=labels2MNIspace(handles);
 else
     handles=labels2NativeSpace(handles);
@@ -5807,29 +5835,29 @@ function handles=estimateAnglesFrame(handles)
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-delta=handles.targets{l}.delta;
+delta=handles.project.targets{l}.delta;
 %
 % % backward compatibility ---
-% if isfield (handles.targets{l},'frameDown')
-%     if isempty (handles.targets(l).frameDown)
-%         handles.targets(l).framePosition='Anterior';
+% if isfield (handles.project.targets{l},'frameDown')
+%     if isempty (handles.project.targets(l).frameDown)
+%         handles.project.targets(l).framePosition='Anterior';
 %         framePosition='Anterior';
 %     else
-%         framePosition=handles.targets(l).framePosition;
+%         framePosition=handles.project.targets(l).framePosition;
 %     end
 % else
-%     handles.targets(l).framePosition='Anterior';
+%     handles.project.targets(l).framePosition='Anterior';
 %     framePosition='Anterior';
 % end
 % % ----
-handles.targets{l}.frameDown = handles.targets{l}.z(handles.targets{l}.nElectrodes) < 0; 
-framePosition=handles.targets{l}.framePosition;
-frameDown=handles.targets{l}.frameDown;
+handles.project.targets{l}.frameDown = handles.project.targets{l}.z(handles.project.targets{l}.nElectrodes) < 0; 
+framePosition=handles.project.targets{l}.framePosition;
+frameDown=handles.project.targets{l}.frameDown;
 
 [alpha,beta]=delta2alpha_beta(delta(1),delta(2),delta(3),framePosition,frameDown);
 
-handles.targets{l}.beta=beta;
-handles.targets{l}.alpha=alpha;
+handles.project.targets{l}.beta=beta;
+handles.project.targets{l}.alpha=alpha;
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
@@ -5859,16 +5887,16 @@ l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
 %left frame
 if get(handles.LeftFrameradiobutton,'value')
-    handles.targets{l}.framePosition='Left';
+    handles.project.targets{l}.framePosition='Left';
     %right frame
 elseif get(handles.RightFrameradiobutton,'value')
-    handles.targets{l}.framePosition='Right';
+    handles.project.targets{l}.framePosition='Right';
     %anterior frame
 elseif get(handles.AnteriorFrameradiobutton,'value')
-    handles.targets{l}.framePosition='Anterior';
+    handles.project.targets{l}.framePosition='Anterior';
     %posterior frame
 elseif get(handles.PosteriorFrameradiobutton,'value')
-    handles.targets{l}.framePosition='Posterior';
+    handles.project.targets{l}.framePosition='Posterior';
 end
 handles=estimateAnglesFrame( handles);
 
@@ -5915,23 +5943,23 @@ function handles=AlphaBetaChange(handles)
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-n=handles.targets{l}.Electrodes;
-fs_dist=handles.targets{l}.FirstSecond;
-sl_dist=handles.targets{l}.SecondLast;
+n=handles.project.targets{l}.Electrodes;
+fs_dist=handles.project.targets{l}.FirstSecond;
+sl_dist=handles.project.targets{l}.SecondLast;
 
 %punto Target IN
-xi(1)= handles.targets{l}.targetIn.x;
-xi(2)= handles.targets{l}.targetIn.y;
-xi(3)= handles.targets{l}.targetIn.z;
+xi(1)= handles.project.targets{l}.targetIn.x;
+xi(2)= handles.project.targets{l}.targetIn.y;
+xi(3)= handles.project.targets{l}.targetIn.z;
 
 alpha = str2double( get(handles.AlphaAngleEdit,'String'));
 beta = str2double( get(handles.BetaAngleEdit,'String'));
 
-handles.targets{l}.alpha=alpha;
-handles.targets{l}.alpha=beta;
+handles.project.targets{l}.alpha=alpha;
+handles.project.targets{l}.alpha=beta;
 
-framePosition=handles.targets{l}.framePosition;
-frameDown=handles.targets{l}.frameDown;
+framePosition=handles.project.targets{l}.framePosition;
+frameDown=handles.project.targets{l}.frameDown;
 
 [dx,dy,dz]=alpha_beta2delta(alpha,beta,framePosition,frameDown);
 
@@ -5942,9 +5970,9 @@ dist=fs_dist+(n-2)*sl_dist; %length from first to last
 % estimate xo
 xo=xi+dist*delta;
 
-handles.targets{l}.targetOut.x=xo(1);
-handles.targets{l}.targetOut.y=xo(2);
-handles.targets{l}.targetOut.z=xo(3);
+handles.project.targets{l}.targetOut.x=xo(1);
+handles.project.targets{l}.targetOut.y=xo(2);
+handles.project.targets{l}.targetOut.z=xo(3);
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
 else
@@ -5962,16 +5990,16 @@ handles=updateTarget(handles); %this will call to estimateAnglesFrame that shoul
 function UpdateTargetEditBox(hObject, eventdata, handles)
 
 l=str2num(get(handles.arrayPlanningNumberText,'String'));
-set(handles.TargetNameedit,'String',handles.targets{l}.Name);
-set(handles.nTargetEdit,'String',num2str(handles.targets{l}.Electrodes));
-set(handles.FirstSecondTargetedit,'String',num2str(handles.targets{l}.FirstSecond));
-set(handles.SecondLastTargetEdit,'String',num2str(handles.targets{l}.SecondLast));
+set(handles.TargetNameedit,'String',handles.project.targets{l}.Name);
+set(handles.nTargetEdit,'String',num2str(handles.project.targets{l}.Electrodes));
+set(handles.FirstSecondTargetedit,'String',num2str(handles.project.targets{l}.FirstSecond));
+set(handles.SecondLastTargetEdit,'String',num2str(handles.project.targets{l}.SecondLast));
 set(handles.TargetElectext,'String',num2str(1));
 
 %punto Target IN
-xi(1)=handles.targets{l}.targetIn.x;
-xi(2)=handles.targets{l}.targetIn.y;
-xi(3)=handles.targets{l}.targetIn.z;
+xi(1)=handles.project.targets{l}.targetIn.x;
+xi(2)=handles.project.targets{l}.targetIn.y;
+xi(3)=handles.project.targets{l}.targetIn.z;
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
@@ -5985,9 +6013,9 @@ set(handles.TargetInZedit,'String',num2str(xi(3)));
 
 
 %punto taget OUT
-xo(1)=handles.targets{l}.targetOut.x;
-xo(2)=handles.targets{l}.targetOut.y;
-xo(3)=handles.targets{l}.targetOut.z;
+xo(1)=handles.project.targets{l}.targetOut.x;
+xo(2)=handles.project.targets{l}.targetOut.y;
+xo(3)=handles.project.targets{l}.targetOut.z;
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
@@ -6003,12 +6031,12 @@ set(handles.TargetOutZedit,'String',num2str(xo(3)));
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier 
-    az=handles.targets{l}.azimut;
-    el=handles.targets{l}.elevation;
+    az=handles.project.targets{l}.azimut;
+    el=handles.project.targets{l}.elevation;
 else
     % execute code for R2014b or later
-    az=round(handles.targets{l}.azimut,4,'significant');
-    el=round(handles.targets{l}.elevation,4,'significant');
+    az=round(handles.project.targets{l}.azimut,4,'significant');
+    el=round(handles.project.targets{l}.elevation,4,'significant');
 end
 
 
@@ -6020,15 +6048,15 @@ set(handles.ElevacionTargetedit,'String',num2str(el))
 
 
 % backward compatibility ---
-if isfield (handles.targets{l},'frameDown')
-    if isempty (handles.targets{l}.frameDown)
-        handles.targets{l}.framePosition='Anterior';
-        handles.targets{l}.frameDown =  handles.targets{l}.z(handles.targets{l}.Electrodes) < 0; %handles.targets{l}.targetIn.z < 0;
+if isfield (handles.project.targets{l},'frameDown')
+    if isempty (handles.project.targets{l}.frameDown)
+        handles.project.targets{l}.framePosition='Anterior';
+        handles.project.targets{l}.frameDown =  handles.project.targets{l}.z(handles.project.targets{l}.Electrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
         handles=estimateAnglesFrame(handles); %estimate alpha and beta
     end
 else
-    handles.targets{l}.framePosition='Anterior';
-    handles.targets{l}.frameDown = handles.targets{l}.z(handles.targets{l}.Electrodes) < 0; %handles.targets{l}.targetIn.z < 0;
+    handles.project.targets{l}.framePosition='Anterior';
+    handles.project.targets{l}.frameDown = handles.project.targets{l}.z(handles.project.targets{l}.Electrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
     
     handles=estimateAnglesFrame(handles); %estimate alpha and beta
     
@@ -6037,23 +6065,23 @@ end
 
 
 %left frame
-if strcmp(handles.targets{l}.framePosition,'Left');
+if strcmp(handles.project.targets{l}.framePosition,'Left');
     set(handles.LeftFrameradiobutton,'value',1)
     %right frame
-elseif  strcmp(handles.targets{l}.framePosition,'Right');
+elseif  strcmp(handles.project.targets{l}.framePosition,'Right');
     set(handles.RightFrameradiobutton,'value',1)
     %anterior frame
-elseif  strcmp(handles.targets{l}.framePosition,'Anterior');
+elseif  strcmp(handles.project.targets{l}.framePosition,'Anterior');
     set(handles.AnteriorFrameradiobutton,'value',1)
     %posterior frame
-elseif strcmp(handles.targets{l}.framePosition,'Posterior');
+elseif strcmp(handles.project.targets{l}.framePosition,'Posterior');
     set(handles.PosteriorFrameradiobutton,'value',1)
 end
 
 
 
-beta=handles.targets{l}.beta;
-alpha=handles.targets{l}.alpha;
+beta=handles.project.targets{l}.beta;
+alpha=handles.project.targets{l}.alpha;
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
 else
@@ -6123,7 +6151,7 @@ target.adjMat=makeAdjMat(target.rows,target.columns);
 handles = addtarget2structure(handles,target);
 
 % anatomical labeling (electrodes and projections)
-if strcmp(handles.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
     handles=labels2MNIspace(handles);
 else
     handles=labels2NativeSpace(handles);
@@ -6169,13 +6197,13 @@ function fitPlanningGridButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 options=handles.options;
 options.SCE_projection_method = 'springs';
@@ -6192,7 +6220,7 @@ targetCell = electrodes2hullCorrection({target},vertices,faces,options);
 %    target=electrodes2hullCorrection({target},handles.project.vertices_SCE_R,handles.project.faces_SCE_R,handles.options);
 % end
 
-handles.targets{a}=targetCell{1};
+handles.project.targets{a}=targetCell{1};
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6215,7 +6243,7 @@ function ChangeCenterPlanningGridButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 
@@ -6233,7 +6261,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6252,13 +6280,13 @@ function pushbuttonSup_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6276,7 +6304,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6294,13 +6322,13 @@ function moveInfButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6318,7 +6346,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 
 handles.updatePlots.targets=1;
@@ -6337,13 +6365,13 @@ function movePosButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6361,7 +6389,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6379,13 +6407,13 @@ function moveAntButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6403,7 +6431,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6421,13 +6449,13 @@ function pushbuttonLeft_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6445,7 +6473,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6463,13 +6491,13 @@ function pushbuttonRight_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6487,7 +6515,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6505,13 +6533,13 @@ function RotLButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6530,7 +6558,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6548,13 +6576,13 @@ function rotRButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 a=str2num(get(handles.arrayPlanningNumberText,'String'));
-target=handles.targets{a};
+target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 mprev = mean (X); % previous center
@@ -6573,7 +6601,7 @@ target.projection={};
 target=checkElectrodeStructure(target);
 
 % add new electrode to handles
-handles.targets{a} = target;
+handles.project.targets{a} = target;
 
 handles.updatePlots.targets=1;
 handles.updatePlots.targetLines=1;
@@ -6592,12 +6620,12 @@ guidata(hObject, handles);
 
 % --- Add targets to structure 
 function handles = addtarget2structure(handles,target)
-% Add target to handles.targets 
+% Add target to handles.project.targets 
 % 
 % add to structure
-L=length(handles.targets);
+L=length(handles.project.targets);
 l=L+1; % new electrode array
-handles.targets{l}=target;
+handles.project.targets{l}=target;
 
 
 % anatomical labeling (electrodes and projections)
@@ -6607,13 +6635,13 @@ handles.targets{l}=target;
 %set visualization to this electrode
 set(handles.arrayPlanningNumberText,'String',num2str(l));
 set(handles.elecPlanningNumberText,'String',num2str(1));
-set(handles.editPlanningArrayName,'String',handles.targets{l}.Name);
-set(handles.editPlanningElecLabel,'string',handles.targets{l}.ch_label{1});
+set(handles.editPlanningArrayName,'String',handles.project.targets{l}.Name);
+set(handles.editPlanningElecLabel,'string',handles.project.targets{l}.ch_label{1});
 
 % go to first electrode coordinate for checking
-d1=handles.targets{l}.x(1);
-d2=handles.targets{l}.y(1);
-d3=handles.targets{l}.z(1);
+d1=handles.project.targets{l}.x(1);
+d2=handles.project.targets{l}.y(1);
+d3=handles.project.targets{l}.z(1);
 
 D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
 set(handles.sliderX,'Value',D(1));
@@ -6635,7 +6663,7 @@ function removePlanningArrayButton_Callback(hObject, eventdata, handles)
 % hObject    handle to removePlanningArrayButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~isempty(handles.targets) 
+if ~isempty(handles.project.targets) 
     
     l=str2double(get(handles.arrayPlanningNumberText,'String')); %actual elec to remove
 % add warning image
@@ -6645,8 +6673,8 @@ if ~isempty(handles.targets)
     if strcmp(choice,'No')
        return;
     end
-    handles.targets(l)=[];
-    if isempty(handles.targets)
+    handles.project.targets(l)=[];
+    if isempty(handles.project.targets)
         set(handles.arrayPlanningNumberText,'String','0');
         set(handles.elecPlanningNumberText,'String','0');
 
@@ -6660,9 +6688,9 @@ if ~isempty(handles.targets)
         end
         set(handles.elecPlanningNumberText,'String','1');
         
-        d1=handles.targets{a}.x(1);
-        d2=handles.targets{a}.y(1);
-        d3=handles.targets{a}.z(1);
+        d1=handles.project.targets{a}.x(1);
+        d2=handles.project.targets{a}.y(1);
+        d3=handles.project.targets{a}.z(1);
         
         D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
         set(handles.sliderX,'Value',D(1));
@@ -6690,7 +6718,7 @@ function editPlanningArrayName_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editPlanningArrayName as text
 %        str2double(get(hObject,'String')) returns contents of editPlanningArrayName as a double
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6698,12 +6726,12 @@ end
 str=get(handles.editPlanningArrayName,'String');
 a=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-handles.targets{a}.Name=str;
+handles.project.targets{a}.Name=str;
 
-N=handles.targets{a}.nElectrodes;
+N=handles.project.targets{a}.nElectrodes;
 
 for i=1:N
-    handles.targets{a}.ch_label{i}=[str int2str(i)];
+    handles.project.targets{a}.ch_label{i}=[str int2str(i)];
 end
 
 handles.updatePlots.targetLabels=1;
@@ -6721,7 +6749,7 @@ function editPlanningElecLabel_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editPlanningElecLabel as text
 %        str2double(get(hObject,'String')) returns contents of editPlanningElecLabel as a double
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6730,7 +6758,7 @@ str=get(handles.editPlanningElecLabel,'String');
 a=str2double(get(handles.elecPlanningNumberText,'String'));
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-handles.targets{l}.ch_label{a}=str;
+handles.project.targets{l}.ch_label{a}=str;
 
 handles.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);
@@ -6745,7 +6773,7 @@ function setPlanningElecCoordpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6757,14 +6785,14 @@ a=str2double(get(handles.arrayPlanningNumberText,'String'));
 crd=handles.cursor;
 
 % apply to current electrode
-if ~isempty(handles.targets{l}.projection)
-    handles.targets{l}.projection{1}.x(a)=crd(1);
-    handles.targets{l}.projection{1}.y(a)=crd(2);
-    handles.targets{l}.projection{1}.z(a)=crd(3);
+if ~isempty(handles.project.targets{l}.projection)
+    handles.project.targets{l}.projection{1}.x(a)=crd(1);
+    handles.project.targets{l}.projection{1}.y(a)=crd(2);
+    handles.project.targets{l}.projection{1}.z(a)=crd(3);
 else %without projection
-    handles.targets{l}.x(a)=crd(1);
-    handles.targets{l}.y(a)=crd(2);
-    handles.targets{l}.z(a)=crd(3);
+    handles.project.targets{l}.x(a)=crd(1);
+    handles.project.targets{l}.y(a)=crd(2);
+    handles.project.targets{l}.z(a)=crd(3);
 end
 
 
@@ -6786,26 +6814,26 @@ function nextPlanningArray_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
-if l < length(handles.targets)
+if l < length(handles.project.targets)
     a=1; %set electrode to 1
     
     set(handles.arrayPlanningNumberText,'String',num2str(l+1));
     set(handles.elecPlanningNumberText,'String',num2str(a));
     
-    if ~isempty(handles.targets{l+1}.projection)
-        d1=handles.targets{l+1}.projection{1}.x(a);
-        d2=handles.targets{l+1}.projection{1}.y(a);
-        d3=handles.targets{l+1}.projection{1}.z(a);
+    if ~isempty(handles.project.targets{l+1}.projection)
+        d1=handles.project.targets{l+1}.projection{1}.x(a);
+        d2=handles.project.targets{l+1}.projection{1}.y(a);
+        d3=handles.project.targets{l+1}.projection{1}.z(a);
     else
-        d1=handles.targets{l+1}.x(a);
-        d2=handles.targets{l+1}.y(a);
-        d3=handles.targets{l+1}.z(a);
+        d1=handles.project.targets{l+1}.x(a);
+        d2=handles.project.targets{l+1}.y(a);
+        d3=handles.project.targets{l+1}.z(a);
     end
     
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
@@ -6820,8 +6848,8 @@ if l < length(handles.targets)
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editPlanningArrayName,'String',handles.targets{l+1}.Name);
-    set(handles.editPlanningElecLabel,'string', handles.targets{l+1}.ch_label{a});
+    set(handles.editPlanningArrayName,'String',handles.project.targets{l+1}.Name);
+    set(handles.editPlanningElecLabel,'string', handles.project.targets{l+1}.ch_label{a});
 
     
 end
@@ -6835,7 +6863,7 @@ function prevPlannigArray_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6847,14 +6875,14 @@ if l>1
     set(handles.arrayPlanningNumberText,'String',num2str(l-1));
     set(handles.elecPlanningNumberText,'String',num2str(a));
 
-    if ~isempty(handles.targets{l-1}.projection)
-        d1=handles.targets{l-1}.projection{1}.x(a);
-        d2=handles.targets{l-1}.projection{1}.y(a);
-        d3=handles.targets{l-1}.projection{1}.z(a);
+    if ~isempty(handles.project.targets{l-1}.projection)
+        d1=handles.project.targets{l-1}.projection{1}.x(a);
+        d2=handles.project.targets{l-1}.projection{1}.y(a);
+        d3=handles.project.targets{l-1}.projection{1}.z(a);
     else
-        d1=handles.targets{l-1}.x(a);
-        d2=handles.targets{l-1}.y(a);
-        d3=handles.targets{l-1}.z(a);
+        d1=handles.project.targets{l-1}.x(a);
+        d2=handles.project.targets{l-1}.y(a);
+        d3=handles.project.targets{l-1}.z(a);
     end
     
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
@@ -6869,8 +6897,8 @@ if l>1
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editPlanningArrayName,'String',handles.targets{l-1}.Name);
-    set(handles.editPlanningElecLabel,'string', handles.targets{l-1}.ch_label{a});
+    set(handles.editPlanningArrayName,'String',handles.project.targets{l-1}.Name);
+    set(handles.editPlanningElecLabel,'string', handles.project.targets{l-1}.ch_label{a});
 end
 
 % Update handles structure
@@ -6882,7 +6910,7 @@ function nextPlanningElecButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6891,18 +6919,18 @@ end
 l=str2double(get(handles.elecPlanningNumberText,'String'))+1;
 a=str2double(get(handles.arrayPlanningNumberText,'String'));
 
-if l <= handles.targets{a}.nElectrodes
+if l <= handles.project.targets{a}.nElectrodes
     set(handles.elecPlanningNumberText,'String',num2str(l));
-    set(handles.editPlanningElecLabel,'string', handles.targets{a}.ch_label{l});
+    set(handles.editPlanningElecLabel,'string', handles.project.targets{a}.ch_label{l});
         
-    if ~isempty(handles.targets{a}.projection)
-        d1=handles.targets{a}.projection{1}.x(l);
-        d2=handles.targets{a}.projection{1}.y(l);
-        d3=handles.targets{a}.projection{1}.z(l);
+    if ~isempty(handles.project.targets{a}.projection)
+        d1=handles.project.targets{a}.projection{1}.x(l);
+        d2=handles.project.targets{a}.projection{1}.y(l);
+        d3=handles.project.targets{a}.projection{1}.z(l);
     else
-        d1=handles.targets{a}.x(l);
-        d2=handles.targets{a}.y(l);
-        d3=handles.targets{a}.z(l);
+        d1=handles.project.targets{a}.x(l);
+        d2=handles.project.targets{a}.y(l);
+        d3=handles.project.targets{a}.z(l);
     end
     
         
@@ -6927,7 +6955,7 @@ function prevPlanningElecButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.targets)
+if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
 end
@@ -6938,16 +6966,16 @@ a=str2double(get(handles.arrayPlanningNumberText,'String'));
 
 if l >= 1
     set(handles.elecPlanningNumberText,'String',num2str(l));
-    set(handles.editPlanningElecLabel,'string', handles.targets{a}.ch_label{l});
+    set(handles.editPlanningElecLabel,'string', handles.project.targets{a}.ch_label{l});
     
-    if ~isempty(handles.targets{a}.projection)
-        d1=handles.targets{a}.projection{1}.x(l);
-        d2=handles.targets{a}.projection{1}.y(l);
-        d3=handles.targets{a}.projection{1}.z(l);
+    if ~isempty(handles.project.targets{a}.projection)
+        d1=handles.project.targets{a}.projection{1}.x(l);
+        d2=handles.project.targets{a}.projection{1}.y(l);
+        d3=handles.project.targets{a}.projection{1}.z(l);
     else
-        d1=handles.targets{a}.x(l);
-        d2=handles.targets{a}.y(l);
-        d3=handles.targets{a}.z(l);
+        d1=handles.project.targets{a}.x(l);
+        d2=handles.project.targets{a}.y(l);
+        d3=handles.project.targets{a}.z(l);
     end
     
     D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
