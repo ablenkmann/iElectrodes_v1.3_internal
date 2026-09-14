@@ -789,7 +789,7 @@ if FileName ~=0
     handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
 
   
-    if ~isempty(handles.wmparc)
+    if ~isempty(handles.project.wmparc)
         set(handles.MNILabelstogglebutton,'state','off');
     else
         set(handles.MNILabelstogglebutton,'state','on');    
@@ -1230,20 +1230,20 @@ if ~isequal(wmparcFile,0)
     voxdim = vprm(7:9);
     bbox=world_bb(handles.project.T1.vol);
     
-    [handles.wmparc]=loading_images_SPM(PathName,wmparcFile,0,voxdim,bbox); %interpolation = nearest neighbour
-    handles.wmparcS=handles.wmparc.vol.mat(1:3,:);
+    [handles.project.wmparc]=loading_images_SPM(PathName,wmparcFile,0,voxdim,bbox); %interpolation = nearest neighbour
+    handles.project.wmparcS=handles.project.wmparc.vol.mat(1:3,:);
     
     load(handles.options.atlasLUTFile,'values','labels','RGB'); %FreeSurferColorLUT.mat;% -> values(1271x1), labels{1271x1}, RGB(1271x3)
     % just for testing, random colors
     % RGB=round(rand(1271,3)*255)/255; %IMPORTANT add right solution to checkProjectStructure
     
-    [~,lob]=ismember(int32(handles.wmparc.img),int32(values));
+    [~,lob]=ismember(int32(handles.project.wmparc.img),int32(values));
     lob(lob==0)=1; % in case index not found, set to 1 -> unknown
     c=RGB(lob,:)/255;
-    handles.wmparcColors=reshape(c,[size(handles.wmparc.img),3]);
+    handles.wmparcColors=reshape(c,[size(handles.project.wmparc.img),3]);
     
     
-%    [handles.wmparc,handles.wmparcS,wmparcFile]=loading_images(handles.PathName,wmparcFile,2,handles.project.T1);
+%    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.PathName,wmparcFile,2,handles.project.T1);
     disp (['Loaded FS labels from ' PathName, wmparcFile])
     
 %     %anatomical labeling of all electrodes
@@ -1252,8 +1252,8 @@ if ~isequal(wmparcFile,0)
 %         for l=1:L
 %             pos=[handles.electrodes{l}.x handles.electrodes{l}.y handles.electrodes{l}.z];
 %             lookAround=1; radio=1;
-%             if ~isempty(handles.wmparc)
-%                 handles.electrodes{l}.aLabels=anatomicLabelFS(pos, [],lookAround,handles.wmparc.img,handles.wmparcS,radio);
+%             if ~isempty(handles.project.wmparc)
+%                 handles.electrodes{l}.aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
 %             end
 %         end
 %     end
@@ -1264,8 +1264,8 @@ if ~isequal(wmparcFile,0)
 %         for l=1:L
 %             pos=[handles.targets(l).coordinates(:,1) handles.targets(l).coordinates(:,2) handles.targets(l).coordinates(:,3)];
 %             lookAround=1; radio=1;
-%             if ~isempty(handles.wmparc)
-%                 handles.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.wmparc.img,handles.wmparcS,radio);
+%             if ~isempty(handles.project.wmparc)
+%                 handles.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
 %             end
 %         end
 %     end
@@ -1457,19 +1457,19 @@ switch choice
         AnnotColor_R(find(rindC),:)=AnnotColortable_R.table(rindC(find(rindC)),1:3)/255; %get RGB colors of the defined nodes
         AnnotColor_L(find(lindC),:)=AnnotColortable_L.table(lindC(find(lindC)),1:3)/255;
         
-        handles.AnnotLabel_R=AnnotLabel_R; %label for each node
-        handles.AnnotLabel_L=AnnotLabel_L; %label for each node
-        handles.AnnotColortable_R=AnnotColortable_R; %colortable info
-        handles.AnnotColortable_L=AnnotColortable_L; %colortable info
+        handles.project.AnnotLabel_R=AnnotLabel_R; %label for each node
+        handles.project.AnnotLabel_L=AnnotLabel_L; %label for each node
+        handles.project.AnnotColortable_R=AnnotColortable_R; %colortable info
+        handles.project.AnnotColortable_L=AnnotColortable_L; %colortable info
         handles.AnnotColor_R=AnnotColor_R; %actual color used for each node
         handles.AnnotColor_L=AnnotColor_L; %actual color used for each node
         
     case 'No'
         
-        handles.AnnotLabel_R=[]; %label for each node
-        handles.AnnotLabel_L=[]; %label for each node
-        handles.AnnotColortable_R=[]; %colortable info
-        handles.AnnotColortable_L=[]; %colortable info
+        handles.project.AnnotLabel_R=[]; %label for each node
+        handles.project.AnnotLabel_L=[]; %label for each node
+        handles.project.AnnotColortable_R=[]; %colortable info
+        handles.project.AnnotColortable_L=[]; %colortable info
         handles.AnnotColor_R=ones(length(handles.project.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
         handles.AnnotColor_L=ones(length(handles.project.verticesL),3)*.5; %actual color used for each node
         
@@ -1507,10 +1507,10 @@ handles.project.verticesL=[];
 handles.project.facesR=[];
 handles.project.facesL=[];
 
-handles.AnnotLabel_R=[];
-handles.AnnotLabel_L=[];
-handles.AnnotColortable_R=[]; 
-handles.AnnotColortable_L=[]; 
+handles.project.AnnotLabel_R=[];
+handles.project.AnnotLabel_L=[];
+handles.project.AnnotColortable_R=[]; 
+handles.project.AnnotColortable_L=[]; 
 handles.AnnotColor_R=[];
 handles.AnnotColor_L=[];
 
@@ -2409,13 +2409,13 @@ lookAround=1;
 if strcmp(handles.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
     aL=anatomicLabel(handles.cursor,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
     set(handles.aLabelText,'String',aL);
-elseif ~isempty(handles.wmparc) % Native space
+elseif ~isempty(handles.project.wmparc) % Native space
     opt.radio=handles.options.atlasLabelingRadio;
     opt.mode=handles.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities
     opt.minProb=handles.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob'
 
-    aL=anatomicLabelFS(handles.cursor,[],handles.options.atlasLUTFile,lookAround,handles.wmparc.img,handles.wmparcS,[],[],opt);
-    %aL=anatomicLabelFS(handles.cursor, [],lookAround,handles.wmparc.img,handles.wmparcS,opt);
+    aL=anatomicLabelFS(handles.cursor,[],handles.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
+    %aL=anatomicLabelFS(handles.cursor, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
     
     set(handles.aLabelText,'String',aL);
 else
@@ -5780,8 +5780,8 @@ handles.targets{l}.z=coordinates(:,3);
 
 % if strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
 %     handles.targets(l).aLabels=anatomicLabel(coordinates,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
-% elseif ~isempty(handles.wmparc)
-%     handles.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.wmparc.img,handles.wmparcS,opt);
+% elseif ~isempty(handles.project.wmparc)
+%     handles.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
 % end
 
 
