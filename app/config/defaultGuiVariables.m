@@ -70,6 +70,8 @@ handles.ui.cursor=[0 0 0];
 % unlike the rest of work, it never arrives from a .iel file.
 handles.work.selection.array   = 0;
 handles.work.selection.contact = 0;
+handles.work.selection.planningArray  = 0;
+handles.work.selection.planningTarget = 0;
 
 handles.ui.rotate3d=rotate3d(handles.figure1);
 setAllowAxesRotate(handles.ui.rotate3d,handles.axesX,false); 

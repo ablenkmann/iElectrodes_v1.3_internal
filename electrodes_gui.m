@@ -449,8 +449,8 @@ if T1file ~=0
 %    set(handles.TargetNameedit,'string','name');
     set(handles.editPlanningArrayName,'string','');
     set(handles.editPlanningElecLabel,'string','');
-    set(handles.arrayPlanningNumberText,'string','0');
-    set(handles.elecPlanningNumberText,'string','0');
+    handles = setSelectedPlanningArray(handles, 0);
+    handles = setSelectedPlanningTarget(handles, 0);
 %    set(handles.TargetArraytext,'string','0');
     set(handles.nClusText,'string', '0');
 
@@ -758,8 +758,8 @@ if FileName ~=0
     
     if ~isempty(handles.project.targets)        
         
-        set(handles.arrayPlanningNumberText,'String','1');
-        set(handles.elecPlanningNumberText,'String','1');
+        handles = setSelectedPlanningArray(handles, 1);
+        handles = setSelectedPlanningTarget(handles, 1);
         set(handles.editPlanningArrayName,'String',handles.project.targets{1}.Name);
         set(handles.editPlanningElecLabel,'string',handles.project.targets{1}.ch_label{1});
         
@@ -777,7 +777,7 @@ if FileName ~=0
         set(handles.AzimuthTargetedit,'string','0');
         set(handles.ElevacionTargetedit,'string','0');
         set(handles.editPlanningArrayName,'string','name');
-        set(handles.arrayPlanningNumberText,'string','0');
+        handles = setSelectedPlanningArray(handles, 0);
     end
     
     set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.work.maxValue-handles.work.minValue)+handles.work.minValue);
@@ -1749,7 +1749,7 @@ if FileName~=0
     % go to first target
     l=1;
     
-    set(handles.arrayPlanningNumberText,'String',num2str(l));
+    handles = setSelectedPlanningArray(handles, l);
     
     UpdateTargetEditBox(hObject, eventdata, handles);
     % handles = guidata(hObject); %returns previous handles structure
@@ -2170,7 +2170,7 @@ if updateSlice(1)
                 end
             end
         else %plot only selected planning electrode
-            i=str2double(get(handles.arrayPlanningNumberText,'String'));
+            i=selectedPlanningArray(handles);
             if i>0
                 if isempty(handles.project.targets{i}.projection)
                     c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
@@ -2293,7 +2293,7 @@ if updateSlice(2)
                 end
             end
         else %plot only selected planning electrode
-            i=str2double(get(handles.arrayPlanningNumberText,'String'));
+            i=selectedPlanningArray(handles);
             if i>0
                 if isempty(handles.project.targets{i}.projection)
                     c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
@@ -2414,7 +2414,7 @@ if updateSlice(3)
                 end
             end
         else %plot only selected planning electrode
-            i=str2double(get(handles.arrayPlanningNumberText,'String'));
+            i=selectedPlanningArray(handles);
             if i>0
                 if isempty(handles.project.targets{i}.projection)
                     c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
@@ -2657,7 +2657,7 @@ if ~isempty(handles.project.targets)>0 % plot targets
     if get(handles.plotAllPlanningRadioButton,'value')
         plotList=1:length(handles.project.targets);
     else %plot one target array
-        plotList=str2double (get(handles.arrayPlanningNumberText,'String'));
+        plotList=selectedPlanningArray(handles);
     end
 end
 
@@ -2688,8 +2688,8 @@ if ~isempty(handles.project.targets)>0 && handles.ui.updatePlots.targets
     end
     
     % plot selected target in black
-    a=str2double(get(handles.arrayPlanningNumberText,'String'));
-    l=str2double(get(handles.elecPlanningNumberText,'String'));
+    a=selectedPlanningArray(handles);
+    l=selectedPlanningTarget(handles);
     
     if ~isempty(handles.project.targets{j}.projection)
         handles.ui.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
@@ -5282,7 +5282,7 @@ function TargetNameedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetNameedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetNameedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.Name=get(handles.TargetNameedit,'String');
 
 % Update handles structure
@@ -5296,7 +5296,7 @@ function FirstSecondTargetedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of FirstSecondTargetedit as text
 %        str2double(get(hObject,'String')) returns contents of FirstSecondTargetedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.FirstSecond=str2double(get(handles.FirstSecondTargetedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5316,7 +5316,7 @@ function SecondLastTargetEdit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of SecondLastTargetEdit as text
 %        str2double(get(hObject,'String')) returns contents of SecondLastTargetEdit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.SecondLast=str2double(get(handles.SecondLastTargetEdit,'String'));
 handles=updateTarget(handles);
 
@@ -5337,7 +5337,7 @@ function nTargetEdit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of nTargetEdit as text
 %        str2double(get(hObject,'String')) returns contents of nTargetEdit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.nElectrodes=str2double(get(handles.nTargetEdit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5402,7 +5402,7 @@ end
 % define anatomical coords
 coords=mesh2AnatSpace([x y z], handles.project.S2);
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetIn.x=coords(1);
 handles.project.targets{l}.targetIn.y=coords(2);
 handles.project.targets{l}.targetIn.z=coords(3);
@@ -5490,7 +5490,7 @@ end
 % define anatomical coords
 coords=mesh2AnatSpace([x y z], handles.project.S2);
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetOut.x=coords(1);
 handles.project.targets{l}.targetOut.y=coords(2);
 handles.project.targets{l}.targetOut.z=coords(3);
@@ -5526,7 +5526,7 @@ function TargetInXedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of TargetInXedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetInXedit as a double
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetIn.x=str2double(get(handles.TargetInXedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5546,7 +5546,7 @@ function TargetInYedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetInYedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetInYedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetIn.y=str2double(get(handles.TargetInYedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5566,7 +5566,7 @@ function TargetInZedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetInZedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetInZedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetIn.z=str2double(get(handles.TargetInZedit,'String'));
 
 %handles.project.targets{l}.frameDown = handles.project.targets(l).coordinates(handles.project.targets(l).n,3) < 0; % handles.project.targets(l).targetIn.z < 0;
@@ -5588,7 +5588,7 @@ function TargetOutXedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetOutXedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutXedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetOut.x=str2double(get(handles.TargetOutXedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5608,7 +5608,7 @@ function TargetOutYedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetOutYedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutYedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetOut.y=str2double(get(handles.TargetOutYedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5628,7 +5628,7 @@ function TargetOutZedit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of TargetOutZedit as text
 %        str2double(get(hObject,'String')) returns contents of TargetOutZedit as a double
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 handles.project.targets{l}.targetOut.z=str2double(get(handles.TargetOutZedit,'String'));
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
@@ -5682,7 +5682,7 @@ guidata(hObject, handles);
 %%%%%%              editing angles Azimuth or Elevation              %%%%%%
 function handles=angleChange(handles)
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 n=handles.project.targets{l}.Electrodes;
 fs_dist=handles.project.targets{l}.FirstSecond;
 sl_dist=handles.project.targets{l}.SecondLast;
@@ -5741,7 +5741,7 @@ function handles=updateTarget(handles)
 %%%%%%%%% Changes: delta, coordinates, az, el, distances, alpha, beta %%%%%
 
 % read defined values
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 
 n=handles.project.targets{l}.nElectrodes;
 
@@ -5836,7 +5836,7 @@ function handles=estimateAnglesFrame(handles)
 % beta   0 - 360 degres
 % alpha  0 - 90
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 
 delta=handles.project.targets{l}.delta;
 %
@@ -5886,7 +5886,7 @@ function Framebuttongroup_SelectionChangedFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 
 %left frame
 if get(handles.LeftFrameradiobutton,'value')
@@ -5944,7 +5944,7 @@ function handles=AlphaBetaChange(handles)
 % estimates xo based on changes on alpha or beta anlges
 % saves alpha and beta in targets structure
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 
 n=handles.project.targets{l}.Electrodes;
 fs_dist=handles.project.targets{l}.FirstSecond;
@@ -5992,7 +5992,7 @@ handles=updateTarget(handles); %this will call to estimateAnglesFrame that shoul
 
 function UpdateTargetEditBox(hObject, eventdata, handles)
 
-l=str2num(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 set(handles.TargetNameedit,'String',handles.project.targets{l}.Name);
 set(handles.nTargetEdit,'String',num2str(handles.project.targets{l}.Electrodes));
 set(handles.FirstSecondTargetedit,'String',num2str(handles.project.targets{l}.FirstSecond));
@@ -6205,7 +6205,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 options=handles.options;
@@ -6245,7 +6245,7 @@ function ChangeCenterPlanningGridButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6288,7 +6288,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6330,7 +6330,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6373,7 +6373,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6415,7 +6415,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6457,7 +6457,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6499,7 +6499,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6541,7 +6541,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6584,7 +6584,7 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=str2num(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
@@ -6636,8 +6636,8 @@ handles.project.targets{l}=target;
     
 
 %set visualization to this electrode
-set(handles.arrayPlanningNumberText,'String',num2str(l));
-set(handles.elecPlanningNumberText,'String',num2str(1));
+handles = setSelectedPlanningArray(handles, l);
+handles = setSelectedPlanningTarget(handles, 1);
 set(handles.editPlanningArrayName,'String',handles.project.targets{l}.Name);
 set(handles.editPlanningElecLabel,'string',handles.project.targets{l}.ch_label{1});
 
@@ -6668,7 +6668,7 @@ function removePlanningArrayButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 if ~isempty(handles.project.targets) 
     
-    l=str2double(get(handles.arrayPlanningNumberText,'String')); %actual elec to remove
+    l=selectedPlanningArray(handles); %actual elec to remove
 % add warning image
     choice = questdlg([ 'Are you sure to remove planning array number ' num2str(l) ' ?'], ...
         'Delete array', ...
@@ -6678,18 +6678,18 @@ if ~isempty(handles.project.targets)
     end
     handles.project.targets(l)=[];
     if isempty(handles.project.targets)
-        set(handles.arrayPlanningNumberText,'String','0');
-        set(handles.elecPlanningNumberText,'String','0');
+        handles = setSelectedPlanningArray(handles, 0);
+        handles = setSelectedPlanningTarget(handles, 0);
 
     else % at least one electrode left
         if l-1>0 
             a=l-1;
-            set(handles.arrayPlanningNumberText,'String',num2str(a));
+            handles = setSelectedPlanningArray(handles, a);
         else
             a=l;
-            set(handles.arrayPlanningNumberText,'String',num2str(a));
+            handles = setSelectedPlanningArray(handles, a);
         end
-        set(handles.elecPlanningNumberText,'String','1');
+        handles = setSelectedPlanningTarget(handles, 1);
         
         d1=handles.project.targets{a}.x(1);
         d2=handles.project.targets{a}.y(1);
@@ -6727,7 +6727,7 @@ if isempty(handles.project.targets)
 end
 
 str=get(handles.editPlanningArrayName,'String');
-a=str2double(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningArray(handles);
 
 handles.project.targets{a}.Name=str;
 
@@ -6758,8 +6758,8 @@ if isempty(handles.project.targets)
 end
 
 str=get(handles.editPlanningElecLabel,'String');
-a=str2double(get(handles.elecPlanningNumberText,'String'));
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+a=selectedPlanningTarget(handles);
+l=selectedPlanningArray(handles);
 
 handles.project.targets{l}.ch_label{a}=str;
 
@@ -6781,8 +6781,8 @@ if isempty(handles.project.targets)
     return;
 end
 
-l=str2double(get(handles.elecPlanningNumberText,'String'))+1;
-a=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningTarget(handles)+1;
+a=selectedPlanningArray(handles);
 
 % get cursor coordinates
 crd=handles.ui.cursor;
@@ -6822,12 +6822,12 @@ if isempty(handles.project.targets)
     return;
 end
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 if l < length(handles.project.targets)
     a=1; %set electrode to 1
     
-    set(handles.arrayPlanningNumberText,'String',num2str(l+1));
-    set(handles.elecPlanningNumberText,'String',num2str(a));
+    handles = setSelectedPlanningArray(handles, l+1);
+    handles = setSelectedPlanningTarget(handles, a);
     
     if ~isempty(handles.project.targets{l+1}.projection)
         d1=handles.project.targets{l+1}.projection{1}.x(a);
@@ -6871,12 +6871,12 @@ if isempty(handles.project.targets)
     return;
 end
 
-l=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningArray(handles);
 
 if l>1
     a=1; %set electrode to 1
-    set(handles.arrayPlanningNumberText,'String',num2str(l-1));
-    set(handles.elecPlanningNumberText,'String',num2str(a));
+    handles = setSelectedPlanningArray(handles, l-1);
+    handles = setSelectedPlanningTarget(handles, a);
 
     if ~isempty(handles.project.targets{l-1}.projection)
         d1=handles.project.targets{l-1}.projection{1}.x(a);
@@ -6919,11 +6919,11 @@ if isempty(handles.project.targets)
 end
 
 
-l=str2double(get(handles.elecPlanningNumberText,'String'))+1;
-a=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningTarget(handles)+1;
+a=selectedPlanningArray(handles);
 
 if l <= handles.project.targets{a}.nElectrodes
-    set(handles.elecPlanningNumberText,'String',num2str(l));
+    handles = setSelectedPlanningTarget(handles, l);
     set(handles.editPlanningElecLabel,'string', handles.project.targets{a}.ch_label{l});
         
     if ~isempty(handles.project.targets{a}.projection)
@@ -6964,11 +6964,11 @@ if isempty(handles.project.targets)
 end
 
 
-l=str2double(get(handles.elecPlanningNumberText,'String'))-1;
-a=str2double(get(handles.arrayPlanningNumberText,'String'));
+l=selectedPlanningTarget(handles)-1;
+a=selectedPlanningArray(handles);
 
 if l >= 1
-    set(handles.elecPlanningNumberText,'String',num2str(l));
+    handles = setSelectedPlanningTarget(handles, l);
     set(handles.editPlanningElecLabel,'string', handles.project.targets{a}.ch_label{l});
     
     if ~isempty(handles.project.targets{a}.projection)
@@ -7048,3 +7048,32 @@ function handles = setSelectedContact(handles, n)
 %SETSELECTEDCONTACT  Select a contact and show it in the interface.
 handles.work.selection.contact = n;
 set(handles.elecNumberText, 'String', num2str(n));
+
+
+% =====================================================================
+%                     planning-target selection
+% =====================================================================
+% The same story as the electrode selection above, for the planning side:
+% which simulated array, and which target inside it, is being edited.
+%
+% 46 places read the number back out of the label - 35 with str2double and
+% 11 with str2num, which evaluates the label's text as MATLAB code. Both
+% are gone now.
+
+function n = selectedPlanningArray(handles)
+%SELECTEDPLANNINGARRAY  Index of the planning array being edited.
+n = handles.work.selection.planningArray;
+
+function n = selectedPlanningTarget(handles)
+%SELECTEDPLANNINGTARGET  Index of the target being edited, inside that array.
+n = handles.work.selection.planningTarget;
+
+function handles = setSelectedPlanningArray(handles, n)
+%SETSELECTEDPLANNINGARRAY  Select a planning array and show it in the interface.
+handles.work.selection.planningArray = n;
+set(handles.arrayPlanningNumberText, 'String', num2str(n));
+
+function handles = setSelectedPlanningTarget(handles, n)
+%SETSELECTEDPLANNINGTARGET  Select a target and show it in the interface.
+handles.work.selection.planningTarget = n;
+set(handles.elecPlanningNumberText, 'String', num2str(n));
