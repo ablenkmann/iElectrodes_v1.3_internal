@@ -26,6 +26,23 @@ therefore taken from the wrong voxel, unless `y` happens to equal `z`.
 will change the labels of existing planning targets, so any report already
 produced from an MNI-space project carries the old values.
 
+**Observed at run time.** Switching the MNI Labels toggle on, with
+`examples/exampleNativeSpace.iel` loaded, produces:
+
+```
+Warning: coordinates out of MNI matrix space
+> In anatomicLabel (line 64)
+  In labelElectrodesMNI (line 61)      <- the planning-targets loop
+  In labels2MNIspace (line 1343)
+  In MNILabelstogglebutton_OnCallback (line 1301)
+```
+
+Line 61 is the `anatomicLabel` call two lines below the `[x y y]` position, and
+the electrode loop above it produces no such warning. Substituting `y` for `z`
+pushes the targets outside the MNI volume, which is exactly what the warning
+reports. So this is not only visible in the source - it fires on the example
+project that ships with the toolbox.
+
 **Status:** deliberately left unfixed. The extraction was kept
 behaviour-preserving on purpose; the fix belongs in its own commit so its
 effect can be measured separately.
@@ -120,3 +137,43 @@ final choice made after asking a few active users what they actually run.
 
 **Decision needed:** which MATLAB releases must v2 support? This affects
 whether App Designer features introduced in recent releases can be used.
+
+---
+
+## 7. `getThresholdedVoxels` crashes instead of warning when nothing is selected
+
+**Where:** `getThresholdedVoxels` in `electrodes_gui.m`
+
+The function has three guard branches that warn and return early:
+
+```matlab
+function [brushCrd,weight]=getThresholdedVoxels(handles)
+...
+    warning ('There are no points selected to be clustered');
+    return;                       % brushCrd and weight are never assigned
+```
+
+None of them assigns the output arguments, so MATLAB raises
+
+```
+Output argument "brushCrd" (and possibly others) not assigned a value
+```
+
+and the callback aborts with a red stack trace. Pressing `Clus` or `Fit`
+without having selected any voxels therefore looks like a crash rather than
+the intended message. Both callers already test `if isempty(brushCrd)`, so
+they are prepared for an empty result.
+
+The fix is one line before each `return`:
+
+```matlab
+brushCrd = [];
+weight   = [];
+```
+
+**Decision needed:** confirm this is simply an oversight. It is a behaviour
+change - the user would see a warning instead of an error - so, like the two
+labelling bugs above, it has been left for a separate dedicated commit.
+
+**Status:** left unfixed. Present in v1.020, not introduced by the
+restructuring.
