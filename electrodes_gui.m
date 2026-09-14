@@ -743,8 +743,8 @@ if FileName ~=0
     handles.work.PathName=PathName;
     
     if ~isempty(handles.project.electrodes)
-        set(handles.arrayNumberText,'String','1');
-        set(handles.elecNumberText,'String','1');
+        handles = setSelectedArray(handles, 1);
+        handles = setSelectedContact(handles, 1);
         set(handles.editArrayName,'String',handles.project.electrodes{1}.Name);
         set(handles.editElecLabels,'string',handles.project.electrodes{1}.ch_label{1});
         
@@ -752,8 +752,8 @@ if FileName ~=0
         
         set(handles.editArrayName,'string','');
         set(handles.editElecLabels,'string','');
-        set(handles.arrayNumberText,'string','0');
-        set(handles.elecNumberText,'string','0');
+        handles = setSelectedArray(handles, 0);
+        handles = setSelectedContact(handles, 0);
     end
     
     if ~isempty(handles.project.targets)        
@@ -1153,8 +1153,8 @@ if valid
      
     handles.project.electrodes=[handles.project.electrodes elecNew]; %append new elecs to old ones
     
-    set(handles.arrayNumberText,'String','1');
-    set(handles.elecNumberText,'String','1');
+    handles = setSelectedArray(handles, 1);
+    handles = setSelectedContact(handles, 1);
     set(handles.editArrayName,'String',handles.project.electrodes{1}.Name);
     set(handles.editElecLabels,'string',handles.project.electrodes{1}.ch_label{1});
     
@@ -2127,7 +2127,7 @@ if updateSlice(1)
                 end
             end
         else %plot only selected electrode
-            i=str2double(get(handles.arrayNumberText,'String'));
+            i=selectedArray(handles);
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.ui.colors.electrodesGrid2D;
@@ -2251,7 +2251,7 @@ if updateSlice(2)
                 end
             end
         else %plot only selected electrode
-            i=str2double(get(handles.arrayNumberText,'String'));
+            i=selectedArray(handles);
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.ui.colors.electrodesGrid2D;
@@ -2372,7 +2372,7 @@ if updateSlice(3)
                 end
             end
         else %plot only selected electrode
-            i=str2double(get(handles.arrayNumberText,'String'));
+            i=selectedArray(handles);
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
                     colorElectrodes=handles.ui.colors.electrodesGrid2D;
@@ -2515,7 +2515,7 @@ if ~isempty(handles.project.electrodes)>0 % plot electrodes (labeled or indexed)
     if get(handles.plotAllRadiobutton,'value')
         plotList=1:length(handles.project.electrodes);
     else %plot one electrode array
-        plotList=str2double (get(handles.arrayNumberText,'String'));
+        plotList=selectedArray(handles);
     end
 end
     
@@ -2550,8 +2550,8 @@ if handles.ui.updatePlots.electrodes %plot
         end
         
         % plot selected electrode in black
-        a=str2double(get(handles.arrayNumberText,'String'));
-        l=str2double(get(handles.elecNumberText,'String'));
+        a=selectedArray(handles);
+        l=selectedContact(handles);
         if get(handles.projectSCEcheckbox,'Value')  && isfield(handles.project.electrodes{a},'projection')% projection to SCE
             handles.ui.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
                 handles.project.electrodes{a}.projection{1}.y(l),handles.project.electrodes{a}.projection{1}.z(l),handles.ui.colors.electrodesSize3D,handles.ui.colors.electrodesSelected3D,handles.ui.colors.electrodesMarker3D, 'filled');
@@ -4179,7 +4179,7 @@ function Indexpushbutton_Callback(hObject, eventdata, handles)
 % change actual electrode array labeling
 if isempty(handles.work.GS)
     % retrive array number
-    l = str2double(get(handles.arrayNumberText,'String'));
+    l = selectedArray(handles);
 
     electrodes = handles.project.electrodes{l};
     
@@ -4286,8 +4286,8 @@ if isempty(array) % add array to structure
 end
 
 %set visualization to this electrode
-set(handles.arrayNumberText,'String',num2str(l));
-set(handles.elecNumberText,'String',num2str(1));
+handles = setSelectedArray(handles, l);
+handles = setSelectedContact(handles, 1);
 set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 set(handles.editElecLabels,'string',handles.project.electrodes{l}.ch_label{1});
 
@@ -4323,7 +4323,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
@@ -4377,7 +4377,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
@@ -4431,7 +4431,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 electrodes=handles.project.electrodes{a};
 
@@ -4480,7 +4480,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 electrodes=handles.project.electrodes{a};
 
@@ -4527,7 +4527,7 @@ function FlipLabelsPushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to FlipLabelsPushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 
 if a==0
@@ -4579,7 +4579,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 electrodes=handles.project.electrodes{a};
 
@@ -4616,7 +4616,7 @@ if isempty(handles.project.electrodes)
     warning('Electrodes is empty. First index some electrodes');
     return;
 end
-l=str2double(get(handles.arrayNumberText,'String'));
+l=selectedArray(handles);
 N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
 handles.project.electrodes{l}.Name = elecBaseName;
@@ -4625,7 +4625,7 @@ for i=1:N
     handles.project.electrodes{l}.ch_label{i}=[elecBaseName int2str(i)];
 end
 
-set(handles.elecNumberText,'String',num2str(1));
+handles = setSelectedContact(handles, 1);
 set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
 set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
@@ -4648,7 +4648,7 @@ if isempty(handles.project.electrodes)
     return;
 end
 % works over the current electrode array
-l=str2double(get(handles.arrayNumberText,'String'));
+l=selectedArray(handles);
 N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
 handles.project.electrodes{l}.Name = elecBaseName;
@@ -4721,7 +4721,7 @@ for i=1:N
 end
 
 set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
-set(handles.elecNumberText,'String',num2str(1));
+handles = setSelectedContact(handles, 1);
 set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
 handles.ui.updatePlots.labels=1;
@@ -4850,7 +4850,7 @@ if isempty(handles.project.electrodes)
 end
 
 str=get(handles.editArrayName,'String');
-a=str2double(get(handles.arrayNumberText,'String'));
+a=selectedArray(handles);
 
 handles.project.electrodes{a}.Name=str;
 
@@ -4883,8 +4883,8 @@ if isempty(handles.project.electrodes)
 end
 
 str=get(handles.editElecLabels,'String');
-a=str2double(get(handles.elecNumberText,'String'));
-l=str2double(get(handles.arrayNumberText,'String'));
+a=selectedContact(handles);
+l=selectedArray(handles);
 
 handles.project.electrodes{l}.ch_label{a}=str;
 
@@ -4906,8 +4906,8 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-a=str2double(get(handles.elecNumberText,'String'));
-l=str2double(get(handles.arrayNumberText,'String'));
+a=selectedContact(handles);
+l=selectedArray(handles);
 
 % get cursor coordinates
 crd=handles.ui.cursor;
@@ -4945,12 +4945,12 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-l=str2double(get(handles.arrayNumberText,'String'));
+l=selectedArray(handles);
 if l < length(handles.project.electrodes)
     a=1; %set electrode to 1
     
-    set(handles.arrayNumberText,'String',num2str(l+1));
-    set(handles.elecNumberText,'String',num2str(a));
+    handles = setSelectedArray(handles, l+1);
+    handles = setSelectedContact(handles, a);
     
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -4997,12 +4997,12 @@ if isempty(handles.project.electrodes)
 end
 
 
-l=str2double(get(handles.arrayNumberText,'String'));
+l=selectedArray(handles);
 
 if l>1
     a=1; %set electrode to 1
-    set(handles.arrayNumberText,'String',num2str(l-1));
-    set(handles.elecNumberText,'String',num2str(a));
+    handles = setSelectedArray(handles, l-1);
+    handles = setSelectedContact(handles, a);
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
         d1=handles.project.electrodes{l-1}.projection{1}.x(a);
@@ -5044,11 +5044,11 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-l=str2double(get(handles.elecNumberText,'String'))+1;
-a=str2double(get(handles.arrayNumberText,'String'));
+l=selectedContact(handles)+1;
+a=selectedArray(handles);
 
 if l <= handles.project.electrodes{a}.nElectrodes
-    set(handles.elecNumberText,'String',num2str(l));
+    handles = setSelectedContact(handles, l);
     set(handles.editElecLabels,'string', handles.project.electrodes{a}.ch_label{l});
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -5087,11 +5087,11 @@ if isempty(handles.project.electrodes)
     return;
 end
 
-l=str2double(get(handles.elecNumberText,'String'))-1;
-a=str2double(get(handles.arrayNumberText,'String'));
+l=selectedContact(handles)-1;
+a=selectedArray(handles);
 
 if l >= 1
-    set(handles.elecNumberText,'String',num2str(l));
+    handles = setSelectedContact(handles, l);
     set(handles.editElecLabels,'string', handles.project.electrodes{a}.ch_label{l});
     
     if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -5145,7 +5145,7 @@ function RemoveArrayPushbutton_Callback(hObject, eventdata, handles)
 
 if ~isempty(handles.project.electrodes) 
     
-    l=str2double(get(handles.arrayNumberText,'String')); %actual elec to remove
+    l=selectedArray(handles); %actual elec to remove
 % add warning image
     choice = questdlg([ 'Are you sure to remove electrode array number ' num2str(l) ' ?'], ...
         'Delete array', ...
@@ -5155,18 +5155,18 @@ if ~isempty(handles.project.electrodes)
     end
     handles.project.electrodes(l)=[];
     if isempty(handles.project.electrodes)
-        set(handles.arrayNumberText,'String','0');
-        set(handles.elecNumberText,'String','0');
+        handles = setSelectedArray(handles, 0);
+        handles = setSelectedContact(handles, 0);
 
     else % at least one electrode left
         if l-1>0 
             a=l-1;
-            set(handles.arrayNumberText,'String',num2str(a));
+            handles = setSelectedArray(handles, a);
         else
             a=l;
-            set(handles.arrayNumberText,'String',num2str(a));
+            handles = setSelectedArray(handles, a);
         end
-        set(handles.elecNumberText,'String','1');
+        handles = setSelectedContact(handles, 1);
         
         d1=handles.project.electrodes{a}.x(1);
         d2=handles.project.electrodes{a}.y(1);
@@ -7015,3 +7015,36 @@ handles=updateTAC(handles);
 % Update handles structure
 guidata(hObject, handles);
 
+
+% =====================================================================
+%                        electrode selection
+% =====================================================================
+% Which electrode array, and which contact inside it, the user is working
+% on. The value lives in handles.work.selection; the two text controls
+% next to the navigation arrows only display it.
+%
+% Before this change the label WAS the value: 27 places read it back with
+% str2double(get(...,'String')), so the number the algorithms operated on
+% was whatever text happened to be on screen, recovered by parsing it.
+%
+% The setters return handles, like every other function here that changes
+% state, so callers must keep the returned struct and store it with
+% guidata as usual. defaultGuiVariables initialises both to 0.
+
+function n = selectedArray(handles)
+%SELECTEDARRAY  Index of the electrode array being worked on.
+n = handles.work.selection.array;
+
+function n = selectedContact(handles)
+%SELECTEDCONTACT  Index of the contact being worked on, inside that array.
+n = handles.work.selection.contact;
+
+function handles = setSelectedArray(handles, n)
+%SETSELECTEDARRAY  Select an electrode array and show it in the interface.
+handles.work.selection.array = n;
+set(handles.arrayNumberText, 'String', num2str(n));
+
+function handles = setSelectedContact(handles, n)
+%SETSELECTEDCONTACT  Select a contact and show it in the interface.
+handles.work.selection.contact = n;
+set(handles.elecNumberText, 'String', num2str(n));

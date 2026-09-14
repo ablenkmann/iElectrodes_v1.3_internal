@@ -64,6 +64,13 @@ set(handles.MNILabelstogglebutton,'State','On'); % this will call to labels2Nati
 % cursor
 handles.ui.cursor=[0 0 0];
 
+% which electrode array and contact the user is working on. This lives in
+% work rather than in the text controls that display it; see the selection
+% accessors at the end of electrodes_gui.m. Assigned directly because,
+% unlike the rest of work, it never arrives from a .iel file.
+handles.work.selection.array   = 0;
+handles.work.selection.contact = 0;
+
 handles.ui.rotate3d=rotate3d(handles.figure1);
 setAllowAxesRotate(handles.ui.rotate3d,handles.axesX,false); 
 setAllowAxesRotate(handles.ui.rotate3d,handles.axesY,false); 
