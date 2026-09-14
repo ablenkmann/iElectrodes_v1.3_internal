@@ -19,95 +19,95 @@ handles.MNIprob = prob;
 handles.MNI_S_matrix=S;
 
 colormap gray
-handles.layout=0; %default layaut
+handles.ui.layout=0; %default layaut
 
-handles.buttonDown=0;
+handles.ui.buttonDown=0;
 
 % Plot update options. 
 % If update = 0, no changes to current plot
 
-handles.updatePlots.views2D=[1 1 1]; % Force update all slices
-handles.updatePlots.resetTAC=1;      % reset 2D views axes
-handles.updatePlots.GS=1;
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
+handles.ui.updatePlots.views2D=[1 1 1]; % Force update all slices
+handles.ui.updatePlots.resetTAC=1;      % reset 2D views axes
+handles.ui.updatePlots.GS=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 
-handles.updatePlots.cla=1;
+handles.ui.updatePlots.cla=1;
 
 % plot 3D handles
-handles.plot3Dhandles.GS=[];
-handles.plot3Dhandles.electrodes=[];
-handles.plot3Dhandles.labels=[];
-handles.plot3Dhandles.elecLines=[];
-handles.plot3Dhandles.targets=[];
-handles.plot3Dhandles.targetLines=[];
-handles.plot3Dhandles.surfaces=[];
-handles.plot3Dhandles.hcam=[];
+handles.ui.plot3Dhandles.GS=[];
+handles.ui.plot3Dhandles.electrodes=[];
+handles.ui.plot3Dhandles.labels=[];
+handles.ui.plot3Dhandles.elecLines=[];
+handles.ui.plot3Dhandles.targets=[];
+handles.ui.plot3Dhandles.targetLines=[];
+handles.ui.plot3Dhandles.surfaces=[];
+handles.ui.plot3Dhandles.hcam=[];
 
-handles.viewPoint=[-135,25];
+handles.ui.viewPoint=[-135,25];
 
 
 handles.PathName=pwd;
 
-handles.color=1;
+handles.ui.color=1;
 
 % we assume starting in MNI
 handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
 set(handles.MNILabelstogglebutton,'State','On'); % this will call to labels2NativeSpace and updateElectrodes3D
 
 % cursor
-handles.cursor=[0 0 0];
+handles.ui.cursor=[0 0 0];
 
-handles.rotate3d=rotate3d(handles.figure1);
-setAllowAxesRotate(handles.rotate3d,handles.axesX,false); 
-setAllowAxesRotate(handles.rotate3d,handles.axesY,false); 
-setAllowAxesRotate(handles.rotate3d,handles.axesZ,false); 
-%handles.rotate3d.ActionPreCallback=@Rotate3dActionPreCallback; %how to
+handles.ui.rotate3d=rotate3d(handles.figure1);
+setAllowAxesRotate(handles.ui.rotate3d,handles.axesX,false); 
+setAllowAxesRotate(handles.ui.rotate3d,handles.axesY,false); 
+setAllowAxesRotate(handles.ui.rotate3d,handles.axesZ,false); 
+%handles.ui.rotate3d.ActionPreCallback=@Rotate3dActionPreCallback; %how to
 %send handles structure as a parameter in this function??
 
-handles.hlink = linkprop([handles.axes1,handles.axes2],{'CameraPosition','CameraUpVector'});
+handles.ui.hlink = linkprop([handles.axes1,handles.axes2],{'CameraPosition','CameraUpVector'});
 % add select lock/unlock checkbox on axes1 or 2 
 
 % crosshair handles 
 
 axes(handles.axes2);
-handles.cross.x3D=line([0 0],[0 0],[0 0],'Color',handles.colors.x);
-handles.cross.y3D=line([0 0],[0 0],[0 0],'Color',handles.colors.y);
-handles.cross.z3D=line([0 0],[0 0],[0 0],'Color',handles.colors.z);
+handles.ui.cross.x3D=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.y3D=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.y);
+handles.ui.cross.z3D=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.z);
 view(handles.axes2,-135,25);
 
 axes(handles.axesX);
-handles.cross.xh1=line([0 0],[0 0],'Color',handles.colors.y);
-handles.cross.xh2=line([0 0],[0 0],'Color',handles.colors.y);
-handles.cross.xv1=line([0 0],[0 0],'Color',handles.colors.z);
-handles.cross.xv2=line([0 0],[0 0],'Color',handles.colors.z);
+handles.ui.cross.xh1=line([0 0],[0 0],'Color',handles.ui.colors.y);
+handles.ui.cross.xh2=line([0 0],[0 0],'Color',handles.ui.colors.y);
+handles.ui.cross.xv1=line([0 0],[0 0],'Color',handles.ui.colors.z);
+handles.ui.cross.xv2=line([0 0],[0 0],'Color',handles.ui.colors.z);
 
 axes(handles.axesY);
-handles.cross.yh1=line([0 0],[0 0],'Color',handles.colors.x);
-handles.cross.yh2=line([0 0],[0 0],'Color',handles.colors.x);
-handles.cross.yv1=line([0 0],[0 0],'Color',handles.colors.z);
-handles.cross.yv2=line([0 0],[0 0],'Color',handles.colors.z);
+handles.ui.cross.yh1=line([0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.yh2=line([0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.yv1=line([0 0],[0 0],'Color',handles.ui.colors.z);
+handles.ui.cross.yv2=line([0 0],[0 0],'Color',handles.ui.colors.z);
 
 axes(handles.axesZ);
-handles.cross.zh1=line([0 0],[0 0],'Color',handles.colors.x);
-handles.cross.zh2=line([0 0],[0 0],'Color',handles.colors.x);
-handles.cross.zv1=line([0 0],[0 0],'Color',handles.colors.y);
-handles.cross.zv2=line([0 0],[0 0],'Color',handles.colors.y);
+handles.ui.cross.zh1=line([0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.zh2=line([0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.zv1=line([0 0],[0 0],'Color',handles.ui.colors.y);
+handles.ui.cross.zv2=line([0 0],[0 0],'Color',handles.ui.colors.y);
 
 axes(handles.axes1);
-handles.cross.x3DThres=line([0 0],[0 0],[0 0],'Color',handles.colors.x);
-handles.cross.y3DThres=line([0 0],[0 0],[0 0],'Color',handles.colors.y);
-handles.cross.z3DThres=line([0 0],[0 0],[0 0],'Color',handles.colors.z);
+handles.ui.cross.x3DThres=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.x);
+handles.ui.cross.y3DThres=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.y);
+handles.ui.cross.z3DThres=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.z);
 
 
 % scatter points
-handles.sct=[];
+handles.ui.sct=[];
 
 % max value
 handles.maxValue=[];

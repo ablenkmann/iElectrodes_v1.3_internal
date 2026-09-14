@@ -166,7 +166,7 @@ options=[];
 handles.options=default_ielectrodes_options(options);
 
 colors=[];
-handles.colors=defaultColors(colors);
+handles.ui.colors=defaultColors(colors);
 
 % reset gui variables
 handles=defaultGuiVariables(handles);
@@ -261,7 +261,7 @@ xLimits = get(G, 'xlim');
 yLimits = get(G, 'ylim');
 
 if (G == handles.axes1) || (G == handles.axes2 && verLessThan('matlab','9.5')) 
-        %handles.rotate3d.Enable='on';
+        %handles.ui.rotate3d.Enable='on';
         
         [pout]  = select3d(handles); % error in new matlab versions >2018b with surfaces
         
@@ -454,7 +454,7 @@ if T1file ~=0
 %    set(handles.TargetArraytext,'string','0');
     set(handles.nClusText,'string', '0');
 
-    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
+    handles.ui.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
       
     guidata(hObject, handles);
     
@@ -512,7 +512,7 @@ choice = 'No'; % code below is not ready
             set(handles.edgeCheckbox,'Value',1); %edgeCT on
             
             handles=updateMix_TAC_MR(handles);
-            handles.updatePlots.views2D=[1 1 1];
+            handles.ui.updatePlots.views2D=[1 1 1];
             handles=updateTAC(handles);
             % manual coregistratoin
             while true
@@ -532,7 +532,7 @@ choice = 'No'; % code below is not ready
                         [handles.project.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
                         
                         handles=updateMix_TAC_MR(handles);
-                        handles.updatePlots.views2D=[1 1 1];
+                        handles.ui.updatePlots.views2D=[1 1 1];
                         handles=updateTAC(handles);
                                                 
                         disp (['Rotation matrix modified in :' PathName, TACfile]);
@@ -558,7 +558,7 @@ choice = 'No'; % code below is not ready
                         [handles.project.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
                         
                         handles=updateMix_TAC_MR(handles);
-                        handles.updatePlots.views2D=[1 1 1];
+                        handles.ui.updatePlots.views2D=[1 1 1];
                         handles=updateTAC(handles);
                                                 
                         disp (['Rotation matrix modified in :' PathName, TACfile]);
@@ -652,7 +652,7 @@ choice = 'No'; % code below is not ready
         
         handles=updateMix_TAC_MR(handles);
 
-        handles.updatePlots.views2D=[1 1 1];     
+        handles.ui.updatePlots.views2D=[1 1 1];     
         handles=updateElectrodes3D(handles);
         handles=updateTAC(handles);
         handles=updatePlot(handles);
@@ -793,7 +793,7 @@ if FileName ~=0
     set(handles.sliderX,'Min',1,'Max',xM,'SliderStep',[ 1/(xM-1) 10/(xM-1)],'Value',xM/2);
     set(handles.sliderY,'Min',1,'Max',yM,'SliderStep',[ 1/(yM-1) 10/(yM-1)],'Value',yM/2);
     set(handles.sliderZ,'Min',1,'Max',zM,'SliderStep',[ 1/(zM-1) 10/(zM-1)],'Value',zM/2);
-    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
+    handles.ui.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
 
   
     if ~isempty(handles.project.wmparc)
@@ -1166,9 +1166,9 @@ if valid
         handles=labels2NativeSpace(handles);
     end
        
-    handles.updatePlots.electrodes=1;
-    handles.updatePlots.labels=1;
-    handles.updatePlots.elecLines=1;
+    handles.ui.updatePlots.electrodes=1;
+    handles.ui.updatePlots.labels=1;
+    handles.ui.updatePlots.elecLines=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     handles=updatePlot(handles);
@@ -1284,7 +1284,7 @@ if ~isequal(wmparcFile,0)
     % Update labels
     handles=labels2NativeSpace(handles);
     
-    handles.updatePlots.views2D=[1 1 1];
+    handles.ui.updatePlots.views2D=[1 1 1];
     handles=updateTAC(handles);
     guidata(hObject, handles); % update data again
 end
@@ -1299,7 +1299,7 @@ function MNILabelstogglebutton_OnCallback(hObject, eventdata, handles)
 
 handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 handles=labels2MNIspace(handles);
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -1316,7 +1316,7 @@ function MNILabelstogglebutton_OffCallback(hObject, eventdata, handles)
 
 handles.project.currentSpace='Native'; % options are 'Native' 'MNI' 
 handles=labels2NativeSpace(handles);
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -1410,7 +1410,7 @@ choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
 switch choice
     case 'Yes'
         % translate pial surfaces to MRI center
-        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.project.S2);
+        trans=mesh2AnatSpace(size(handles.ui.imgW)/2,handles.project.S2);
         vR=vR+repmat(trans,size(vR,1),1);
         vL=vL+repmat(trans,size(vL,1),1);
         disp (['Surfaces centered'])
@@ -1516,7 +1516,7 @@ guidata(hObject, handles);
 %lock MNI labels button
 set(handles.MNILabelstogglebutton,'State','Off'); % this will call to labels2NativeSpace and updateElectrodes3D
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D (handles);
 % Update handles structure
 guidata(hObject, handles);
@@ -1546,7 +1546,7 @@ handles.AnnotColor_R=[];
 handles.AnnotColor_L=[];
 
 handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -1599,7 +1599,7 @@ switch type
                 switch choice
                     case 'Yes'
                         % translate pial surfaces to MRI center
-                        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.project.S2);
+                        trans=mesh2AnatSpace(size(handles.ui.imgW)/2,handles.project.S2);
                         vR=vR+repmat(trans,size(vR,1),1);
                         vL=vL+repmat(trans,size(vL,1),1);
                         
@@ -1754,8 +1754,8 @@ if FileName~=0
     UpdateTargetEditBox(hObject, eventdata, handles);
     % handles = guidata(hObject); %returns previous handles structure
     
-    handles.updatePlots.targets=1;
-    handles.updatePlots.targetLines=1;
+    handles.ui.updatePlots.targets=1;
+    handles.ui.updatePlots.targetLines=1;
     handles=updateTAC(handles);
     handles=updateElectrodes3D(handles);
 end
@@ -1794,10 +1794,10 @@ function uitoggletool2_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to uitoggletool2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if strcmp(handles.rotate3d.Enable,'on')
-    handles.rotate3d.Enable='off';
+if strcmp(handles.ui.rotate3d.Enable,'on')
+    handles.ui.rotate3d.Enable='off';
 else
-    handles.rotate3d.Enable='on';
+    handles.ui.rotate3d.Enable='on';
 end
 
 % Update handles structure
@@ -1824,7 +1824,7 @@ function resetTACplotButton_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to resetTACplotButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.updatePlots.resetTAC=1;
+handles.ui.updatePlots.resetTAC=1;
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -1839,18 +1839,18 @@ function ToggleLayoutuitoggletool_ClickedCallback(hObject, eventdata, handles)
 
 
 
-if handles.layout==0
+if handles.ui.layout==0
     %  3D view  + 2 views
-    handles.layout=1;
+    handles.ui.layout=1;
     set(handles.PanelThres,'Visible','off');
     set(handles.Panel3D,'Position', [0.001 0.001 0.437 0.998]);
     set(handles.Panel3Doptions,'Position', [0.88 0.8 0.11 0.36/2]);
     
     set(handles.Panel3D,'FontSize',0.013);  
     
-elseif handles.layout==1 
+elseif handles.ui.layout==1 
     % 2D views
-    handles.layout=2;
+    handles.ui.layout=2;
     set(handles.Panel3D,'Visible','off');
     set(handles.PanelClustering,'Visible','off');
     set(handles.PanelLabel,'Visible','off');
@@ -1868,7 +1868,7 @@ elseif handles.layout==1
     
 else
     % set default view
-    handles.layout=0;
+    handles.ui.layout=0;
     set(handles.Panel3D,'Position', [0.001 0.5 0.437 0.499]);
     set(handles.PanelThres,'Visible','on');
     if  handles.options.showLocalizeTools 
@@ -1909,7 +1909,7 @@ function viewCrossbutton_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if ~isempty(handles.project.T1); % avoid changing crosshairs wwithout images loaded
-%    handles.updatePlots.views2D=[1 1 1];
+%    handles.ui.updatePlots.views2D=[1 1 1];
 %    handles=updateTAC(handles);
     handles=cross2D(handles); 
     handles=cross3D(handles);
@@ -1999,13 +1999,13 @@ handles.options=default_ielectrodes_options(options);
 disp('Default_ielectrodes_options.m loaded')
 
 colors=[];
-handles.colors=defaultColors(colors);
+handles.ui.colors=defaultColors(colors);
 disp('DefaultColors loaded')
 
 handles=updateMix_TAC_MR(handles);
 
-handles.updatePlots.views2D=[1 1 1]; % Force update all slices
-handles.updatePlots.resetTAC=1;      % reset 2D views axes
+handles.ui.updatePlots.views2D=[1 1 1]; % Force update all slices
+handles.ui.updatePlots.resetTAC=1;      % reset 2D views axes
 
 % update elec labels
 if strcmp (handles.project.currentSpace, 'Native') % options are 'Native' 'MNI' 
@@ -2048,23 +2048,23 @@ set(handles.sliderX,'Value',x); set(handles.sliderY,'Value',y); set(handles.slid
 % set matrix coords text
 set(handles.textX,'String',x); set(handles.textY,'String', y); set(handles.textZ,'String', z);
 % define anatomical coords
-prevCursor=handles.cursor;
-handles.cursor=mesh2AnatSpace([x y z], handles.project.S2);
+prevCursor=handles.ui.cursor;
+handles.ui.cursor=mesh2AnatSpace([x y z], handles.project.S2);
 
 %indicates if need to update current slice or not
-updateSlice=(abs(handles.cursor-prevCursor)>=diag(handles.project.S2(1:3,1:3))') | handles.updatePlots.views2D; %Force update all slices;
-handles.updatePlots.views2D=[0 0 0]; %remove force plot
+updateSlice=(abs(handles.ui.cursor-prevCursor)>=diag(handles.project.S2(1:3,1:3))') | handles.ui.updatePlots.views2D; %Force update all slices;
+handles.ui.updatePlots.views2D=[0 0 0]; %remove force plot
 
 % coordinates box
-set(handles.textXac,'String', int2str(handles.cursor(1)));
-set(handles.textYac,'String', int2str(handles.cursor(2)));
-set(handles.textZac,'String', int2str(handles.cursor(3)));
+set(handles.textXac,'String', int2str(handles.ui.cursor(1)));
+set(handles.textYac,'String', int2str(handles.ui.cursor(2)));
+set(handles.textZac,'String', int2str(handles.ui.cursor(3)));
  
 % mWS=get(handles.MinWinslider,'Value'); not used in color data anymore
 % MWS=get(handles.MaxWinslider,'Value');
 
-markerPlanning=handles.colors.targetMarker2D;
-colorPlanning=handles.colors.target2D;
+markerPlanning=handles.ui.colors.targetMarker2D;
+colorPlanning=handles.ui.colors.target2D;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ------------- X plane ------------------------
@@ -2072,8 +2072,8 @@ set(handles.figure1,'CurrentAxes',handles.axesX);
 
 if updateSlice(1)
     set(handles.axesX,'NextPlot','replacechildren');
-    if handles.color
-        img=squeeze(handles.imgW(x,:,:,:)); %true color imgW:(dimX,dimY,dimZ,3)
+    if handles.ui.color
+        img=squeeze(handles.ui.imgW(x,:,:,:)); %true color imgW:(dimX,dimY,dimZ,3)
         if ~isempty(handles.wmparcColors)
             imgAtlas=squeeze(handles.wmparcColors(x,:,:,:));
             alphaMask=double(sum(imgAtlas,3)>0);
@@ -2082,15 +2082,15 @@ if updateSlice(1)
             alphaMask=1;
         end
     else
-       img=squeeze(handles.imgW(x,:,:));
+       img=squeeze(handles.ui.imgW(x,:,:));
     end
 %     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
     imagesc(fliplr(rot90(img,3)));
     set(handles.axesX,'NextPlot','add');
     if get(handles.parcellationCheckbox,'Value')
-        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.colors.alphaAtlas);
+        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
     end
-    if handles.updatePlots.resetTAC
+    if handles.ui.updatePlots.resetTAC
         %        axis(handles.axesX, 'image')
         pixdim=diag(handles.project.S2(:,1:3));
         DD=size(handles.project.T1.img);
@@ -2098,7 +2098,7 @@ if updateSlice(1)
         set(handles.axesX,'DataAspectRatio',[1/pixdim(2) 1/pixdim(3) 1]);
         set(handles.axesX,'YDir','normal')
         set(handles.axesX,'XDir','reverse')
-        %handles.updatePlots.resetTAC=0; only in last plane
+        %handles.ui.updatePlots.resetTAC=0; only in last plane
     end
     
     %overlay electrodes
@@ -2106,11 +2106,11 @@ if updateSlice(1)
         if get(handles.plotAllRadiobutton,'value') %plot all
             for i=1:length(handles.project.electrodes)
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
                     
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -2130,11 +2130,11 @@ if updateSlice(1)
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
                     c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
@@ -2196,8 +2196,8 @@ set(handles.figure1,'CurrentAxes',handles.axesY);
 if updateSlice(2)
     
     set(handles.axesY,'NextPlot','replacechildren');
-    if handles.color
-        img=squeeze(handles.imgW(:,y,:,:));%true color imgW:(dimX,dimY,dimZ,3)
+    if handles.ui.color
+        img=squeeze(handles.ui.imgW(:,y,:,:));%true color imgW:(dimX,dimY,dimZ,3)
         if ~isempty(handles.wmparcColors)
             imgAtlas=squeeze(handles.wmparcColors(:,y,:,:));
             alphaMask=double(sum(imgAtlas,3)>0);
@@ -2206,15 +2206,15 @@ if updateSlice(2)
             alphaMask=1;
         end
     else
-        img=squeeze(handles.imgW(:,y,:));
+        img=squeeze(handles.ui.imgW(:,y,:));
     end
 %     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
     imagesc(fliplr(rot90(img,3)));
     set(handles.axesY,'NextPlot','add');
     if get(handles.parcellationCheckbox,'Value')
-        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.colors.alphaAtlas);
+        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
     end
-    if handles.updatePlots.resetTAC
+    if handles.ui.updatePlots.resetTAC
         %axis(handles.axesY, 'image')
         pixdim=diag(handles.project.S2(:,1:3));
         DD=size(handles.project.T1.img);
@@ -2222,7 +2222,7 @@ if updateSlice(2)
         set(handles.axesY,'DataAspectRatio',[1/pixdim(1) 1/pixdim(3) 1]);
         set(handles.axesY,'YDir','normal')
         set(handles.axesY,'XDir','reverse')
-        %handles.updatePlots.resetTAC=0; only in last plane
+        %handles.ui.updatePlots.resetTAC=0; only in last plane
     end
     
     %overlay electrodes
@@ -2230,11 +2230,11 @@ if updateSlice(2)
         if get(handles.plotAllRadiobutton,'value') %plot all
             for i=1:length(handles.project.electrodes)
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -2254,11 +2254,11 @@ if updateSlice(2)
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
                     c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
@@ -2317,8 +2317,8 @@ end
 set(handles.figure1,'CurrentAxes',handles.axesZ);
 if updateSlice(3)
     set(handles.axesZ,'NextPlot','replacechildren');
-    if handles.color
-        img=squeeze(handles.imgW(:,:,z,:)); %true color imgW:(dimX,dimY,dimZ,3)
+    if handles.ui.color
+        img=squeeze(handles.ui.imgW(:,:,z,:)); %true color imgW:(dimX,dimY,dimZ,3)
         if ~isempty(handles.wmparcColors)
             imgAtlas=squeeze(handles.wmparcColors(:,:,z,:));
             alphaMask=double(sum(imgAtlas,3)>0);
@@ -2327,15 +2327,15 @@ if updateSlice(3)
             alphaMask=1;
         end
     else
-        img=squeeze(handles.imgW(:,:,z));
+        img=squeeze(handles.ui.imgW(:,:,z));
     end
 %     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
     imagesc(fliplr(rot90(img,3)));
     set(handles.axesZ,'NextPlot','add');
     if get(handles.parcellationCheckbox,'Value')
-        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.colors.alphaAtlas);
+        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
     end
-    if handles.updatePlots.resetTAC
+    if handles.ui.updatePlots.resetTAC
         %axis(handles.axesZ, 'image')
         pixdim=diag(handles.project.S2(:,1:3));
         DD=size(handles.project.T1.img);
@@ -2343,7 +2343,7 @@ if updateSlice(3)
         set(handles.axesZ,'DataAspectRatio',[1/pixdim(1) 1/pixdim(2) 1]);
         set(handles.axesZ,'YDir','normal')
         set(handles.axesZ,'XDir','reverse')
-        handles.updatePlots.resetTAC=0;
+        handles.ui.updatePlots.resetTAC=0;
     end
     
     %overlay electrodes
@@ -2351,11 +2351,11 @@ if updateSlice(3)
         if get(handles.plotAllRadiobutton,'value') %plot all
             for i=1:length(handles.project.electrodes)
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -2375,11 +2375,11 @@ if updateSlice(3)
             i=str2double(get(handles.arrayNumberText,'String'));
             if i~=0
                 if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.colors.electrodesGrid2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 else
-                    colorElectrodes=handles.colors.electrodesDepth2D;
-                    markerElectrodes=handles.colors.electrodesMarker2D;
+                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
                     c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
@@ -2438,15 +2438,15 @@ end
 
 lookAround=1;
 if strcmp(handles.project.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-    aL=anatomicLabel(handles.cursor,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
+    aL=anatomicLabel(handles.ui.cursor,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
     set(handles.aLabelText,'String',aL);
 elseif ~isempty(handles.project.wmparc) % Native space
     opt.radio=handles.options.atlasLabelingRadio;
     opt.mode=handles.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities
     opt.minProb=handles.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob'
 
-    aL=anatomicLabelFS(handles.cursor,[],handles.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
-    %aL=anatomicLabelFS(handles.cursor, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
+    aL=anatomicLabelFS(handles.ui.cursor,[],handles.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
+    %aL=anatomicLabelFS(handles.ui.cursor, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
     
     set(handles.aLabelText,'String',aL);
 else
@@ -2472,22 +2472,22 @@ function handles=updateElectrodes3D (handles)
 
 %select axes
 axes(handles.axes2);
-if handles.updatePlots.cla
+if handles.ui.updatePlots.cla
     cla %clear axes
     set(handles.axes2, 'Clipping', 'on');
     hold on;
     axis image
     xlabel(handles.axes2,'x'); ylabel(handles.axes2,'y'); zlabel(handles.axes2,'z');
-    handles.plot3Dhandles.GS=[];
-    handles.plot3Dhandles.electrodes=[];
-    handles.plot3Dhandles.labels=[];
-    handles.plot3Dhandles.targetLabels=[];
-    handles.plot3Dhandles.elecLines=[];
-    handles.plot3Dhandles.targets=[];
-    handles.plot3Dhandles.targetLines=[];
-    handles.plot3Dhandles.surfaces=[];
-    handles.plot3Dhandles.hcam=[];
-    handles.updatePlots.cla=0;
+    handles.ui.plot3Dhandles.GS=[];
+    handles.ui.plot3Dhandles.electrodes=[];
+    handles.ui.plot3Dhandles.labels=[];
+    handles.ui.plot3Dhandles.targetLabels=[];
+    handles.ui.plot3Dhandles.elecLines=[];
+    handles.ui.plot3Dhandles.targets=[];
+    handles.ui.plot3Dhandles.targetLines=[];
+    handles.ui.plot3Dhandles.surfaces=[];
+    handles.ui.plot3Dhandles.hcam=[];
+    handles.ui.updatePlots.cla=0;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2496,14 +2496,14 @@ end
 % if ~isempty(handles.work.GS) %plot just after cluster (not labeled or indexed)
 %     scatter3(handles.axes2,handles.work.GS(:,1),handles.work.GS(:,2),handles.work.GS(:,3),'ro', 'filled')
 
-if handles.updatePlots.GS %plot
-    if ishandle(handles.plot3Dhandles.GS) %clear and replace
-         delete(handles.plot3Dhandles.GS);
+if handles.ui.updatePlots.GS %plot
+    if ishandle(handles.ui.plot3Dhandles.GS) %clear and replace
+         delete(handles.ui.plot3Dhandles.GS);
     end
     if ~isempty(handles.work.GS) 
-        handles.plot3Dhandles.GS=scatter3(handles.axes2,handles.work.GS(:,1),handles.work.GS(:,2),handles.work.GS(:,3),'ro', 'filled');
+        handles.ui.plot3Dhandles.GS=scatter3(handles.axes2,handles.work.GS(:,1),handles.work.GS(:,2),handles.work.GS(:,3),'ro', 'filled');
     end
-    handles.updatePlots.GS=0;
+    handles.ui.updatePlots.GS=0;
 end
         
     
@@ -2521,11 +2521,11 @@ end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot electrodes
-if handles.updatePlots.electrodes %plot
+if handles.ui.updatePlots.electrodes %plot
     %clear and replace
-    dlt=ishandle(handles.plot3Dhandles.electrodes);
+    dlt=ishandle(handles.ui.plot3Dhandles.electrodes);
     if any(dlt) 
-        delete(handles.plot3Dhandles.electrodes(dlt));
+        delete(handles.ui.plot3Dhandles.electrodes(dlt));
     end
     
     if ~isempty(handles.project.electrodes)>0 % plot electrodes
@@ -2542,10 +2542,10 @@ if handles.updatePlots.electrodes %plot
             %plot electrodes
             if isfield (handles.project.electrodes{j},'Type') & strcmp(handles.project.electrodes{j}.Type,'grid');
                 %grids
-                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesGrid3D,handles.colors.electrodesMarker3D, 'filled');%'ro'
+                handles.ui.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.ui.colors.electrodesSize3D,handles.ui.colors.electrodesGrid3D,handles.ui.colors.electrodesMarker3D, 'filled');%'ro'
             else
                 %depth
-                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesDepth3D,handles.colors.electrodesMarker3D, 'filled');%'bo'
+                handles.ui.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.ui.colors.electrodesSize3D,handles.ui.colors.electrodesDepth3D,handles.ui.colors.electrodesMarker3D, 'filled');%'bo'
             end
         end
         
@@ -2553,25 +2553,25 @@ if handles.updatePlots.electrodes %plot
         a=str2double(get(handles.arrayNumberText,'String'));
         l=str2double(get(handles.elecNumberText,'String'));
         if get(handles.projectSCEcheckbox,'Value')  && isfield(handles.project.electrodes{a},'projection')% projection to SCE
-            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
-                handles.project.electrodes{a}.projection{1}.y(l),handles.project.electrodes{a}.projection{1}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
+            handles.ui.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
+                handles.project.electrodes{a}.projection{1}.y(l),handles.project.electrodes{a}.projection{1}.z(l),handles.ui.colors.electrodesSize3D,handles.ui.colors.electrodesSelected3D,handles.ui.colors.electrodesMarker3D, 'filled');
         else
-            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.x(l),...
-                handles.project.electrodes{a}.y(l),handles.project.electrodes{a}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
+            handles.ui.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.x(l),...
+                handles.project.electrodes{a}.y(l),handles.project.electrodes{a}.z(l),handles.ui.colors.electrodesSize3D,handles.ui.colors.electrodesSelected3D,handles.ui.colors.electrodesMarker3D, 'filled');
         end
     end
 
-    handles.updatePlots.electrodes=0;    
+    handles.ui.updatePlots.electrodes=0;    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot lines(cylinders) between electrodes
- if ~isempty(handles.project.electrodes)>0 && handles.updatePlots.elecLines %% && get(handles.PlotConnCheckbox,'Value')
+ if ~isempty(handles.project.electrodes)>0 && handles.ui.updatePlots.elecLines %% && get(handles.PlotConnCheckbox,'Value')
     %clear and replace
-    for k=1:length(handles.plot3Dhandles.elecLines)
-        dlt=ishandle(handles.plot3Dhandles.elecLines{k});
+    for k=1:length(handles.ui.plot3Dhandles.elecLines)
+        dlt=ishandle(handles.ui.plot3Dhandles.elecLines{k});
         if any(dlt)
-            delete(handles.plot3Dhandles.elecLines{k}(dlt));
+            delete(handles.ui.plot3Dhandles.elecLines{k}(dlt));
         end
     end
     if get(handles.PlotConnCheckbox,'Value')
@@ -2589,25 +2589,25 @@ end
             
             X=[x,y,z];
             if isfield (handles.project.electrodes{j},'Type') && strcmp(handles.project.electrodes{j}.Type,'grid')
-                color=handles.colors.cylColorGrid;
+                color=handles.ui.colors.cylColorGrid;
             else
-                color=handles.colors.cylColorDepth;
+                color=handles.ui.colors.cylColorDepth;
             end
-            handles.plot3Dhandles.elecLines{j}=plotElectrodesLines(X,handles.project.electrodes{j}.rows,handles.project.electrodes{j}.columns,color);
-%            set(handles.plot3Dhandles.elecLines{j},'FaceAlpha',handles.options.cylAlpha);
+            handles.ui.plot3Dhandles.elecLines{j}=plotElectrodesLines(X,handles.project.electrodes{j}.rows,handles.project.electrodes{j}.columns,color);
+%            set(handles.ui.plot3Dhandles.elecLines{j},'FaceAlpha',handles.options.cylAlpha);
         end
     end
-     handles.updatePlots.elecLines = 0;       
+     handles.ui.updatePlots.elecLines = 0;       
  end
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot electrode labels
 
-if ~isempty(handles.project.electrodes)>0 && handles.updatePlots.labels
+if ~isempty(handles.project.electrodes)>0 && handles.ui.updatePlots.labels
     %clear and replace
-    dlt=ishandle(handles.plot3Dhandles.labels);
+    dlt=ishandle(handles.ui.plot3Dhandles.labels);
     if any(dlt) 
-        delete(handles.plot3Dhandles.labels(dlt));
+        delete(handles.ui.plot3Dhandles.labels(dlt));
     end
      
      %     if isfield(handles.project.electrodes{j},'recorded_channels') %for compatiblillity with previous versions
@@ -2637,16 +2637,16 @@ if ~isempty(handles.project.electrodes)>0 && handles.updatePlots.labels
              for i=labelList
                  %remove special characters
                  ch_label{i}(~isstrprop(ch_label{i},'alphanum')) = ' ';
-                 handles.plot3Dhandles.labels(k)=...
+                 handles.ui.plot3Dhandles.labels(k)=...
                      text(x(i)+1,y(i)+1,z(i)+1,ch_label{i},...
-                     'color',handles.colors.labelsColor,...
-                     'FontSize',handles.colors.labelsFontSize,...
+                     'color',handles.ui.colors.labelsColor,...
+                     'FontSize',handles.ui.colors.labelsFontSize,...
                  'FontWeight','bold');
                 k=k+1;
              end
          end
      end
-     handles.updatePlots.labels=0;
+     handles.ui.updatePlots.labels=0;
  end   
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2664,13 +2664,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot targets
    
-if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
+if ~isempty(handles.project.targets)>0 && handles.ui.updatePlots.targets
 
     %clear and replace    
-    for k=1:length(handles.plot3Dhandles.targets)
-        dlt=ishandle(handles.plot3Dhandles.targets{k});
+    for k=1:length(handles.ui.plot3Dhandles.targets)
+        dlt=ishandle(handles.ui.plot3Dhandles.targets{k});
         if any(dlt)
-            delete(handles.plot3Dhandles.targets{k});
+            delete(handles.ui.plot3Dhandles.targets{k});
         end
     end
         
@@ -2684,7 +2684,7 @@ if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
             y=handles.project.targets{j}.y;
             z=handles.project.targets{j}.z;
         end
-        handles.plot3Dhandles.targets{j}=scatter3(handles.axes2,x,y,z,handles.colors.targetSize3D,handles.colors.target3D,handles.colors.targetMarker3D, 'filled');%'go'
+        handles.ui.plot3Dhandles.targets{j}=scatter3(handles.axes2,x,y,z,handles.ui.colors.targetSize3D,handles.ui.colors.target3D,handles.ui.colors.targetMarker3D, 'filled');%'go'
     end
     
     % plot selected target in black
@@ -2692,24 +2692,24 @@ if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
     l=str2double(get(handles.elecPlanningNumberText,'String'));
     
     if ~isempty(handles.project.targets{j}.projection)
-        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
-            handles.project.targets{a}.projection{1}.y(l),handles.project.targets{a}.projection{1}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
+        handles.ui.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
+            handles.project.targets{a}.projection{1}.y(l),handles.project.targets{a}.projection{1}.z(l),handles.ui.colors.targetSize3D,handles.ui.colors.targetSelected3D,handles.ui.colors.targetMarker3D, 'filled');%'ko'
     else
-        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.x(l),...
-            handles.project.targets{a}.y(l),handles.project.targets{a}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
+        handles.ui.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.x(l),...
+            handles.project.targets{a}.y(l),handles.project.targets{a}.z(l),handles.ui.colors.targetSize3D,handles.ui.colors.targetSelected3D,handles.ui.colors.targetMarker3D, 'filled');%'ko'
     end
-    handles.updatePlots.targets=0;    
+    handles.ui.updatePlots.targets=0;    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot targetLines
 
-if ~isempty(handles.project.targets)>0 && handles.updatePlots.targetLines
+if ~isempty(handles.project.targets)>0 && handles.ui.updatePlots.targetLines
     %clear and replace
-    for k=1:length(handles.plot3Dhandles.targetLines)
-        dlt=ishandle(handles.plot3Dhandles.targetLines{k});
+    for k=1:length(handles.ui.plot3Dhandles.targetLines)
+        dlt=ishandle(handles.ui.plot3Dhandles.targetLines{k});
         if any(dlt)
-            delete(handles.plot3Dhandles.targetLines{k});
+            delete(handles.ui.plot3Dhandles.targetLines{k});
         end
     end
     
@@ -2727,12 +2727,12 @@ if ~isempty(handles.project.targets)>0 && handles.updatePlots.targetLines
             z=handles.project.targets{j}.z;
         end
             X=[x,y,z];
-            color=handles.colors.cylColorTargets;
-            handles.plot3Dhandles.targetLines{j}=plotElectrodesLines(X,handles.project.targets{j}.rows,handles.project.targets{j}.columns,color);
-%            set(handles.plot3Dhandles.targetLines{j},'FaceAlpha',handles.colors.cylAlphaTages);
+            color=handles.ui.colors.cylColorTargets;
+            handles.ui.plot3Dhandles.targetLines{j}=plotElectrodesLines(X,handles.project.targets{j}.rows,handles.project.targets{j}.columns,color);
+%            set(handles.ui.plot3Dhandles.targetLines{j},'FaceAlpha',handles.ui.colors.cylAlphaTages);
         end
     end    
-    handles.updatePlots.targetLines=0;    
+    handles.ui.updatePlots.targetLines=0;    
 end
 
 
@@ -2743,12 +2743,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot brain surfaces
 
-if handles.updatePlots.surfaces
+if handles.ui.updatePlots.surfaces
     hind=zeros(1,4);
     %clear and replace
-    dlt=ishandle(handles.plot3Dhandles.surfaces);
+    dlt=ishandle(handles.ui.plot3Dhandles.surfaces);
     if any(dlt)
-        delete(handles.plot3Dhandles.surfaces(dlt));
+        delete(handles.ui.plot3Dhandles.surfaces(dlt));
     end
     
     % use subject surface
@@ -2756,18 +2756,18 @@ if handles.updatePlots.surfaces
         if ~isempty(handles.project.verticesR) %plot pials
             if get(handles.Rightcheckbox,'Value')
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR,handles.AnnotColor_R); %annotation in colors
+                    handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR,handles.AnnotColor_R); %annotation in colors
                 else
-                    handles.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR); %grey
+                    handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR); %grey
                 end
                 hind(1)=1;
                 hold on;
             end
             if get(handles.Leftcheckbox,'Value')                
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL, handles.AnnotColor_L); % annotation in colors
+                    handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL, handles.AnnotColor_L); % annotation in colors
                 else
-                    handles.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL);% grey    
+                    handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL);% grey    
                 end
                 hind(2)=1;
                 hold on;
@@ -2776,13 +2776,13 @@ if handles.updatePlots.surfaces
         if ~isempty(handles.project.vertices_SCE_R) && get(handles.RightSCEcheckbox,'Value')
 %         if ~isempty(handles.project.vertices_SCE_R) && get(handles.projectSCEcheckbox,'Value') % plot projection to SCE
 %             if get(handles.RightSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(3)=mvis(handles.project.vertices_SCE_R,handles.project.faces_SCE_R);
+            handles.ui.plot3Dhandles.surfaces(3)=mvis(handles.project.vertices_SCE_R,handles.project.faces_SCE_R);
             hind(3)=1;
             hold on;
         end
         if ~isempty(handles.project.vertices_SCE_L) && get(handles.LeftSCEcheckbox,'Value')
 %               if get(handles.LeftSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(4)=mvis(handles.project.vertices_SCE_L,handles.project.faces_SCE_L);
+            handles.ui.plot3Dhandles.surfaces(4)=mvis(handles.project.vertices_SCE_L,handles.project.faces_SCE_L);
             hind(4)=1;
             hold on;
 %            end
@@ -2790,24 +2790,24 @@ if handles.updatePlots.surfaces
         
     else %use MNI surface
         if get(handles.Rightcheckbox,'Value') %plot pials
-            handles.plot3Dhandles.surfaces(1)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==1,1:3));
+            handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==1,1:3));
             hind(1)=1;
             hold on;
         end
         if get(handles.Leftcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(2)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==2,1:3));
+            handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==2,1:3));
             hind(2)=1;
             hold on;
         end
         
 %         if get(handles.projectSCEcheckbox,'Value') % projection to SCE
         if get(handles.RightSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(3)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==2,1:3));
+            handles.ui.plot3Dhandles.surfaces(3)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==2,1:3));
             hind(3)=1;
             hold on;
         end
         if get(handles.LeftSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(4)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==1,1:3));
+            handles.ui.plot3Dhandles.surfaces(4)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==1,1:3));
             hind(4)=1;
             hold on;
         end
@@ -2817,11 +2817,11 @@ if handles.updatePlots.surfaces
     % change transparency values if there is any surface
     for i=1:length(hind);
         if hind(i)
-            alpha ( handles.plot3Dhandles.surfaces(i), get(handles.AlphaSlider,'Value'));
+            alpha ( handles.ui.plot3Dhandles.surfaces(i), get(handles.AlphaSlider,'Value'));
         end
     end
 
-    handles.updatePlots.surfaces=0;    
+    handles.ui.updatePlots.surfaces=0;    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2829,22 +2829,22 @@ end
 [vax2(1),vax2(2)]=view(handles.axes2);
 
 % no camlight
-if ~(any(ishandle(handles.plot3Dhandles.hcam)))
-     handles.plot3Dhandles.hcam=camlight('headlight');
-%     handles.plot3Dhandles.hcam(1)=camlight(-90,30); 
-%     handles.plot3Dhandles.hcam(2)=camlight(90,30);
-%     handles.plot3Dhandles.hcam(3)=camlight(0,-90);    
-    handles.viewPoint=vax2;
+if ~(any(ishandle(handles.ui.plot3Dhandles.hcam)))
+     handles.ui.plot3Dhandles.hcam=camlight('headlight');
+%     handles.ui.plot3Dhandles.hcam(1)=camlight(-90,30); 
+%     handles.ui.plot3Dhandles.hcam(2)=camlight(90,30);
+%     handles.ui.plot3Dhandles.hcam(3)=camlight(0,-90);    
+    handles.ui.viewPoint=vax2;
 
     
 % camlight with diff angle
-elseif any(handles.viewPoint~=vax2)
-    delete(handles.plot3Dhandles.hcam);
-     handles.plot3Dhandles.hcam=camlight('headlight');
-%     handles.plot3Dhandles.hcam(1)=camlight(-90,30); 
-%     handles.plot3Dhandles.hcam(2)=camlight(90,30);
-%     handles.plot3Dhandles.hcam(3)=camlight(0,-90);
-    handles.viewPoint=vax2;        
+elseif any(handles.ui.viewPoint~=vax2)
+    delete(handles.ui.plot3Dhandles.hcam);
+     handles.ui.plot3Dhandles.hcam=camlight('headlight');
+%     handles.ui.plot3Dhandles.hcam(1)=camlight(-90,30); 
+%     handles.ui.plot3Dhandles.hcam(2)=camlight(90,30);
+%     handles.ui.plot3Dhandles.hcam(3)=camlight(0,-90);
+    handles.ui.viewPoint=vax2;        
 end
 
 handles=cross3D(handles);
@@ -2855,16 +2855,16 @@ function Reset3Dpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to Reset3Dpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.updatePlots.GS=1;
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
+handles.ui.updatePlots.GS=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
-handles.updatePlots.surfaces=1;
-handles.updatePlots.cla=1;
+handles.ui.updatePlots.surfaces=1;
+handles.ui.updatePlots.cla=1;
 
 handles=updateElectrodes3D(handles);
 
@@ -2874,7 +2874,7 @@ guidata(hObject, handles);
 %%%%%%%%%%%%%%%   update crosshairs in 2D and 3D view       %%%%%%%%%%%%%%%
 function handles=cross2D(handles) %,updateSlice)
 % Fuction to update 2D crosshairs. 
-% if handles.cross.xh1 .xh2 .xv1 ..... .zv1 .zv2 are valid, the coordinates
+% if handles.ui.cross.xh1 .xh2 .xv1 ..... .zv1 .zv2 are valid, the coordinates
 % are updated. If not valid new lines are created.
 %
 % This method is afecting the visual variables inside handles, but not
@@ -2890,97 +2890,97 @@ function handles=cross2D(handles) %,updateSlice)
 
     % X plane
     set(handles.figure1,'CurrentAxes',handles.axesX);
-    if ~ishandle(handles.cross.xh1) %updateSlice(1)
+    if ~ishandle(handles.ui.cross.xh1) %updateSlice(1)
         %inicialize cross handles
         %horizontal
-        handles.cross.xh1=line([0 y-1],[z,z],'Color',handles.colors.y);
-        handles.cross.xh2=line([y+1 D(2)],[z,z],'Color',handles.colors.y);
+        handles.ui.cross.xh1=line([0 y-1],[z,z],'Color',handles.ui.colors.y);
+        handles.ui.cross.xh2=line([y+1 D(2)],[z,z],'Color',handles.ui.colors.y);
         % %vertical
-        handles.cross.xv1=line([y y],[0,z-1],'Color',handles.colors.z);
-        handles.cross.xv2=line([y y],[z+1,D(3)],'Color',handles.colors.z);
+        handles.ui.cross.xv1=line([y y],[0,z-1],'Color',handles.ui.colors.z);
+        handles.ui.cross.xv2=line([y y],[z+1,D(3)],'Color',handles.ui.colors.z);
     else
         %horizontal
-        set(handles.cross.xh1, 'XData', [0 y-1], 'YData', [z z],'Color',handles.colors.y);
-        set(handles.cross.xh2, 'XData', [y+1 D(2)], 'YData', [z z],'Color',handles.colors.y);
+        set(handles.ui.cross.xh1, 'XData', [0 y-1], 'YData', [z z],'Color',handles.ui.colors.y);
+        set(handles.ui.cross.xh2, 'XData', [y+1 D(2)], 'YData', [z z],'Color',handles.ui.colors.y);
         %vertical
-        set(handles.cross.xv1,'XData', [y y], 'YData',[0,z-1],'Color',handles.colors.z);
-        set(handles.cross.xv2, 'XData', [y y], 'YData', [z+1,D(3)],'Color',handles.colors.z);
+        set(handles.ui.cross.xv1,'XData', [y y], 'YData',[0,z-1],'Color',handles.ui.colors.z);
+        set(handles.ui.cross.xv2, 'XData', [y y], 'YData', [z+1,D(3)],'Color',handles.ui.colors.z);
     end
     
     % Y plane
     set(handles.figure1,'CurrentAxes',handles.axesY);
-    if ~ishandle(handles.cross.yh1)  %updateSlice(2)    %inicialize cross handles
+    if ~ishandle(handles.ui.cross.yh1)  %updateSlice(2)    %inicialize cross handles
         %horizontal
-        handles.cross.yh1=line([0 x-1],[z,z],'Color',handles.colors.x);
-        handles.cross.yh2=line([x+1 D(1)],[z,z],'Color',handles.colors.x);
+        handles.ui.cross.yh1=line([0 x-1],[z,z],'Color',handles.ui.colors.x);
+        handles.ui.cross.yh2=line([x+1 D(1)],[z,z],'Color',handles.ui.colors.x);
         % %vertical
-        handles.cross.yv1=line([x x],[0,z-1],'Color',handles.colors.z);
-        handles.cross.yv2=line([x x],[z+1,D(3)],'Color',handles.colors.z);
+        handles.ui.cross.yv1=line([x x],[0,z-1],'Color',handles.ui.colors.z);
+        handles.ui.cross.yv2=line([x x],[z+1,D(3)],'Color',handles.ui.colors.z);
         
     else
         %horizontal
-        set(handles.cross.yh1, 'XData', [0 x-1], 'YData', [z z],'Color',handles.colors.x);
-        set(handles.cross.yh2, 'XData', [x+1 D(1)], 'YData', [z z],'Color',handles.colors.x);
+        set(handles.ui.cross.yh1, 'XData', [0 x-1], 'YData', [z z],'Color',handles.ui.colors.x);
+        set(handles.ui.cross.yh2, 'XData', [x+1 D(1)], 'YData', [z z],'Color',handles.ui.colors.x);
         %vertical
-        set(handles.cross.yv1,'XData', [x x], 'YData',[0,z-1],'Color',handles.colors.z);
-        set(handles.cross.yv2, 'XData', [x x], 'YData', [z+1,D(3)],'Color',handles.colors.z);
+        set(handles.ui.cross.yv1,'XData', [x x], 'YData',[0,z-1],'Color',handles.ui.colors.z);
+        set(handles.ui.cross.yv2, 'XData', [x x], 'YData', [z+1,D(3)],'Color',handles.ui.colors.z);
     end
     
     %Z plane
     set(handles.figure1,'CurrentAxes',handles.axesZ);
-    if ~ishandle(handles.cross.zh1) %updateSlice(3)
+    if ~ishandle(handles.ui.cross.zh1) %updateSlice(3)
         %inicialize cross handles
         
         %horizontal
-        handles.cross.zh1=line([0 x-1],[y,y],'Color',handles.colors.x);
-        handles.cross.zh2=line([x+1 D(1)],[y,y],'Color',handles.colors.x);
+        handles.ui.cross.zh1=line([0 x-1],[y,y],'Color',handles.ui.colors.x);
+        handles.ui.cross.zh2=line([x+1 D(1)],[y,y],'Color',handles.ui.colors.x);
         % %vertical
-        handles.cross.zv1=line([x,x],[0 y-1],'Color',handles.colors.y);
-        handles.cross.zv2=line([x,x],[y+1 D(2)],'Color',handles.colors.y);
+        handles.ui.cross.zv1=line([x,x],[0 y-1],'Color',handles.ui.colors.y);
+        handles.ui.cross.zv2=line([x,x],[y+1 D(2)],'Color',handles.ui.colors.y);
         
     else
         %horizontal
-        set(handles.cross.zh1, 'XData', [0 x-1], 'YData', [y y],'Color',handles.colors.x);
-        set(handles.cross.zh2, 'XData', [x+1 D(1)], 'YData', [y y],'Color',handles.colors.x);
+        set(handles.ui.cross.zh1, 'XData', [0 x-1], 'YData', [y y],'Color',handles.ui.colors.x);
+        set(handles.ui.cross.zh2, 'XData', [x+1 D(1)], 'YData', [y y],'Color',handles.ui.colors.x);
         %vertical
-        set(handles.cross.zv1,'XData', [x x], 'YData',[0,y-1],'Color',handles.colors.y);
-        set(handles.cross.zv2, 'XData', [x x], 'YData', [y+1,D(2)],'Color',handles.colors.y);
+        set(handles.ui.cross.zv1,'XData', [x x], 'YData',[0,y-1],'Color',handles.ui.colors.y);
+        set(handles.ui.cross.zv2, 'XData', [x x], 'YData', [y+1,D(2)],'Color',handles.ui.colors.y);
         
     end
 
 if strcmpi( get(handles.viewCrossbutton,'state'), 'on')
         
-    set(handles.cross.xh1,'Visible','on');
-    set(handles.cross.xh2,'Visible','on');
-    set(handles.cross.xv1,'Visible','on');
-    set(handles.cross.xv2,'Visible','on');
-    set(handles.cross.yh1,'Visible','on');
-    set(handles.cross.yh2,'Visible','on');
-    set(handles.cross.yv1,'Visible','on');
-    set(handles.cross.yv2,'Visible','on');
-    set(handles.cross.zh1,'Visible','on');
-    set(handles.cross.zh2,'Visible','on');
-    set(handles.cross.zv1,'Visible','on');
-    set(handles.cross.zv2,'Visible','on');
+    set(handles.ui.cross.xh1,'Visible','on');
+    set(handles.ui.cross.xh2,'Visible','on');
+    set(handles.ui.cross.xv1,'Visible','on');
+    set(handles.ui.cross.xv2,'Visible','on');
+    set(handles.ui.cross.yh1,'Visible','on');
+    set(handles.ui.cross.yh2,'Visible','on');
+    set(handles.ui.cross.yv1,'Visible','on');
+    set(handles.ui.cross.yv2,'Visible','on');
+    set(handles.ui.cross.zh1,'Visible','on');
+    set(handles.ui.cross.zh2,'Visible','on');
+    set(handles.ui.cross.zv1,'Visible','on');
+    set(handles.ui.cross.zv2,'Visible','on');
 else
-    set(handles.cross.xh1,'Visible','off');
-    set(handles.cross.xh2,'Visible','off');
-    set(handles.cross.xv1,'Visible','off');
-    set(handles.cross.xv2,'Visible','off');
-    set(handles.cross.yh1,'Visible','off');
-    set(handles.cross.yh2,'Visible','off');
-    set(handles.cross.yv1,'Visible','off');
-    set(handles.cross.yv2,'Visible','off');
-    set(handles.cross.zh1,'Visible','off');
-    set(handles.cross.zh2,'Visible','off');
-    set(handles.cross.zv1,'Visible','off');
-    set(handles.cross.zv2,'Visible','off');
+    set(handles.ui.cross.xh1,'Visible','off');
+    set(handles.ui.cross.xh2,'Visible','off');
+    set(handles.ui.cross.xv1,'Visible','off');
+    set(handles.ui.cross.xv2,'Visible','off');
+    set(handles.ui.cross.yh1,'Visible','off');
+    set(handles.ui.cross.yh2,'Visible','off');
+    set(handles.ui.cross.yv1,'Visible','off');
+    set(handles.ui.cross.yv2,'Visible','off');
+    set(handles.ui.cross.zh1,'Visible','off');
+    set(handles.ui.cross.zh2,'Visible','off');
+    set(handles.ui.cross.zv1,'Visible','off');
+    set(handles.ui.cross.zv2,'Visible','off');
     
 end
 
 function handles=cross3D(handles)%,new)
 % Fuction to update 3D crosshairs. 
-% if handles.cross.x3D .y3D .z3D are valid, the coordinates
+% if handles.ui.cross.x3D .y3D .z3D are valid, the coordinates
 % are updated. If not valid new lines are created.
 %
 % This method is afecting the visual variables inside handles, but not
@@ -3007,33 +3007,33 @@ xl=get(handles.axes2,'XLim');
 yl=get(handles.axes2,'YLim'); 
 zl=get(handles.axes2,'ZLim'); 
 
-if ~ishandle(handles.cross.x3D) %new
+if ~ishandle(handles.ui.cross.x3D) %new
     axes(handles.axes2);
-    handles.cross.x3D=line(xl,[crd(2) crd(2)],[crd(3) crd(3)],'Color',handles.colors.x);
-    handles.cross.y3D=line([crd(1),crd(1)],yl,[crd(3) crd(3)],'Color',handles.colors.y);
-    handles.cross.z3D=line([crd(1),crd(1)],[crd(2) crd(2)],zl,'Color',handles.colors.z);
+    handles.ui.cross.x3D=line(xl,[crd(2) crd(2)],[crd(3) crd(3)],'Color',handles.ui.colors.x);
+    handles.ui.cross.y3D=line([crd(1),crd(1)],yl,[crd(3) crd(3)],'Color',handles.ui.colors.y);
+    handles.ui.cross.z3D=line([crd(1),crd(1)],[crd(2) crd(2)],zl,'Color',handles.ui.colors.z);
     
 else %modify
-    set(handles.cross.x3D, 'XData',xl, 'YData', [crd(2) crd(2)], 'ZData',[crd(3) crd(3)], 'Color',handles.colors.x);
-    set(handles.cross.y3D, 'XData',[crd(1),crd(1)], 'YData', yl, 'ZData',[crd(3) crd(3)], 'Color',handles.colors.y);
-    set(handles.cross.z3D, 'XData',[crd(1),crd(1)], 'YData', [crd(2) crd(2)], 'ZData',zl, 'Color',handles.colors.z);    
+    set(handles.ui.cross.x3D, 'XData',xl, 'YData', [crd(2) crd(2)], 'ZData',[crd(3) crd(3)], 'Color',handles.ui.colors.x);
+    set(handles.ui.cross.y3D, 'XData',[crd(1),crd(1)], 'YData', yl, 'ZData',[crd(3) crd(3)], 'Color',handles.ui.colors.y);
+    set(handles.ui.cross.z3D, 'XData',[crd(1),crd(1)], 'YData', [crd(2) crd(2)], 'ZData',zl, 'Color',handles.ui.colors.z);    
 end
     
 if strcmpi( get(handles.viewCrossbutton,'state'), 'on')
-        set(handles.cross.x3D,'Visible','on');
-        set(handles.cross.y3D,'Visible','on');
-        set(handles.cross.z3D,'Visible','on');
+        set(handles.ui.cross.x3D,'Visible','on');
+        set(handles.ui.cross.y3D,'Visible','on');
+        set(handles.ui.cross.z3D,'Visible','on');
    
 else
-        set(handles.cross.x3D,'Visible','off');
-        set(handles.cross.y3D,'Visible','off');
-        set(handles.cross.z3D,'Visible','off');
+        set(handles.ui.cross.x3D,'Visible','off');
+        set(handles.ui.cross.y3D,'Visible','off');
+        set(handles.ui.cross.z3D,'Visible','off');
         
 end
 
 function handles=cross3DThres(handles)
 % Fuction to update 3D crosshairs in the 3DThres view. 
-% if handles.cross.x3D .y3D .z3D are valid, the coordinates
+% if handles.ui.cross.x3D .y3D .z3D are valid, the coordinates
 % are updated. If not valid new lines are created.
 %
 % This method is afecting the visual variables inside handles, but not
@@ -3058,25 +3058,25 @@ xl=get(handles.axes1,'XLim');
 yl=get(handles.axes1,'YLim');
 zl=get(handles.axes1,'ZLim');
 
-if ~ishandle(handles.cross.x3DThres) %new
-    handles.cross.x3DThres=line(xl,[crd(2) crd(2)],[crd(3) crd(3)],'Color','r');
-    handles.cross.y3DThres=line([crd(1),crd(1)],yl,[crd(3) crd(3)],'Color','g');
-    handles.cross.z3DThres=line([crd(1),crd(1)],[crd(2) crd(2)],zl,'Color','b');
+if ~ishandle(handles.ui.cross.x3DThres) %new
+    handles.ui.cross.x3DThres=line(xl,[crd(2) crd(2)],[crd(3) crd(3)],'Color','r');
+    handles.ui.cross.y3DThres=line([crd(1),crd(1)],yl,[crd(3) crd(3)],'Color','g');
+    handles.ui.cross.z3DThres=line([crd(1),crd(1)],[crd(2) crd(2)],zl,'Color','b');
 else %modify
-    set(handles.cross.x3DThres, 'XData',xl, 'YData', [crd(2) crd(2)], 'ZData',[crd(3) crd(3)], 'Color','r');
-    set(handles.cross.y3DThres, 'XData',[crd(1),crd(1)], 'YData', yl, 'ZData',[crd(3) crd(3)], 'Color','g');
-    set(handles.cross.z3DThres, 'XData',[crd(1),crd(1)], 'YData', [crd(2) crd(2)], 'ZData',zl, 'Color','b');
+    set(handles.ui.cross.x3DThres, 'XData',xl, 'YData', [crd(2) crd(2)], 'ZData',[crd(3) crd(3)], 'Color','r');
+    set(handles.ui.cross.y3DThres, 'XData',[crd(1),crd(1)], 'YData', yl, 'ZData',[crd(3) crd(3)], 'Color','g');
+    set(handles.ui.cross.z3DThres, 'XData',[crd(1),crd(1)], 'YData', [crd(2) crd(2)], 'ZData',zl, 'Color','b');
 end
 
 
 if strcmpi( get(handles.viewCrossbutton,'state'), 'on')
-    set(handles.cross.x3DThres,'Visible','on');
-    set(handles.cross.y3DThres,'Visible','on');
-    set(handles.cross.z3DThres,'Visible','on');
+    set(handles.ui.cross.x3DThres,'Visible','on');
+    set(handles.ui.cross.y3DThres,'Visible','on');
+    set(handles.ui.cross.z3DThres,'Visible','on');
 else
-    set(handles.cross.x3DThres,'Visible','off');
-    set(handles.cross.y3DThres,'Visible','off');
-    set(handles.cross.z3DThres,'Visible','off');
+    set(handles.ui.cross.x3DThres,'Visible','off');
+    set(handles.ui.cross.y3DThres,'Visible','off');
+    set(handles.ui.cross.z3DThres,'Visible','off');
     
 end
 
@@ -3183,7 +3183,7 @@ else
         vTAC=handles.project.TAC.img(ind); %values
         [crd(1,:),crd(2,:),crd(3,:)]=ind2sub(size(img),ind); % coords in (i,j,k) image space
         crd=mesh2AnatSpace(crd',handles.project.S2); %transform to real space
-        handles.sct=scatter3(handles.axes1, crd(:,1),crd(:,2),crd(:,3),20,vTAC,'o', 'filled');
+        handles.ui.sct=scatter3(handles.axes1, crd(:,1),crd(:,2),crd(:,3),20,vTAC,'o', 'filled');
     end
     xlabel(handles.axes1,'x'); ylabel(handles.axes1,'y'); zlabel(handles.axes1,'z');
     axis(handles.axes1, 'image')
@@ -3207,7 +3207,7 @@ function Leftcheckbox_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of Leftcheckbox
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3221,7 +3221,7 @@ function Rightcheckbox_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of Rightcheckbox
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3234,7 +3234,7 @@ function LeftSCEcheckbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of LeftSCEcheckbox
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 guidata(hObject, handles);
 
@@ -3246,7 +3246,7 @@ function RightSCEcheckbox_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of RightSCEcheckbox
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 guidata(hObject, handles);
 
@@ -3256,8 +3256,8 @@ function PlotConnCheckbox_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.updatePlots.elecLines=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.elecLines=1;
+handles.ui.updatePlots.targetLines=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3270,7 +3270,7 @@ function DispLabelsCheckbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of DispLabelsCheckbox
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3285,7 +3285,7 @@ function Annotationcheckbox_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of Annotationcheckbox
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3346,7 +3346,7 @@ function AlphaSlider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.surfaces=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3385,7 +3385,7 @@ if get(handles.MinWinslider,'Value') > get(handles.MaxWinslider,'Value')
 end
 
 handles=updateMix_TAC_MR(handles);
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.views2D=[1 1 1];
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3405,7 +3405,7 @@ end
 
 handles=updateMix_TAC_MR(handles);
 
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.views2D=[1 1 1];
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3427,13 +3427,13 @@ handles=updateTAC(handles);
 guidata(hObject, handles);
 
 function handles=updateMix_TAC_MR(handles)
-% Updates the content of handles.imgW based on the available images and
+% Updates the content of handles.ui.imgW based on the available images and
 % color options options. Should call for updateTAC after
 
-opt.colorT1=handles.colors.colorT1; %from defaultGuiVariables
-opt.colorCT=handles.colors.colorCT; %from defaultGuiVariables
-opt.edgeCTchannels=handles.colors.edgeCTchannels;
-opt.percentileThres=handles.colors.percentileThres;
+opt.colorT1=handles.ui.colors.colorT1; %from defaultGuiVariables
+opt.colorCT=handles.ui.colors.colorCT; %from defaultGuiVariables
+opt.edgeCTchannels=handles.ui.colors.edgeCTchannels;
+opt.percentileThres=handles.ui.colors.percentileThres;
 opt.edgeCT=get(handles.edgeCheckbox,'Value'); %edgeCT
 opt.win=[get(handles.MinWinslider,'Value') get(handles.MaxWinslider,'Value')];
 mixValue=get(handles.TAC_MRIslider,'Value');
@@ -3449,7 +3449,7 @@ if ~isempty(handles.project.T1)
         
     if isempty(handles.project.TAC)
         %only MRI
-       handles.imgW=mixImages(T1,[],mixValue,opt);
+       handles.ui.imgW=mixImages(T1,[],mixValue,opt);
     else
         %MRI and CT mixture
         TAC=single(handles.project.TAC.img);
@@ -3458,10 +3458,10 @@ if ~isempty(handles.project.T1)
 %         TAC=TAC-min(TAC(:));
 %         TAC=TAC * ( (2^15-1) / max(TAC(:)));
 
-        handles.imgW=mixImages(T1,TAC,mixValue,opt);
+        handles.ui.imgW=mixImages(T1,TAC,mixValue,opt);
 
     end
-    handles.updatePlots.views2D=[1 1 1];
+    handles.ui.updatePlots.views2D=[1 1 1];
 end
 
 %--------------------------------------------------------------------
@@ -3473,7 +3473,7 @@ function ElecOverlaycheckbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of ElecOverlaycheckbox
-handles.updatePlots.views2D=[1 1 1]; %Force update all slices
+handles.ui.updatePlots.views2D=[1 1 1]; %Force update all slices
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3486,7 +3486,7 @@ function planningOverlaycheckbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of planningOverlaycheckbox
-handles.updatePlots.views2D=[1 1 1]; %Force update all slices
+handles.ui.updatePlots.views2D=[1 1 1]; %Force update all slices
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3499,7 +3499,7 @@ function Collapsecheckbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of Collapsecheckbox
-handles.updatePlots.views2D=[1 1 1]; %Force update all slices
+handles.ui.updatePlots.views2D=[1 1 1]; %Force update all slices
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3513,7 +3513,7 @@ function parcellationCheckbox_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of parcellationCheckbox
 
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.views2D=[1 1 1];
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -3528,7 +3528,7 @@ function edgeCheckbox_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of edgeCheckbox
 
 handles=updateMix_TAC_MR(handles);
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.views2D=[1 1 1];
 handles=updateTAC(handles);
 % Update handles structure
 guidata(hObject, handles);
@@ -3640,7 +3640,7 @@ function SelectVoxelspushbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 brushObj=brush;
 set(brushObj,'Enable','on');
-handles.brushObj=brushObj;
+handles.ui.brushObj=brushObj;
 
 
 % Update handles structure
@@ -3710,7 +3710,7 @@ handles.work.clusters=[handles.work.clusters; (clusters+length(unique(handles.wo
 handles.work.brushWeight=[handles.work.brushWeight; weight];
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
-handles.updatePlots.GS=1;
+handles.ui.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -3825,7 +3825,7 @@ if ~isempty(handles.work.GS)
     
     handles.work.GS = [];
     set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
-    handles.updatePlots.GS=1;
+    handles.ui.updatePlots.GS=1;
     
 %     if strcmp(options.constrain_type,'volume_distance') & length(options.NailElectrodeNumber)>1
 %         warning('using more than 1 nailed coordinate with volume_distance constrain might not converge. Changing constrain to distance.')
@@ -3914,18 +3914,18 @@ if verLessThan('matlab','8.4.0')
     end
 else
     % execute code for R2014b or later
-    if isempty(handles.sct)
+    if isempty(handles.ui.sct)
         warning ('There are no points selected to be clustered');
         return;
     else
-        brushedIdx = logical(handles.sct.BrushData);  % logical array of scatter brushed points
+        brushedIdx = logical(handles.ui.sct.BrushData);  % logical array of scatter brushed points
         if isempty(brushedIdx)
             warning ('There are no points selected to be clustered');
             return;
         else
-            brushCrd(:,1) = handles.sct.XData(brushedIdx);
-            brushCrd(:,2) = handles.sct.YData(brushedIdx);
-            brushCrd(:,3) = handles.sct.ZData(brushedIdx);
+            brushCrd(:,1) = handles.ui.sct.XData(brushedIdx);
+            brushCrd(:,2) = handles.ui.sct.YData(brushedIdx);
+            brushCrd(:,3) = handles.ui.sct.ZData(brushedIdx);
         end
     end
 end
@@ -3972,7 +3972,7 @@ handles.work.clusters=[handles.work.clusters; (length(unique(handles.work.cluste
 handles.work.brushWeight=[handles.work.brushWeight; weight];
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
-handles.updatePlots.GS=1;
+handles.ui.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4023,7 +4023,7 @@ if m<2 %2mm
     
     set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
     
-    handles.updatePlots.GS=1;
+    handles.ui.updatePlots.GS=1;
     handles=updateElectrodes3D(handles);
     
     % Update handles structure
@@ -4056,10 +4056,10 @@ handles.work.brushWeight=[];
 handles.work.clusters=[];
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
-handles.updatePlots.GS=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
+handles.ui.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4080,7 +4080,7 @@ function ClearLastButton_Callback(hObject, eventdata, handles)
 % handles.work.GS(end,:)=[];
 % set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 %
-% handles.updatePlots.GS=1;
+% handles.ui.updatePlots.GS=1;
 % handles=updateElectrodes3D(handles);
 % 
 % % Update handles structure
@@ -4113,7 +4113,7 @@ handles.work.oldclusters=tempclusters;
 
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
-handles.updatePlots.GS=1;
+handles.ui.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4301,10 +4301,10 @@ set(handles.sliderX,'Value',D(1));
 set(handles.sliderY,'Value',D(2));
 set(handles.sliderZ,'Value',D(3));
 
-handles.updatePlots.GS=1;
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
+handles.ui.updatePlots.GS=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -4359,7 +4359,7 @@ else
     
     handles.project.electrodes{a}=electrodes;    
 
-    handles.updatePlots.labels=1;
+    handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
     
 end
@@ -4413,7 +4413,7 @@ else
     
     handles.project.electrodes{a}=electrodes;    
 
-    handles.updatePlots.labels=1;
+    handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
 end
 
@@ -4464,7 +4464,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 % 
 handles.project.electrodes{a}=electrodes;
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4514,7 +4514,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 % 
 handles.project.electrodes{a}=electrodes;
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4559,7 +4559,7 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
 
 handles.project.electrodes{a}=electrodes;
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4592,9 +4592,9 @@ electrodes=reorderElectrodes(electrodes,newOrder(:));
  
 handles.project.electrodes{a}=electrodes;
 
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
 
 handles=updateElectrodes3D(handles);
 
@@ -4629,7 +4629,7 @@ set(handles.elecNumberText,'String',num2str(1));
 set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
 set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
 
@@ -4724,7 +4724,7 @@ set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 set(handles.elecNumberText,'String',num2str(1));
 set(handles.editElecLabels,'string', handles.project.electrodes{l}.ch_label{1});
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
 
@@ -4754,13 +4754,13 @@ end
 
 handles=processProjections(handles);
 
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
-handles.updatePlots.surfaces=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
+handles.ui.updatePlots.surfaces=1;
 
 handles=updateElectrodes3D(handles);
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.views2D=[1 1 1];
 handles=updateTAC(handles);
 
 % Update handles structure
@@ -4861,7 +4861,7 @@ handles.project.electrodes{a}.Name=str;
 %     handles.project.electrodes{a}.ch_label{i}=[str int2str(i)];
 % end
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4888,7 +4888,7 @@ l=str2double(get(handles.arrayNumberText,'String'));
 
 handles.project.electrodes{l}.ch_label{a}=str;
 
-handles.updatePlots.labels=1;
+handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -4910,7 +4910,7 @@ a=str2double(get(handles.elecNumberText,'String'));
 l=str2double(get(handles.arrayNumberText,'String'));
 
 % get cursor coordinates
-crd=handles.cursor;
+crd=handles.ui.cursor;
 
 % apply to current electrode
 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
@@ -4923,10 +4923,10 @@ else %without projection
     handles.project.electrodes{l}.z(a)=crd(3);
 end
 
-handles.updatePlots.electrodes=1;
-handles.updatePlots.elecLines=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.elecLines=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.views2D=[1 1 1];
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -4969,9 +4969,9 @@ if l < length(handles.project.electrodes)
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));    
     
-    handles.updatePlots.electrodes=1;
-    handles.updatePlots.labels=1;
-    handles.updatePlots.elecLines=1;
+    handles.ui.updatePlots.electrodes=1;
+    handles.ui.updatePlots.labels=1;
+    handles.ui.updatePlots.elecLines=1;
     
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
@@ -5019,9 +5019,9 @@ if l>1
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
     
-    handles.updatePlots.electrodes=1;
-    handles.updatePlots.labels=1;
-    handles.updatePlots.elecLines=1;
+    handles.ui.updatePlots.electrodes=1;
+    handles.ui.updatePlots.labels=1;
+    handles.ui.updatePlots.elecLines=1;
     
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
@@ -5067,7 +5067,7 @@ if l <= handles.project.electrodes{a}.nElectrodes
     set(handles.sliderZ,'Value',D(3));
     
     
-    handles.updatePlots.electrodes=1;
+    handles.ui.updatePlots.electrodes=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
@@ -5109,7 +5109,7 @@ if l >= 1
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
     
-    handles.updatePlots.electrodes=1;
+    handles.ui.updatePlots.electrodes=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
 end
@@ -5124,12 +5124,12 @@ function plotElectrodesOneAllUipanel_SelectionChangedFcn(hObject, eventdata, han
 % hObject    handle to the selected object in plotElectrodesOneAllUipanel
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.updatePlots.views2D=[1 1 1]; %Force update all slices
+handles.ui.updatePlots.views2D=[1 1 1]; %Force update all slices
 handles=updateTAC(handles);
 
-handles.updatePlots.electrodes=1;
-handles.updatePlots.labels=1;
-handles.updatePlots.elecLines=1;
+handles.ui.updatePlots.electrodes=1;
+handles.ui.updatePlots.labels=1;
+handles.ui.updatePlots.elecLines=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -5178,11 +5178,11 @@ if ~isempty(handles.project.electrodes)
         set(handles.sliderZ,'Value',D(3));
     end
     
-    handles.updatePlots.views2D=[1 1 1]; % Force update all slices
-    handles.updatePlots.resetTAC=1;      % reset 2D views axes
-    handles.updatePlots.electrodes=1;
-    handles.updatePlots.labels=1;
-    handles.updatePlots.elecLines=1;
+    handles.ui.updatePlots.views2D=[1 1 1]; % Force update all slices
+    handles.ui.updatePlots.resetTAC=1;      % reset 2D views axes
+    handles.ui.updatePlots.electrodes=1;
+    handles.ui.updatePlots.labels=1;
+    handles.ui.updatePlots.elecLines=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
 end
@@ -5299,9 +5299,9 @@ function FirstSecondTargetedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.FirstSecond=str2double(get(handles.FirstSecondTargetedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5320,9 +5320,9 @@ l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.SecondLast=str2double(get(handles.SecondLastTargetEdit,'String'));
 handles=updateTarget(handles);
 
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
 
@@ -5340,9 +5340,9 @@ function nTargetEdit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.nElectrodes=str2double(get(handles.nTargetEdit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5423,9 +5423,9 @@ set(handles.TargetInYedit,'String',num2str(coords(2)));
 set(handles.TargetInZedit,'String',num2str(coords(3)));
 
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5507,9 +5507,9 @@ set(handles.TargetOutYedit,'String',num2str(coords(2)));
 set(handles.TargetOutZedit,'String',num2str(coords(3)));
 
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
 
@@ -5529,9 +5529,9 @@ function TargetInXedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.targetIn.x=str2double(get(handles.TargetInXedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5549,9 +5549,9 @@ function TargetInYedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.targetIn.y=str2double(get(handles.TargetInYedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5571,9 +5571,9 @@ handles.project.targets{l}.targetIn.z=str2double(get(handles.TargetInZedit,'Stri
 
 %handles.project.targets{l}.frameDown = handles.project.targets(l).coordinates(handles.project.targets(l).n,3) < 0; % handles.project.targets(l).targetIn.z < 0;
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5591,9 +5591,9 @@ function TargetOutXedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.targetOut.x=str2double(get(handles.TargetOutXedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5611,9 +5611,9 @@ function TargetOutYedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.targetOut.y=str2double(get(handles.TargetOutYedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5631,9 +5631,9 @@ function TargetOutZedit_Callback(hObject, eventdata, handles)
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.project.targets{l}.targetOut.z=str2double(get(handles.TargetOutZedit,'String'));
 handles=updateTarget(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5651,9 +5651,9 @@ function ElevacionTargetedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of ElevacionTargetedit as text
 %        str2double(get(hObject,'String')) returns contents of ElevacionTargetedit as a double
 handles=angleChange(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5669,9 +5669,9 @@ function AzimuthTargetedit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of AzimuthTargetedit as text
 %        str2double(get(hObject,'String')) returns contents of AzimuthTargetedit as a double
 handles=angleChange(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5915,9 +5915,9 @@ function AlphaAngleEdit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of AlphaAngleEdit as text
 %        str2double(get(hObject,'String')) returns contents of AlphaAngleEdit as a double
 handles=AlphaBetaChange(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -5931,9 +5931,9 @@ function BetaAngleEdit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of BetaAngleEdit as text
 %        str2double(get(hObject,'String')) returns contents of BetaAngleEdit as a double
 handles=AlphaBetaChange(handles);
-handles.updatePlots.views2D=[1 1 1];
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -6117,7 +6117,7 @@ if isempty(handles.project.vertices_SCE_R)
     return;
 end
 
-crd=handles.cursor;
+crd=handles.ui.cursor;
 
 % Define basic characteristics
 rows=str2num(get(handles.rowsPlanningGridEdit,'String'));       % rows
@@ -6225,9 +6225,9 @@ targetCell = electrodes2hullCorrection({target},vertices,faces,options);
 
 handles.project.targets{a}=targetCell{1};
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6250,7 +6250,7 @@ target=handles.project.targets{a};
 
 X= [target.x target.y target.z];
 
-crd=handles.cursor;
+crd=handles.ui.cursor;
 
 options=[];
 options.previousGrid=X;
@@ -6266,9 +6266,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6309,9 +6309,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6352,9 +6352,9 @@ target=checkElectrodeStructure(target);
 handles.project.targets{a} = target;
 
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6394,9 +6394,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6436,9 +6436,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6478,9 +6478,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6520,9 +6520,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6563,9 +6563,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6606,9 +6606,9 @@ target=checkElectrodeStructure(target);
 % add new electrode to handles
 handles.project.targets{a} = target;
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6652,10 +6652,10 @@ set(handles.sliderY,'Value',D(2));
 set(handles.sliderZ,'Value',D(3));
 
 
-handles.updatePlots.views2D=[1 1 1];     
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.views2D=[1 1 1];     
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
@@ -6701,11 +6701,11 @@ if ~isempty(handles.project.targets)
         set(handles.sliderZ,'Value',D(3));
     end
     
-    handles.updatePlots.views2D=[1 1 1]; % Force update all slices
-    handles.updatePlots.resetTAC=1;      % reset 2D views axes
-    handles.updatePlots.targets=1;
-    handles.updatePlots.labels=1;
-    handles.updatePlots.targetLines=1;
+    handles.ui.updatePlots.views2D=[1 1 1]; % Force update all slices
+    handles.ui.updatePlots.resetTAC=1;      % reset 2D views axes
+    handles.ui.updatePlots.targets=1;
+    handles.ui.updatePlots.labels=1;
+    handles.ui.updatePlots.targetLines=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
 end
@@ -6737,7 +6737,7 @@ for i=1:N
     handles.project.targets{a}.ch_label{i}=[str int2str(i)];
 end
 
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -6763,7 +6763,7 @@ l=str2double(get(handles.arrayPlanningNumberText,'String'));
 
 handles.project.targets{l}.ch_label{a}=str;
 
-handles.updatePlots.targetLabels=1;
+handles.ui.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);
 
 % Update handles structure
@@ -6785,7 +6785,7 @@ l=str2double(get(handles.elecPlanningNumberText,'String'))+1;
 a=str2double(get(handles.arrayPlanningNumberText,'String'));
 
 % get cursor coordinates
-crd=handles.cursor;
+crd=handles.ui.cursor;
 
 % apply to current electrode
 if ~isempty(handles.project.targets{l}.projection)
@@ -6799,10 +6799,10 @@ else %without projection
 end
 
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
-handles.updatePlots.targetLabels=1;
-handles.updatePlots.views2D=[1 1 1];
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
+handles.ui.updatePlots.targetLabels=1;
+handles.ui.updatePlots.views2D=[1 1 1];
 
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
@@ -6844,9 +6844,9 @@ if l < length(handles.project.targets)
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));    
     
-    handles.updatePlots.targets=1;
-    handles.updatePlots.targetLabels=1;
-    handles.updatePlots.targetLines=1;
+    handles.ui.updatePlots.targets=1;
+    handles.ui.updatePlots.targetLabels=1;
+    handles.ui.updatePlots.targetLines=1;
     
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
@@ -6893,9 +6893,9 @@ if l>1
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
     
-    handles.updatePlots.targets=1;
-    handles.updatePlots.targetLabels=1;
-    handles.updatePlots.targetLines=1;
+    handles.ui.updatePlots.targets=1;
+    handles.ui.updatePlots.targetLabels=1;
+    handles.ui.updatePlots.targetLines=1;
     
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
@@ -6943,7 +6943,7 @@ if l <= handles.project.targets{a}.nElectrodes
     set(handles.sliderZ,'Value',D(3));
     
     
-    handles.updatePlots.targets=1;
+    handles.ui.updatePlots.targets=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
@@ -6986,7 +6986,7 @@ if l >= 1
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
     
-    handles.updatePlots.targets=1;
+    handles.ui.updatePlots.targets=1;
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
 end
@@ -7004,10 +7004,10 @@ function plotTargetsOneAllUipanel_SelectionChangedFcn(hObject, eventdata, handle
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.updatePlots.views2D=[1 1 1]; %Force update all slices
+handles.ui.updatePlots.views2D=[1 1 1]; %Force update all slices
 
-handles.updatePlots.targets=1;
-handles.updatePlots.targetLines=1;
+handles.ui.updatePlots.targets=1;
+handles.ui.updatePlots.targetLines=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
