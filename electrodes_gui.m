@@ -172,9 +172,10 @@ handles.colors=defaultColors(colors);
 handles=defaultGuiVariables(handles);
 
 % Patient data -> handles.project. This must come AFTER defaultGuiVariables,
-% which still assigns a flat handles.project.currentSpace; lifting last guarantees a
+% which still assigns a flat handles.currentSpace; lifting last guarantees a
 % single authoritative copy of every migrated field.
-handles=liftToProject(handles);
+handles=liftToProject(handles);   % patient data     -> handles.project
+handles=liftToWork(handles);      % work in progress -> handles.work
 
 % layout 
 if ~handles.options.showLocalizeTools
@@ -418,7 +419,8 @@ if T1file ~=0
 
     handles=defaultGuiVariables(handles);
     handles=checkProjectStructure([],handles);
-    handles=liftToProject(handles);   % patient data -> handles.project
+    handles=liftToProject(handles);   % patient data     -> handles.project
+    handles=liftToWork(handles);      % work in progress -> handles.work
  
     %fiugre name
     set(handles.figure1,'name',['iElectrodes - ' PathName T1file]);
@@ -734,7 +736,8 @@ if FileName ~=0
     handles=defaultGuiVariables(handles);
     % load .iel structure
     handles=checkProjectStructure(s,handles);
-    handles=liftToProject(handles);   % patient data -> handles.project
+    handles=liftToProject(handles);   % patient data     -> handles.project
+    handles=liftToWork(handles);      % work in progress -> handles.work
 
     handles.FileName=FileName;
     handles.PathName=PathName;
@@ -779,7 +782,7 @@ if FileName ~=0
     
     set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
     set(handles.text2,'String', get(handles.sliderThrMin,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
-    set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
     
     % by default not show projections (they may not exist!)
@@ -2490,15 +2493,15 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % plot GS clusterd coordinates
 
-% if ~isempty(handles.GS) %plot just after cluster (not labeled or indexed)
-%     scatter3(handles.axes2,handles.GS(:,1),handles.GS(:,2),handles.GS(:,3),'ro', 'filled')
+% if ~isempty(handles.work.GS) %plot just after cluster (not labeled or indexed)
+%     scatter3(handles.axes2,handles.work.GS(:,1),handles.work.GS(:,2),handles.work.GS(:,3),'ro', 'filled')
 
 if handles.updatePlots.GS %plot
     if ishandle(handles.plot3Dhandles.GS) %clear and replace
          delete(handles.plot3Dhandles.GS);
     end
-    if ~isempty(handles.GS) 
-        handles.plot3Dhandles.GS=scatter3(handles.axes2,handles.GS(:,1),handles.GS(:,2),handles.GS(:,3),'ro', 'filled');
+    if ~isempty(handles.work.GS) 
+        handles.plot3Dhandles.GS=scatter3(handles.axes2,handles.work.GS(:,1),handles.work.GS(:,2),handles.work.GS(:,3),'ro', 'filled');
     end
     handles.updatePlots.GS=0;
 end
@@ -3695,17 +3698,17 @@ end
 
         
 % save old GS
-handles.oldGS=handles.GS;
-handles.oldbrushCrd=handles.brushCrd;
-handles.oldbrushWeight=handles.brushWeight;
-handles.oldclusters=handles.clusters;
+handles.work.oldGS=handles.work.GS;
+handles.work.oldbrushCrd=handles.work.brushCrd;
+handles.work.oldbrushWeight=handles.work.brushWeight;
+handles.work.oldclusters=handles.work.clusters;
 
 %add electrodes coordinates to previous
-handles.GS=[handles.GS; GS];
-handles.brushCrd=[handles.brushCrd; brushCrd];
-handles.clusters=[handles.clusters; (clusters+length(unique(handles.clusters)))];
-handles.brushWeight=[handles.brushWeight; weight];
-set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+handles.work.GS=[handles.work.GS; GS];
+handles.work.brushCrd=[handles.work.brushCrd; brushCrd];
+handles.work.clusters=[handles.work.clusters; (clusters+length(unique(handles.work.clusters)))];
+handles.work.brushWeight=[handles.work.brushWeight; weight];
+set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
@@ -3797,14 +3800,14 @@ end
 
 %check if there are some "Nailed electrodes" as previously selected (GS)
 %coordinates
-if ~isempty(handles.GS)
+if ~isempty(handles.work.GS)
     handles.uitable_elecNum = [];
     
     % save old GS
-    handles.oldGS=handles.GS;
-    handles.oldbrushCrd=handles.brushCrd;
-    handles.oldbrushWeight=handles.brushWeight;
-    handles.oldclusters=handles.clusters;
+    handles.work.oldGS=handles.work.GS;
+    handles.work.oldbrushCrd=handles.work.brushCrd;
+    handles.work.oldbrushWeight=handles.work.brushWeight;
+    handles.work.oldclusters=handles.work.clusters;
 
     %use GS coordinates as Nailed 
     guidata(hObject, handles);     % % Update content in handles structure
@@ -3812,7 +3815,7 @@ if ~isempty(handles.GS)
     handles = guidata(hObject); % retrive updated data
     
     options.NailElectrodeNumber = handles.uitable_elecNum;
-    options.NailElectrodeCrd = handles.GS;
+    options.NailElectrodeCrd = handles.work.GS;
     
     % if some coords are not selected, nan is given
     % crds need to be removed
@@ -3820,8 +3823,8 @@ if ~isempty(handles.GS)
     options.NailElectrodeNumber(isnan(options.NailElectrodeNumber )) = [];
     
     
-    handles.GS = [];
-    set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+    handles.work.GS = [];
+    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
     handles.updatePlots.GS=1;
     
 %     if strcmp(options.constrain_type,'volume_distance') & length(options.NailElectrodeNumber)>1
@@ -3958,16 +3961,16 @@ else
 end
         
 % save old GS
-handles.oldGS=handles.GS;
-handles.oldbrushCrd=handles.brushCrd;
-handles.oldbrushWeight=handles.brushWeight;
-handles.oldclusters=handles.clusters;
+handles.work.oldGS=handles.work.GS;
+handles.work.oldbrushCrd=handles.work.brushCrd;
+handles.work.oldbrushWeight=handles.work.brushWeight;
+handles.work.oldclusters=handles.work.clusters;
 
-handles.GS=[handles.GS; crd];
-handles.brushCrd=[handles.brushCrd; crd];
-handles.clusters=[handles.clusters; (length(unique(handles.clusters))+1)];
-handles.brushWeight=[handles.brushWeight; weight];
-set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+handles.work.GS=[handles.work.GS; crd];
+handles.work.brushCrd=[handles.work.brushCrd; crd];
+handles.work.clusters=[handles.work.clusters; (length(unique(handles.work.clusters))+1)];
+handles.work.brushWeight=[handles.work.brushWeight; weight];
+set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
@@ -3996,29 +3999,29 @@ crd=[x y z];
 crd=mesh2AnatSpace(crd,handles.project.S2);
 
 %search for closest coordinate 
-dist=eucDistMat(handles.GS,crd);
+dist=eucDistMat(handles.work.GS,crd);
 [m,ind]=min(dist);
 
 if m<2 %2mm
     % save old GS
-    handles.oldGS=handles.GS;
-    handles.oldbrushCrd=handles.brushCrd;
-    handles.oldbrushWeight=handles.brushWeight;
-    handles.oldclusters=handles.clusters;
+    handles.work.oldGS=handles.work.GS;
+    handles.work.oldbrushCrd=handles.work.brushCrd;
+    handles.work.oldbrushWeight=handles.work.brushWeight;
+    handles.work.oldclusters=handles.work.clusters;
     
     %remove coordinate from GS
-    handles.GS(ind,:)=[];
+    handles.work.GS(ind,:)=[];
     
-    indClus=find(handles.clusters==ind); %actual cluster
-    indBigClus=find(handles.clusters>ind); %clusters of bigger index
+    indClus=find(handles.work.clusters==ind); %actual cluster
+    indBigClus=find(handles.work.clusters>ind); %clusters of bigger index
     
-    handles.clusters(indBigClus,:)= handles.clusters(indBigClus,:)-1; %decrease the clus num
-    handles.clusters(indClus,:)=[]; % remove cluster elements 
+    handles.work.clusters(indBigClus,:)= handles.work.clusters(indBigClus,:)-1; %decrease the clus num
+    handles.work.clusters(indClus,:)=[]; % remove cluster elements 
         
-    handles.brushCrd(indClus,:)=[]; %remove brush coords
-    handles.brushWeight(indClus,:)=[]; %remove brushweight
+    handles.work.brushCrd(indClus,:)=[]; %remove brush coords
+    handles.work.brushWeight(indClus,:)=[]; %remove brushweight
     
-    set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
     
     handles.updatePlots.GS=1;
     handles=updateElectrodes3D(handles);
@@ -4042,16 +4045,16 @@ if isempty(handles.project.T1)
 end
 
 % save old GS
-handles.oldGS=handles.GS;
-handles.oldbrushCrd=handles.brushCrd;
-handles.oldbrushWeight=handles.brushWeight;
-handles.oldclusters=handles.clusters;
+handles.work.oldGS=handles.work.GS;
+handles.work.oldbrushCrd=handles.work.brushCrd;
+handles.work.oldbrushWeight=handles.work.brushWeight;
+handles.work.oldclusters=handles.work.clusters;
 
-handles.GS=[];
-handles.brushCrd=[];
-handles.brushWeight=[];
-handles.clusters=[];
-set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+handles.work.GS=[];
+handles.work.brushCrd=[];
+handles.work.brushWeight=[];
+handles.work.clusters=[];
+set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.updatePlots.electrodes=1;
 handles.updatePlots.labels=1;
@@ -4073,9 +4076,9 @@ function ClearLastButton_Callback(hObject, eventdata, handles)
 %     return
 % end
 % 
-% handles.oldGS=handles.GS;
-% handles.GS(end,:)=[];
-% set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+% handles.work.oldGS=handles.work.GS;
+% handles.work.GS(end,:)=[];
+% set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 %
 % handles.updatePlots.GS=1;
 % handles=updateElectrodes3D(handles);
@@ -4092,23 +4095,23 @@ function Recpushbutton_Callback(hObject, eventdata, handles)
 
 %recover GS, brushCrd, and brushWeight from old  
 
-tempGS=handles.GS;
-handles.GS=handles.oldGS;
-handles.oldGS=tempGS;
+tempGS=handles.work.GS;
+handles.work.GS=handles.work.oldGS;
+handles.work.oldGS=tempGS;
 
-tempbrushCrd=handles.brushCrd;
-handles.brushCrd=handles.oldbrushCrd;
-handles.oldbrushCrd=tempbrushCrd;
+tempbrushCrd=handles.work.brushCrd;
+handles.work.brushCrd=handles.work.oldbrushCrd;
+handles.work.oldbrushCrd=tempbrushCrd;
 
-tempbrushWeight=handles.brushWeight;
-handles.brushWeight=handles.oldbrushWeight;
-handles.oldbrushWeight=tempbrushWeight;
+tempbrushWeight=handles.work.brushWeight;
+handles.work.brushWeight=handles.work.oldbrushWeight;
+handles.work.oldbrushWeight=tempbrushWeight;
 
-tempclusters=handles.clusters;
-handles.clusters=handles.oldclusters;
-handles.oldclusters=tempclusters;
+tempclusters=handles.work.clusters;
+handles.work.clusters=handles.work.oldclusters;
+handles.work.oldclusters=tempclusters;
 
-set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
@@ -4174,7 +4177,7 @@ function Indexpushbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % change actual electrode array labeling
-if isempty(handles.GS)
+if isempty(handles.work.GS)
     % retrive array number
     l = str2double(get(handles.arrayNumberText,'String'));
 
@@ -4209,24 +4212,24 @@ else
     % index electrode array for the first time
     % strips or depth
     if get(handles.DepthButton,'value')
-        [electrodes,Ix]=indexDepthElectrodes(handles.GS,'depth');
+        [electrodes,Ix]=indexDepthElectrodes(handles.work.GS,'depth');
     elseif get(handles.GridButton,'value')
         rows=str2double(get(handles.rowsEdit,'string'));
         columns=str2double(get(handles.colsEdit,'string'));
-        [electrodes,Ix]=indexGridElectrodes(handles.GS,rows,columns,'grid',handles.options);
+        [electrodes,Ix]=indexGridElectrodes(handles.work.GS,rows,columns,'grid',handles.options);
     end
     
     % add info from all voxels in the clusters
     % rename clusters in the proper order
-    tempC=handles.clusters;
-    for i=1:size(handles.GS,1)
-        handles.clusters(tempC==Ix(i))=i;
+    tempC=handles.work.clusters;
+    for i=1:size(handles.work.GS,1)
+        handles.work.clusters(tempC==Ix(i))=i;
     end
     
     % include in electrodes structure
-    electrodes.clusters=handles.clusters;
-    electrodes.brushCrd=handles.brushCrd;
-    electrodes.brushWeight=handles.brushWeight;
+    electrodes.clusters=handles.work.clusters;
+    electrodes.brushCrd=handles.work.brushCrd;
+    electrodes.brushWeight=handles.work.brushWeight;
     electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
     electrodes.method = 'clustering';
     electrodes.methodParameters.indexing_projection_method = handles.options.indexing_projection_method;
@@ -4269,17 +4272,17 @@ end
     
 if isempty(array) % add array to structure
     %save to old coordinates
-    handles.oldGS=handles.GS;
-    handles.oldbrushCrd=handles.brushCrd;
-    handles.oldbrushWeight=handles.brushWeight;
-    handles.oldclusters=handles.clusters;
+    handles.work.oldGS=handles.work.GS;
+    handles.work.oldbrushCrd=handles.work.brushCrd;
+    handles.work.oldbrushWeight=handles.work.brushWeight;
+    handles.work.oldclusters=handles.work.clusters;
    
     % clear actual ones
-    handles.GS=[];
-    handles.brushCrd=[];
-    handles.brushWeight=[];
-    handles.clusters=[];
-    set(handles.nClusText,'string',num2str(size(handles.GS,1)));
+    handles.work.GS=[];
+    handles.work.brushCrd=[];
+    handles.work.brushWeight=[];
+    handles.work.clusters=[];
+    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 end
 
 %set visualization to this electrode
