@@ -409,7 +409,7 @@ if ~isempty(handles.project.T1)
 end
 
 % load MRI
-[T1file,PathName]=uigetfile('*.nii', 'Load MRI',handles.PathName);
+[T1file,PathName]=uigetfile('*.nii', 'Load MRI',handles.work.PathName);
 
 if T1file ~=0
         
@@ -428,9 +428,9 @@ if T1file ~=0
     handles.project.T1=T1; % MRI T1 origninal (SPM data structure)
     handles.project.S2=T1.vol.mat(1:3,:);
     
-    handles.PathName=PathName;
+    handles.work.PathName=PathName;
 
-    handles.maxValue=[];
+    handles.work.maxValue=[];
     
     handles=updateMix_TAC_MR(handles);    
      
@@ -485,7 +485,7 @@ if isempty(handles.project.T1)
     return
 end
 
-[TACfile,PathName]=uigetfile('*.nii', 'Load CT',handles.PathName);
+[TACfile,PathName]=uigetfile('*.nii', 'Load CT',handles.work.PathName);
 
 if TACfile~=0
     
@@ -638,17 +638,17 @@ choice = 'No'; % code below is not ready
         maxValue=max(handles.project.TAC.img(:));
         minValue=min(handles.project.TAC.img(:));
         
-        handles.maxValue=maxValue;
-        handles.minValue=minValue;
+        handles.work.maxValue=maxValue;
+        handles.work.minValue=minValue;
         
         % arbitrary thresholds to start
         set(handles.sliderThrMin,'Value',0.9);
         set(handles.sliderThrMax,'Value',1);
                
-        set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
-        set(handles.text2,'String', get(handles.sliderThrMin,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
+        set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.work.maxValue-handles.work.minValue)+handles.work.minValue);
+        set(handles.text2,'String', get(handles.sliderThrMin,'Value')*(handles.work.maxValue-handles.work.minValue)+handles.work.minValue);
         
-        handles.PathName=PathName;
+        handles.work.PathName=PathName;
         
         handles=updateMix_TAC_MR(handles);
 
@@ -675,19 +675,19 @@ else
     % get the variables needed to be saved
     s=checkProjectStructure(flattenProject(handles));   % .iel format stays flat
     
-    if isempty( handles.FileName)
-        [FileName,PathName] = uiputfile('*.iel','Save filename',handles.PathName);
+    if isempty( handles.work.FileName)
+        [FileName,PathName] = uiputfile('*.iel','Save filename',handles.work.PathName);
     else
-        [FileName,PathName] = uiputfile('*.iel','Save filename',[handles.PathName handles.FileName]);
+        [FileName,PathName] = uiputfile('*.iel','Save filename',[handles.work.PathName handles.work.FileName]);
     end
     if FileName ~=0
-        handles.FileName=FileName;
-        handles.PathName=PathName;
-        save([handles.PathName, handles.FileName],'s','-v7.3');
-        disp (['Saved project in ' handles.PathName, handles.FileName])
+        handles.work.FileName=FileName;
+        handles.work.PathName=PathName;
+        save([handles.work.PathName, handles.work.FileName],'s','-v7.3');
+        disp (['Saved project in ' handles.work.PathName, handles.work.FileName])
         
         %fiugre name
-        set(handles.figure1,'name', ['iElectrodes - ' handles.PathName, handles.FileName]);
+        set(handles.figure1,'name', ['iElectrodes - ' handles.work.PathName, handles.work.FileName]);
         
         saved=1;
     else
@@ -725,7 +725,7 @@ if ~isempty(handles.project.T1)
     end
 end
 
-[FileName,PathName]=uigetfile('*.iel', 'Load iElectrodes file', handles.PathName);
+[FileName,PathName]=uigetfile('*.iel', 'Load iElectrodes file', handles.work.PathName);
 
 if FileName ~=0   
     % varialbe is loaded as s
@@ -739,8 +739,8 @@ if FileName ~=0
     handles=liftToProject(handles);   % patient data     -> handles.project
     handles=liftToWork(handles);      % work in progress -> handles.work
 
-    handles.FileName=FileName;
-    handles.PathName=PathName;
+    handles.work.FileName=FileName;
+    handles.work.PathName=PathName;
     
     if ~isempty(handles.project.electrodes)
         set(handles.arrayNumberText,'String','1');
@@ -780,8 +780,8 @@ if FileName ~=0
         set(handles.arrayPlanningNumberText,'string','0');
     end
     
-    set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
-    set(handles.text2,'String', get(handles.sliderThrMin,'Value')*(handles.maxValue-handles.minValue)+handles.minValue);
+    set(handles.text1,'String', get(handles.sliderThrMax,'Value')*(handles.work.maxValue-handles.work.minValue)+handles.work.minValue);
+    set(handles.text2,'String', get(handles.sliderThrMin,'Value')*(handles.work.maxValue-handles.work.minValue)+handles.work.minValue);
     set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
     
@@ -808,7 +808,7 @@ if FileName ~=0
     handles=updatePlot(handles);
 
     %figure name
-    set(handles.figure1,'name',['iElectrodes - ' handles.PathName, handles.FileName]);
+    set(handles.figure1,'name',['iElectrodes - ' handles.work.PathName, handles.work.FileName]);
 end
 
 % Update handles structure
@@ -888,17 +888,17 @@ if valid
     % write coordinates to file
     switch selection
         case 1 % MATLAB
-            [FileName,PathName] = uiputfile('*.mat','Save electrodes structure', handles.PathName);
+            [FileName,PathName] = uiputfile('*.mat','Save electrodes structure', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                save([handles.PathName, FileName],'electrodes');
-                disp (['Saved electrode structure in ' handles.PathName, FileName])
+                handles.work.PathName=PathName;
+                save([handles.work.PathName, FileName],'electrodes');
+                disp (['Saved electrode structure in ' handles.work.PathName, FileName])
             end
 
         case 2 % elec - EEGLAB
-            [FileName,PathName] = uiputfile('*.txt','Save electrode coordinates in EEGLAB format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.txt','Save electrode coordinates in EEGLAB format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
+                handles.work.PathName=PathName;
                 fid=fopen([PathName FileName],'w+'); %overwrite
                 for i=1:length(x)
                     fprintf(fid,'%s\t %e\t %e\t %e\n',cl{i},x(i),y(i),z(i));
@@ -911,9 +911,9 @@ if valid
             
         case 3 % proj - EEGLAB
             
-            [FileName,PathName] = uiputfile('*.txt','Save SCE-projected coordinates in EEGLAB format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.txt','Save SCE-projected coordinates in EEGLAB format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
+                handles.work.PathName=PathName;
                 fid=fopen([PathName FileName],'w+'); %overwrite
                 for i=1:length(x)
                     fprintf(fid,'%s\t %e\t %e\t %e\n',cl{i},x(i),y(i),z(i));
@@ -936,11 +936,11 @@ if valid
             elec.cfg.method = 'iElectrodes';
             elec.cfg.projection='No';
             
-            [FileName,PathName] = uiputfile('*.mat','Save electrode coordinates in FIELDTRIP structure', handles.PathName);
+            [FileName,PathName] = uiputfile('*.mat','Save electrode coordinates in FIELDTRIP structure', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                save([handles.PathName, FileName],'elec');
-                disp (['Saved electrode coordinates in FIELTRIP structure in ' handles.PathName, FileName])
+                handles.work.PathName=PathName;
+                save([handles.work.PathName, FileName],'elec');
+                disp (['Saved electrode coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
             end
 
            
@@ -956,11 +956,11 @@ if valid
             elec.cfg.method = 'iElectrodes';
             elec.cfg.projection='Yes';
             
-            [FileName,PathName] = uiputfile('*.mat','Save SCE-projected coordinates in FIELDTRIP structure', handles.PathName);
+            [FileName,PathName] = uiputfile('*.mat','Save SCE-projected coordinates in FIELDTRIP structure', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                save([handles.PathName, FileName],'elec');
-                disp (['Saved SCE-projected coordinates in FIELTRIP structure in ' handles.PathName, FileName])
+                handles.work.PathName=PathName;
+                save([handles.work.PathName, FileName],'elec');
+                disp (['Saved SCE-projected coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
             end
 
         case 6 % elec-BIDS
@@ -968,11 +968,11 @@ if valid
             elecTable=table(cl', x', y', z', nan(size(x')), type', projMethod', anatLabel', ...
                 'VariableNames',{'name','x','y','z','size','Electrode Type','Projection Method','Anatomical Label'});
 
-            [FileName,PathName] = uiputfile('*.tsv','Save electrode coordinates in BIDS format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.tsv','Save electrode coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                writetable(elecTable, [handles.PathName, FileName],'FileType','text','Delimiter','tab');
-                disp (['Saved electrodes using BIDS format  in ' handles.PathName, FileName]);
+                handles.work.PathName=PathName;
+                writetable(elecTable, [handles.work.PathName, FileName],'FileType','text','Delimiter','tab');
+                disp (['Saved electrodes using BIDS format  in ' handles.work.PathName, FileName]);
             end
   
             % BIDS coordinate system json file
@@ -983,14 +983,14 @@ if valid
                 'iEEGCoordinateProcessingDescripton', 'none',...       % projection?
                 'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ');
 
-            [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                fid=fopen([handles.PathName, FileName],'w');
+                handles.work.PathName=PathName;
+                fid=fopen([handles.work.PathName, FileName],'w');
                 encodedJSON = jsonencode(coordSys);
                 fprintf(fid, encodedJSON);
                 fclose (fid);
-                disp (['Saved coordinates system in json BIDS format  in ' handles.PathName, FileName]);
+                disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
             end
 
         case 7 % proj-BIDS
@@ -1000,11 +1000,11 @@ if valid
             elecTable=table(cl', x', y', z', nan(size(x')), type', projMethod', anatLabel', ...
                 'VariableNames',{'name','x','y','z','size','Electrode Type','Projection Method','Anatomical Label'});
             
-            [FileName,PathName] = uiputfile('*.tsv','Save electrode SCE-projected coordinates in BIDS format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.tsv','Save electrode SCE-projected coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                writetable(elecTable, [handles.PathName, FileName],'FileType','text','Delimiter','tab');
-                disp (['Saved electrode SCE-projected coordinates using BIDS format  in ' handles.PathName, FileName]);
+                handles.work.PathName=PathName;
+                writetable(elecTable, [handles.work.PathName, FileName],'FileType','text','Delimiter','tab');
+                disp (['Saved electrode SCE-projected coordinates using BIDS format  in ' handles.work.PathName, FileName]);
             end
 
             % BIDS coordinate system json file
@@ -1015,14 +1015,14 @@ if valid
                'iEEGCoordinateProcessingDescripton',  projMethod{1},...       % projection?
                 'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014; Blenkmann et al., 2023. https://doi.org/10.1101/2023.05.08.539503');
 
-            [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.PathName);
+            [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
-                handles.PathName=PathName;
-                fid=fopen([handles.PathName, FileName],'w');
+                handles.work.PathName=PathName;
+                fid=fopen([handles.work.PathName, FileName],'w');
                 encodedJSON = jsonencode(coordSys);
                 fprintf(fid, encodedJSON);
                 fclose (fid);
-                disp (['Saved coordinates system in json BIDS format  in ' handles.PathName, FileName]);
+                disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
 
             end
 
@@ -1055,13 +1055,13 @@ end
 if valid
     switch selection
         case 1 % load  coordinates iElectrodes electrodes structure
-        [FileName,PathName] = uigetfile('*.mat','Load electrodes structure', handles.PathName);
+        [FileName,PathName] = uigetfile('*.mat','Load electrodes structure', handles.work.PathName);
 
         if FileName~=0
-            handles.PathName=PathName;
-            s=load([handles.PathName, FileName],'electrodes');
+            handles.work.PathName=PathName;
+            s=load([handles.work.PathName, FileName],'electrodes');
             if ~isfield(s,'electrodes')
-                warning(['The file ' handles.PathName FileName 'does not contain an electrodes structure]']);
+                warning(['The file ' handles.work.PathName FileName 'does not contain an electrodes structure]']);
                 return;
             end
             electrodes=s.electrodes;
@@ -1082,11 +1082,11 @@ if valid
         end
     
         case 2 % load EEGLAB coordinates electrodes
-        [FileName,PathName] = uigetfile('*.set','Load EEGLAB dataset', handles.PathName);
+        [FileName,PathName] = uigetfile('*.set','Load EEGLAB dataset', handles.work.PathName);
 
         if FileName~=0
-            handles.PathName=PathName;
-            load([handles.PathName, FileName],'EEG','-mat'); %load as matlab file EEG structure
+            handles.work.PathName=PathName;
+            load([handles.work.PathName, FileName],'EEG','-mat'); %load as matlab file EEG structure
             labels={EEG.chanlocs.labels};
             pos = [-[EEG.chanlocs.Y];  [EEG.chanlocs.X];  [EEG.chanlocs.Z] ]'; 
 
@@ -1095,13 +1095,13 @@ if valid
         end
    
     case 3 % load FIELDTRIP coordinates electrodes
-        [FileName,PathName] = uigetfile('*.mat','Load FIELDTRIP elec structure', handles.PathName);
+        [FileName,PathName] = uigetfile('*.mat','Load FIELDTRIP elec structure', handles.work.PathName);
 
         if FileName~=0
-            handles.PathName=PathName;
-            s=load([handles.PathName, FileName],'elec'); %load as matlab file elec structure
+            handles.work.PathName=PathName;
+            s=load([handles.work.PathName, FileName],'elec'); %load as matlab file elec structure
             if ~isfield(s,'elec')
-                warning(['The file ' handles.PathName FileName 'does not contain an elec structure]']);
+                warning(['The file ' handles.work.PathName FileName 'does not contain an elec structure]']);
                 return;
             end
             labels=s.elec.label;
@@ -1200,7 +1200,7 @@ optionsList={'Localized coordinates', 'SCE-projected coordinates'};
 
 if valid & ~isempty(handles.project.electrodes)
       
-    [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.PathName);
+    [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.work.PathName);
     if FileName~=0
         aLabels2txt_new(handles.project.electrodes,[PathName FileName],optionsList{selection});
         disp (['Report saved in ' PathName, FileName])
@@ -1229,10 +1229,10 @@ if isempty(handles.project.T1)
 end
 
 %load apar aseg / wmparc anatomical labels
-[wmparcFile,PathName]=uigetfile('*.nii', 'Load parcellation file (aparc+aseg / aparc.a2009s / wmparc)',handles.PathName);
+[wmparcFile,PathName]=uigetfile('*.nii', 'Load parcellation file (aparc+aseg / aparc.a2009s / wmparc)',handles.work.PathName);
 
 if ~isequal(wmparcFile,0)
-    handles.PathName=PathName;
+    handles.work.PathName=PathName;
     vprm = spm_imatrix(handles.project.T1.vol.mat);
     voxdim = vprm(7:9);
     bbox=world_bb(handles.project.T1.vol);
@@ -1250,7 +1250,7 @@ if ~isequal(wmparcFile,0)
     handles.wmparcColors=reshape(c,[size(handles.project.wmparc.img),3]);
     
     
-%    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.PathName,wmparcFile,2,handles.project.T1);
+%    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);
     disp (['Loaded FS labels from ' PathName, wmparcFile])
     
 %     %anatomical labeling of all electrodes
@@ -1332,13 +1332,13 @@ function handles=labels2MNIspace(handles)
 %
 % labelElectrodesMNI takes a project struct. The patient data now lives in
 % handles.project, but the MNI atlas is a shared resource loaded once at
-% start-up by defaultGuiVariables and still sits flat on handles, so it is
-% passed in alongside. Only the two fields the labelling writes are merged
+% start-up by defaultGuiVariables, so it lives in handles.work and is passed
+% in alongside. Only the two fields the labelling writes are merged
 % back, which keeps handles.project the single authoritative copy.
 prj              = handles.project;
-prj.MNI_S_matrix = handles.MNI_S_matrix;
-prj.MNIlabels    = handles.MNIlabels;
-prj.MNIprob      = handles.MNIprob;
+prj.MNI_S_matrix = handles.work.MNI_S_matrix;
+prj.MNIlabels    = handles.work.MNIlabels;
+prj.MNIprob      = handles.work.MNIprob;
 
 prj = labelElectrodesMNI(prj);
 
@@ -1377,13 +1377,13 @@ end
 
 % load right surface
 disp (['Please select a RIGHT hemisphere pial surface' ])
-[rFile,PathName]=uigetfile({'*.pial' , '*.pial';   '*.*', '*.*'}, 'Load RIGHT hemisphere surface ',handles.PathName);
+[rFile,PathName]=uigetfile({'*.pial' , '*.pial';   '*.*', '*.*'}, 'Load RIGHT hemisphere surface ',handles.work.PathName);
 
 if isequal(rFile,0)
     return;
 end
 rFile=[PathName rFile]; %concat file name
-handles.PathName=PathName;
+handles.work.PathName=PathName;
 
 % load left surface
 disp (['Please select a LEFT hemisphere pial surface' ])
@@ -1575,11 +1575,11 @@ switch type
     case 'Load'
         
         % load surface
-        [rFile,PathName]=uigetfile({'*.pial-outer-smoothed','*.pial-outer-smoothed'; '*.*', '*.*'}, 'Load RIGHT hemisphere Smoothed Cortical Envelope ',handles.PathName);
+        [rFile,PathName]=uigetfile({'*.pial-outer-smoothed','*.pial-outer-smoothed'; '*.*', '*.*'}, 'Load RIGHT hemisphere Smoothed Cortical Envelope ',handles.work.PathName);
         
         if ~isequal(rFile,0)
-            handles.PathName=PathName;
-            [lFile,PathName]=uigetfile({'*.pial-outer-smoothed','*.pial-outer-smoothed'; '*.*', '*.*'}, 'Load LEFT hemisphere Smoothed Cortical Envelope ',handles.PathName);
+            handles.work.PathName=PathName;
+            [lFile,PathName]=uigetfile({'*.pial-outer-smoothed','*.pial-outer-smoothed'; '*.*', '*.*'}, 'Load LEFT hemisphere Smoothed Cortical Envelope ',handles.work.PathName);
             
             if ~isequal(lFile,0)
                 
@@ -1715,11 +1715,11 @@ if isempty(handles.project.targets)
     warning('Targets is empty')
 else
     targets=handles.project.targets;
-    [FileName,PathName] = uiputfile('*.mat','Save planning structure', handles.PathName);
+    [FileName,PathName] = uiputfile('*.mat','Save planning structure', handles.work.PathName);
     if FileName~=0
-    handles.PathName=PathName;
-        save([handles.PathName, FileName],'targets');
-        disp (['Saved targets in ' handles.PathName, FileName])
+    handles.work.PathName=PathName;
+        save([handles.work.PathName, FileName],'targets');
+        disp (['Saved targets in ' handles.work.PathName, FileName])
     end
 end
 
@@ -1738,12 +1738,12 @@ if isempty(handles.project.T1)
     return
 end
 
-[FileName,PathName] = uigetfile('*.mat','Load planning structure',handles.PathName);
+[FileName,PathName] = uigetfile('*.mat','Load planning structure',handles.work.PathName);
 if FileName~=0
-    handles.PathName=PathName;
-    load([handles.PathName, FileName],'targets');
+    handles.work.PathName=PathName;
+    load([handles.work.PathName, FileName],'targets');
     handles.project.targets=targets;
-    disp (['Loaded targets from ' handles.PathName, FileName])
+    disp (['Loaded targets from ' handles.work.PathName, FileName])
 
     
     % go to first target
@@ -1775,10 +1775,10 @@ if isempty(handles.project.T1)
 end
 
 if ~isempty(handles.project.targets)
-    [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.PathName);
+    [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.work.PathName);
     if FileName~=0
         aLabelsTargets2txt_new(handles.project.targets,[PathName FileName]);
-        disp (['Saved targets report in ' handles.PathName, FileName])
+        disp (['Saved targets report in ' handles.work.PathName, FileName])
 
     end
 else
@@ -1925,24 +1925,24 @@ function snapshoottool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-defaultFileName=[handles.PathName filesep  handles.FileName(1:end-4) '-' handles.editElecLabels.String];
+defaultFileName=[handles.work.PathName filesep  handles.work.FileName(1:end-4) '-' handles.editElecLabels.String];
 [FileName,PathName] = uiputfile({'*.png'; '*.jpg'; '*.tif';'*.bmp';'*.eps';'*.fig'},'Save snapshot',defaultFileName);
 if FileName~=0
-    handles.PathName=PathName;
+    handles.work.PathName=PathName;
     if strcmpi( FileName(end-2:end), 'png')
-        print('-dpng',[handles.PathName  FileName]);
+        print('-dpng',[handles.work.PathName  FileName]);
     elseif strcmpi( FileName(end-2:end), 'jpg')
-        print('-djpeg',[handles.PathName  FileName]);
+        print('-djpeg',[handles.work.PathName  FileName]);
     elseif strcmpi( FileName(end-2:end), 'tif')
-        print('-dtiff',[handles.PathName  FileName]);
+        print('-dtiff',[handles.work.PathName  FileName]);
     elseif strcmpi( FileName(end-2:end), 'bmp')
-        print('-dbmp',[handles.PathName  FileName]);
+        print('-dbmp',[handles.work.PathName  FileName]);
     elseif strcmpi( FileName(end-2:end), 'eps')
-        print('-depsc','-r300',[handles.PathName  FileName]);
+        print('-depsc','-r300',[handles.work.PathName  FileName]);
     elseif strcmpi( FileName(end-2:end), 'fig')        
         Fig1 = figure;
         copyobj(handles.axes2, Fig1);
-        savefig(Fig1, [handles.PathName  FileName]);
+        savefig(Fig1, [handles.work.PathName  FileName]);
         close(Fig1);
     end
     
@@ -2438,7 +2438,7 @@ end
 
 lookAround=1;
 if strcmp(handles.project.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-    aL=anatomicLabel(handles.cursor,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
+    aL=anatomicLabel(handles.cursor,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
     set(handles.aLabelText,'String',aL);
 elseif ~isempty(handles.project.wmparc) % Native space
     opt.radio=handles.options.atlasLabelingRadio;
@@ -2790,24 +2790,24 @@ if handles.updatePlots.surfaces
         
     else %use MNI surface
         if get(handles.Rightcheckbox,'Value') %plot pials
-            handles.plot3Dhandles.surfaces(1)=mvis(handles.v_MNI,handles.f_MNI(handles.f_MNI(:,4)==1,1:3));
+            handles.plot3Dhandles.surfaces(1)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==1,1:3));
             hind(1)=1;
             hold on;
         end
         if get(handles.Leftcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(2)=mvis(handles.v_MNI,handles.f_MNI(handles.f_MNI(:,4)==2,1:3));
+            handles.plot3Dhandles.surfaces(2)=mvis(handles.work.v_MNI,handles.work.f_MNI(handles.work.f_MNI(:,4)==2,1:3));
             hind(2)=1;
             hold on;
         end
         
 %         if get(handles.projectSCEcheckbox,'Value') % projection to SCE
         if get(handles.RightSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(3)=mvis(handles.v_MNI_SCE,handles.f_MNI_SCE(handles.f_MNI_SCE(:,4)==2,1:3));
+            handles.plot3Dhandles.surfaces(3)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==2,1:3));
             hind(3)=1;
             hold on;
         end
         if get(handles.LeftSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(4)=mvis(handles.v_MNI_SCE,handles.f_MNI_SCE(handles.f_MNI_SCE(:,4)==1,1:3));
+            handles.plot3Dhandles.surfaces(4)=mvis(handles.work.v_MNI_SCE,handles.work.f_MNI_SCE(handles.work.f_MNI_SCE(:,4)==1,1:3));
             hind(4)=1;
             hold on;
         end
@@ -3148,8 +3148,8 @@ else
         img=imdilate( img, ones(denKernelSize,denKernelSize,denKernelSize));
     end
     
-    lowThr = get(handles.sliderThrMin,'Value') * (handles.maxValue-handles.minValue) + handles.minValue;
-    hiThr =  get(handles.sliderThrMax,'Value') * (handles.maxValue-handles.minValue) + handles.minValue; 
+    lowThr = get(handles.sliderThrMin,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
+    hiThr =  get(handles.sliderThrMax,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue; 
     
     % img is converted to a binary images
     img=(img> lowThr ) & (img< hiThr) & logical(handles.project.mask.img); %only maked voxels
@@ -4655,7 +4655,7 @@ handles.project.electrodes{l}.Name = elecBaseName;
     
 %get labels from file
 if isempty(handles.project.elecListLabels)
-    temp=getLabelsFromFile(handles.PathName);
+    temp=getLabelsFromFile(handles.work.PathName);
     
 %     temp={
 %         'a1' 'b1' 'c1' 'd1' 'e1' 'f1' 'g1' 'h1'...
@@ -4679,7 +4679,7 @@ else
     % Handle response
     switch choice
         case 'Yes'
-            temp=getLabelsFromFile(handles.PathName);
+            temp=getLabelsFromFile(handles.work.PathName);
             if isempty(temp)
                 return;
             end
@@ -4808,7 +4808,7 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
         % Do the projections
         if sum(~projDone)>0
             if strcmp(handles.project.currentSpace,'MNI') % MNI space
-                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.v_MNI_SCE,handles.f_MNI_SCE, handles.options, projDone);
+                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.work.v_MNI_SCE,handles.work.f_MNI_SCE, handles.options, projDone);
                 
             else  % Native space
                 if ~isempty(handles.project.vertices_SCE_L)
@@ -5810,7 +5810,7 @@ handles.project.targets{l}.z=coordinates(:,3);
 % 
 
 % if strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-%     handles.project.targets(l).aLabels=anatomicLabel(coordinates,handles.MNI_S_matrix,handles.MNIlabels,handles.MNIprob);
+%     handles.project.targets(l).aLabels=anatomicLabel(coordinates,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
 % elseif ~isempty(handles.project.wmparc)
 %     handles.project.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
 % end

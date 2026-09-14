@@ -12,13 +12,11 @@ function names = workFieldNames()
 %     work      what is being done right now
 %     ui        graphics objects and presentation state
 %
-%   PARTIAL LIST. This first group is the localisation work in progress and
-%   its undo history - plain data, no GUI representation, and all eight are
-%   already covered by tests/roundtrip_project. The remaining work fields
-%   (FileName, PathName, options, minValue, maxValue, the MNI template and
-%   atlas resources, uitable_elecNum) come in later groups; some of them need
-%   a decision first, because their value currently lives inside a uicontrol.
-%   See docs/STATE_FIELD_MAPPING.md for the full classification.
+%   PARTIAL LIST. What has moved so far is everything that is plain data with
+%   no GUI representation. Still flat, and needing a decision before they can
+%   move: `options`, which mixes scientific settings with display settings and
+%   should be split first, and `uitable_elecNum`, which is written by a dialog
+%   callback holding a stale copy of handles. See docs/STATE_FIELD_MAPPING.md.
 %
 %   NOTE ON .iel FILES: unlike most working data, these eight ARE written to
 %   the project file today, so FLATTENPROJECT puts them back at the top level
@@ -37,6 +35,15 @@ names = { ...
     ... % the currently selected voxels and their CT intensities
     'brushCrd', 'brushWeight', ...
     ... % undo copies, restored by the Undo button
-    'oldGS', 'oldclusters', 'oldbrushCrd', 'oldbrushWeight' ...
+    'oldGS', 'oldclusters', 'oldbrushCrd', 'oldbrushWeight', ...
+    ... % where the project file came from and where to browse next
+    'FileName', 'PathName', ...
+    ... % CT intensity limits; recomputed from TAC by checkProjectStructure
+    'minValue', 'maxValue', ...
+    ... % MNI template surfaces, loaded once at start-up - shared resources,
+    ... % identical for every patient, so they are work rather than project
+    'v_MNI', 'f_MNI', 'v_MNI_SCE', 'f_MNI_SCE', ...
+    ... % MNI probabilistic atlas used for labelling in MNI space
+    'MNIlabels', 'MNIprob', 'MNI_S_matrix' ...
     };
 end
