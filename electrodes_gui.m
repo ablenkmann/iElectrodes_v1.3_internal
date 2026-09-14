@@ -160,6 +160,7 @@ handles=checkUpdates(handles);
 
 % make project structure
 handles=checkProjectStructure([],handles);
+handles=liftToProject(handles);   % patient data -> handles.project
 
 % load default options
 options=[];
@@ -241,7 +242,7 @@ function figure1_WindowButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -264,7 +265,7 @@ if (G == handles.axes1) || (G == handles.axes2 && verLessThan('matlab','9.5'))
             return;
         end 
         
-        D=AnatSpace2Mesh(pout',handles.S2);
+        D=AnatSpace2Mesh(pout',handles.project.S2);
         
         set(handles.sliderX,'Value',D(1));
         set(handles.sliderY,'Value',D(2));
@@ -313,12 +314,12 @@ function figure1_WindowScrollWheelFcn(hObject, eventdata, handles)
 %	VerticalScrollAmount: number of lines scrolled for each click
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
 step=-eventdata.VerticalScrollCount;
-dim=size(handles.T1.img);
+dim=size(handles.project.T1.img);
 
 F=get(handles.figure1, 'CurrentPoint'); %mouse position in figure
 
@@ -380,7 +381,7 @@ function Newuipushtool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % load TAC
 
-if ~isempty(handles.T1)
+if ~isempty(handles.project.T1)
     % Construct a questdlg with three options
     choice = questdlg('Do you want to save your project?', ...
         '', ...
@@ -413,12 +414,13 @@ if T1file ~=0
 
     handles=defaultGuiVariables(handles);
     handles=checkProjectStructure([],handles);
+    handles=liftToProject(handles);   % patient data -> handles.project
  
     %fiugre name
     set(handles.figure1,'name',['iElectrodes - ' PathName T1file]);
     
-    handles.T1=T1; % MRI T1 origninal (SPM data structure)
-    handles.S2=T1.vol.mat(1:3,:);
+    handles.project.T1=T1; % MRI T1 origninal (SPM data structure)
+    handles.project.S2=T1.vol.mat(1:3,:);
     
     handles.PathName=PathName;
 
@@ -446,7 +448,7 @@ if T1file ~=0
 %    set(handles.TargetArraytext,'string','0');
     set(handles.nClusText,'string', '0');
 
-    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.S2);
+    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
       
     guidata(hObject, handles);
     
@@ -472,7 +474,7 @@ function LoadCTtool_ClickedCallback(hObject, eventdata, handles)
 % load TAC
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project')
     return
 end
@@ -482,9 +484,9 @@ end
 if TACfile~=0
     
     % get T1 resolution and other parameters
-    vprm = spm_imatrix(handles.T1.vol.mat);
+    vprm = spm_imatrix(handles.project.T1.vol.mat);
     voxdim = vprm(7:9);
-    bbox=world_bb(handles.T1.vol);
+    bbox=world_bb(handles.project.T1.vol);
     
 %     % coregister CT to MRI?
 %     choice = questdlg('Do you want to coregister the CT to the MRI space?', ...
@@ -498,7 +500,7 @@ choice = 'No'; % code below is not ready
         case 'Yes' % coregister here.
                      
             % load with no interpolation
-            [handles.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation 
+            [handles.project.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation 
             disp (['Loaded CT from ' PathName, TACfile])
             %plot edge on top of the MR
             set(handles.edgeCheckbox,'Value',1); %edgeCT on
@@ -515,13 +517,13 @@ choice = 'No'; % code below is not ready
                 switch buttonPress
                     case 'update'
                         % load actual rotation
-                        MM=spm_get_space([PathName filesep TACfile]); %handles.TAC.vol.mat;
+                        MM=spm_get_space([PathName filesep TACfile]); %handles.project.TAC.vol.mat;
                         
                         % set new transformation to CT
                         spm_get_space([PathName filesep TACfile],rMat*MM); % change(set), and write to the input file
                                                
                         %load transformed CT (using MR parameters)
-                        [handles.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
+                        [handles.project.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
                         
                         handles=updateMix_TAC_MR(handles);
                         handles.updatePlots.views2D=[1 1 1];
@@ -533,11 +535,11 @@ choice = 'No'; % code below is not ready
                         
                     case 'center'
                         % load actual rotation
-                        MM=spm_get_space([PathName filesep TACfile]); %handles.TAC.vol.mat;
+                        MM=spm_get_space([PathName filesep TACfile]); %handles.project.TAC.vol.mat;
                         
                         v=spm_vol([PathName filesep TACfile]);
                         transCT=(v.dim/2)'.*diag(v.mat(1:3,1:3));
-%                         transT1=handles.T1.vol.mat(1:3,4);
+%                         transT1=handles.project.T1.vol.mat(1:3,4);
 
                         rMat=angle_tra2rmat([0 0 0],-MM(1:3,4)); % move origin to zero
                         rMat=angle_tra2rmat([0 0 0],-transCT)*rMat; 
@@ -547,7 +549,7 @@ choice = 'No'; % code below is not ready
                         spm_get_space([PathName filesep TACfile],rMat*MM); % change(set), and write to the input file
                                                
                         %load transformed CT (using MR parameters)
-                        [handles.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
+                        [handles.project.TAC]=loading_images_SPM(PathName,TACfile,0,voxdim,bbox); % no interpolation
                         
                         handles=updateMix_TAC_MR(handles);
                         handles.updatePlots.views2D=[1 1 1];
@@ -567,7 +569,7 @@ choice = 'No'; % code below is not ready
             % Corregistretion using SPM - norm mutual information 
             
             % reference image
-            VolT1=spm_vol(handles.T1.vol.fname); % replace with spm_write_vol
+            VolT1=spm_vol(handles.project.T1.vol.fname); % replace with spm_write_vol
             % source (moved) image.
             VolCT=spm_vol([PathName TACfile]);
             
@@ -585,7 +587,7 @@ choice = 'No'; % code below is not ready
             
             % apply transform to CT -> T1
             
-            VolT1=spm_vol(handles.T1.vol.fname);
+            VolT1=spm_vol(handles.project.T1.vol.fname);
             VolCT=spm_vol(fileCT);
             
             %load transformation
@@ -600,7 +602,7 @@ choice = 'No'; % code below is not ready
             disp('Transformations applied to CT file');
             
             % load CT
-            [handles.TAC]=loading_images_SPM(PathName,TACfile,4,voxdim,bbox); %interpolation = 4
+            [handles.project.TAC]=loading_images_SPM(PathName,TACfile,4,voxdim,bbox); %interpolation = 4
             disp (['Loaded CT from ' PathName, TACfile])
             
             
@@ -610,25 +612,25 @@ choice = 'No'; % code below is not ready
     end
     
     % load with high resolution interpolation
-    [handles.TAC]=loading_images_SPM(PathName,TACfile,4,voxdim,bbox); %interpolation = 4
+    [handles.project.TAC]=loading_images_SPM(PathName,TACfile,4,voxdim,bbox); %interpolation = 4
     disp (['Loaded CT from ' PathName, TACfile])
 
     %load mask file    
     [maskfile,PathName]=uigetfile('*.nii', 'Load mask file',PathName);
     
     if maskfile~=0
-        vprm = spm_imatrix(handles.T1.vol.mat);
+        vprm = spm_imatrix(handles.project.T1.vol.mat);
         voxdim = vprm(7:9);
-        bbox=world_bb(handles.T1.vol);
+        bbox=world_bb(handles.project.T1.vol);
         [inskullMask]=loading_images_SPM(PathName,maskfile,1,voxdim,bbox); %interpolation = 1
         disp (['Loaded Mask from ' PathName, maskfile])
         
-        handles.mask=inskullMask; %loading the img and the vol
-%        handles.mask=mask; % mask (logical matrix)
-        handles.S2=handles.TAC.vol.mat(1:3,:); 
-%        handles.S2=S2;     % new transfomation matrix
-        maxValue=max(handles.TAC.img(:));
-        minValue=min(handles.TAC.img(:));
+        handles.project.mask=inskullMask; %loading the img and the vol
+%        handles.project.mask=mask; % mask (logical matrix)
+        handles.project.S2=handles.project.TAC.vol.mat(1:3,:); 
+%        handles.project.S2=S2;     % new transfomation matrix
+        maxValue=max(handles.project.TAC.img(:));
+        minValue=min(handles.project.TAC.img(:));
         
         handles.maxValue=maxValue;
         handles.minValue=minValue;
@@ -660,12 +662,12 @@ function saved=Savepushtool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 saved=0;
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('MRI is empty. Load images first. Click New button or open existing project');
     return;
 else
     % get the variables needed to be saved
-    s=checkProjectStructure(handles);
+    s=checkProjectStructure(flattenProject(handles));   % .iel format stays flat
     
     if isempty( handles.FileName)
         [FileName,PathName] = uiputfile('*.iel','Save filename',handles.PathName);
@@ -695,7 +697,7 @@ function Openpushtool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-if ~isempty(handles.T1)
+if ~isempty(handles.project.T1)
     % Construct a questdlg with three options
     choice = questdlg('Do you want to save your project?', ...
         '', ...
@@ -728,6 +730,7 @@ if FileName ~=0
     handles=defaultGuiVariables(handles);
     % load .iel structure
     handles=checkProjectStructure(s,handles);
+    handles=liftToProject(handles);   % patient data -> handles.project
 
     handles.FileName=FileName;
     handles.PathName=PathName;
@@ -779,11 +782,11 @@ if FileName ~=0
     set(handles.projectSCEcheckbox,'Value',0);
 
     handles=updateMix_TAC_MR(handles);
-    [xM,yM,zM]=size(handles.T1.img);
+    [xM,yM,zM]=size(handles.project.T1.img);
     set(handles.sliderX,'Min',1,'Max',xM,'SliderStep',[ 1/(xM-1) 10/(xM-1)],'Value',xM/2);
     set(handles.sliderY,'Min',1,'Max',yM,'SliderStep',[ 1/(yM-1) 10/(yM-1)],'Value',yM/2);
     set(handles.sliderZ,'Min',1,'Max',zM,'SliderStep',[ 1/(zM-1) 10/(zM-1)],'Value',zM/2);
-    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.S2);
+    handles.cursor=mesh2AnatSpace([xM/2 yM/2 zM/2], handles.project.S2);
 
   
     if ~isempty(handles.wmparc)
@@ -968,7 +971,7 @@ if valid
             % BIDS coordinate system json file
             coordSys = struct( 'iEEGCoordinateSystem', 'ScanRAS',...       
                 'iEEGCoordinateUnits','mm', ...                             
-                'IndendedFor',  handles.TAC.vol.fname,...                  % point to CT file
+                'IndendedFor',  handles.project.TAC.vol.fname,...                  % point to CT file
                 'iEEGCoordinateSystemDescription', 'Coordinates system is RAS from imported CT image.',...
                 'iEEGCoordinateProcessingDescripton', 'none',...       % projection?
                 'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ');
@@ -1000,7 +1003,7 @@ if valid
             % BIDS coordinate system json file
             coordSys = struct( 'iEEGCoordinateSystem', 'ScanRAS',...       
                 'iEEGCoordinateUnits','mm', ...                             
-                'IndendedFor',  handles.TAC.vol.fname,...                                           % point to CT file
+                'IndendedFor',  handles.project.TAC.vol.fname,...                                           % point to CT file
                 'iEEGCoordinateSystemDescription', 'Coordinates system is RAS from imported CT image.',...
                'iEEGCoordinateProcessingDescripton',  projMethod{1},...       % projection?
                 'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014; Blenkmann et al., 2023. https://doi.org/10.1101/2023.05.08.539503');
@@ -1029,7 +1032,7 @@ function LoadElectrodespushtool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project')
     return
 end
@@ -1176,7 +1179,7 @@ function Reportuipushtool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project')
     return
 end
@@ -1213,7 +1216,7 @@ function LoadFSlabelsuipushtool_ClickedCallback(hObject, eventdata, handles)
 % Not changing handles.currentSpace since can be both 'MNI' or 'Native' space 
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then load CT...')
     return
 end
@@ -1223,9 +1226,9 @@ end
 
 if ~isequal(wmparcFile,0)
     handles.PathName=PathName;
-    vprm = spm_imatrix(handles.T1.vol.mat);
+    vprm = spm_imatrix(handles.project.T1.vol.mat);
     voxdim = vprm(7:9);
-    bbox=world_bb(handles.T1.vol);
+    bbox=world_bb(handles.project.T1.vol);
     
     [handles.wmparc]=loading_images_SPM(PathName,wmparcFile,0,voxdim,bbox); %interpolation = nearest neighbour
     handles.wmparcS=handles.wmparc.vol.mat(1:3,:);
@@ -1240,7 +1243,7 @@ if ~isequal(wmparcFile,0)
     handles.wmparcColors=reshape(c,[size(handles.wmparc.img),3]);
     
     
-%    [handles.wmparc,handles.wmparcS,wmparcFile]=loading_images(handles.PathName,wmparcFile,2,handles.T1);
+%    [handles.wmparc,handles.wmparcS,wmparcFile]=loading_images(handles.PathName,wmparcFile,2,handles.project.T1);
     disp (['Loaded FS labels from ' PathName, wmparcFile])
     
 %     %anatomical labeling of all electrodes
@@ -1336,7 +1339,7 @@ function addFSsurfacesuipushtool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then load surfaces...')
     return
 end
@@ -1376,7 +1379,7 @@ choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
 switch choice
     case 'Yes'
         % translate pial surfaces to MRI center
-        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.S2);
+        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.project.S2);
         vR=vR+repmat(trans,size(vR,1),1);
         vL=vL+repmat(trans,size(vL,1),1);
         disp (['Surfaces centered'])
@@ -1393,29 +1396,29 @@ end
 % k = handles.options.reduce_surfaces_elements / length(vR);
 % if k< 1
 %     try
-%         [handles.verticesR,handles.facesR]=meshresample(vR,fR,k);
-%         [handles.verticesL,handles.facesL]=meshresample(vL,fL,k);
+%         [handles.project.verticesR,handles.project.facesR]=meshresample(vR,fR,k);
+%         [handles.project.verticesL,handles.project.facesL]=meshresample(vL,fL,k);
 %     catch
 %         disp({'WARNING - iso2mesh function meshresample not found or error.'
 %             'Pial surfaces will not be resampled. 3D view could be slowed down.'})
-%         handles.verticesR=vR;
-%         handles.facesR=fR;
-%         handles.verticesL=vL;
-%         handles.facesL=fL;
+%         handles.project.verticesR=vR;
+%         handles.project.facesR=fR;
+%         handles.project.verticesL=vL;
+%         handles.project.facesL=fL;
 %     end
 %     
 % else
-%     handles.verticesR=vR;
-%     handles.verticesL=vL;
-%     handles.facesR=fR;
-%     handles.facesL=fL;
+%     handles.project.verticesR=vR;
+%     handles.project.verticesL=vL;
+%     handles.project.facesR=fR;
+%     handles.project.facesL=fL;
 % end
 % No reduction to be able to usse annotation information
 
-handles.verticesR=vR;
-handles.verticesL=vL;
-handles.facesR=fR;
-handles.facesL=fL;
+handles.project.verticesR=vR;
+handles.project.verticesL=vL;
+handles.project.facesR=fR;
+handles.project.facesL=fL;
 
 % dealin with annotation files after surfaces are done
 choice = questdlg('Do you want to load annotation files?', ...
@@ -1467,8 +1470,8 @@ switch choice
         handles.AnnotLabel_L=[]; %label for each node
         handles.AnnotColortable_R=[]; %colortable info
         handles.AnnotColortable_L=[]; %colortable info
-        handles.AnnotColor_R=ones(length(handles.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
-        handles.AnnotColor_L=ones(length(handles.verticesL),3)*.5; %actual color used for each node
+        handles.AnnotColor_R=ones(length(handles.project.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
+        handles.AnnotColor_L=ones(length(handles.project.verticesL),3)*.5; %actual color used for each node
         
     case 'Cancel'
         return;
@@ -1495,14 +1498,14 @@ function ClearFSsurfaceuipushtool2_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then you can add surfaces...')
     return
 end
-handles.verticesR=[];
-handles.verticesL=[];
-handles.facesR=[];
-handles.facesL=[];
+handles.project.verticesR=[];
+handles.project.verticesL=[];
+handles.project.facesR=[];
+handles.project.facesL=[];
 
 handles.AnnotLabel_R=[];
 handles.AnnotLabel_L=[];
@@ -1527,7 +1530,7 @@ function addSCEuipushtool_ClickedCallback(hObject, eventdata, handles)
 
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then load surfaces...')
     return
 end
@@ -1565,7 +1568,7 @@ switch type
                 switch choice
                     case 'Yes'
                         % translate pial surfaces to MRI center
-                        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.S2);
+                        trans=mesh2AnatSpace(size(handles.imgW)/2,handles.project.S2);
                         vR=vR+repmat(trans,size(vR,1),1);
                         vL=vL+repmat(trans,size(vL,1),1);
                         
@@ -1581,22 +1584,22 @@ switch type
                 k=15000/length(vR);
                 if k<1
                     try
-                        [handles.vertices_SCE_R,handles.faces_SCE_R]=meshresample(vR,fR,k);
-                        [handles.vertices_SCE_L,handles.faces_SCE_L]=meshresample(vL,fL,k);
+                        [handles.project.vertices_SCE_R,handles.project.faces_SCE_R]=meshresample(vR,fR,k);
+                        [handles.project.vertices_SCE_L,handles.project.faces_SCE_L]=meshresample(vL,fL,k);
                     catch
                         disp({'WARNING - iso2mesh function meshresample not found or error.'
                             'SCE surfaces will not be resampled. 3D view could be slowed down.'})
-                        handles.vertices_SCE_R=vR;
-                        handles.faces_SCE_R=fR;
-                        handles.vertices_SCE_L=vL;
-                        handles.faces_SCE_L=fL;
+                        handles.project.vertices_SCE_R=vR;
+                        handles.project.faces_SCE_R=fR;
+                        handles.project.vertices_SCE_L=vL;
+                        handles.project.faces_SCE_L=fL;
                     end
                     
                 else
-                    handles.vertices_SCE_R=vR;
-                    handles.vertices_SCE_L=vL;
-                    handles.faces_SCE_R=fR;
-                    handles.faces_SCE_L=fL;
+                    handles.project.vertices_SCE_R=vR;
+                    handles.project.vertices_SCE_L=vL;
+                    handles.project.faces_SCE_R=fR;
+                    handles.project.faces_SCE_L=fL;
                 end
                 
             else
@@ -1609,29 +1612,29 @@ switch type
     case 'Build'
         
         % compute SCE
-        [vL,fL] = buildSCE(handles.verticesL,handles.facesL,handles.options);
-        [vR,fR] = buildSCE(handles.verticesR,handles.facesR,handles.options);
+        [vL,fL] = buildSCE(handles.project.verticesL,handles.project.facesL,handles.options);
+        [vR,fR] = buildSCE(handles.project.verticesR,handles.project.facesR,handles.options);
         
         %reduce to 15k vertices for nice resolution and speed plots
         k=15000/length(vR);
         if k<1
             try
                 disp('resampling mesh')
-                [handles.vertices_SCE_R,handles.faces_SCE_R]=meshresample(vR,fR,k);
-                [handles.vertices_SCE_L,handles.faces_SCE_L]=meshresample(vL,fL,k);
+                [handles.project.vertices_SCE_R,handles.project.faces_SCE_R]=meshresample(vR,fR,k);
+                [handles.project.vertices_SCE_L,handles.project.faces_SCE_L]=meshresample(vL,fL,k);
             catch
                 disp({'WARNING - iso2mesh function meshresample not found or error.'
                     'SCE surfaces will not be resampled. 3D view could be slowed down.'})
-                handles.vertices_SCE_R=vR;
-                handles.faces_SCE_R=fR;
-                handles.vertices_SCE_L=vL;
-                handles.faces_SCE_L=fL;
+                handles.project.vertices_SCE_R=vR;
+                handles.project.faces_SCE_R=fR;
+                handles.project.vertices_SCE_L=vL;
+                handles.project.faces_SCE_L=fL;
             end
         else
-            handles.vertices_SCE_R=vR;
-            handles.vertices_SCE_L=vL;
-            handles.faces_SCE_R=fR;
-            handles.faces_SCE_L=fL;
+            handles.project.vertices_SCE_R=vR;
+            handles.project.vertices_SCE_L=vL;
+            handles.project.faces_SCE_R=fR;
+            handles.project.faces_SCE_L=fL;
         end
         
 end
@@ -1650,14 +1653,14 @@ function removeSCEuipushtooluipushtool_ClickedCallback(hObject, eventdata, handl
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then you can add surfaces...')
     return
 end
-handles.vertices_SCE_R=[];
-handles.vertices_SCE_L=[];
-handles.faces_SCE_R=[];
-handles.faces_SCE_L=[];
+handles.project.vertices_SCE_R=[];
+handles.project.vertices_SCE_L=[];
+handles.project.faces_SCE_R=[];
+handles.project.faces_SCE_L=[];
 
 handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
 % Update handles structure
@@ -1673,7 +1676,7 @@ function savePlanninguitoggletool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project. Then do the planning...')
     return
 end
@@ -1699,7 +1702,7 @@ function LoadPlanninguitoggletool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project')
     return
 end
@@ -1735,7 +1738,7 @@ function ReportPlanninguipushtool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % MRI should be loaded first
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project')
     return
 end
@@ -1874,7 +1877,7 @@ function viewCrossbutton_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if ~isempty(handles.T1); % avoid changing crosshairs wwithout images loaded
+if ~isempty(handles.project.T1); % avoid changing crosshairs wwithout images loaded
 %    handles.updatePlots.views2D=[1 1 1];
 %    handles=updateTAC(handles);
     handles=cross2D(handles); 
@@ -1997,12 +2000,12 @@ function handles=updateTAC(handles)
 % inicialize cross handles
 % calling to cross2D, cross3D, cross3DThres
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
 
-D=size(handles.T1.img);
+D=size(handles.project.T1.img);
 
 % update sliders values to round values
 x=round(get(handles.sliderX,'Value'));
@@ -2015,10 +2018,10 @@ set(handles.sliderX,'Value',x); set(handles.sliderY,'Value',y); set(handles.slid
 set(handles.textX,'String',x); set(handles.textY,'String', y); set(handles.textZ,'String', z);
 % define anatomical coords
 prevCursor=handles.cursor;
-handles.cursor=mesh2AnatSpace([x y z], handles.S2);
+handles.cursor=mesh2AnatSpace([x y z], handles.project.S2);
 
 %indicates if need to update current slice or not
-updateSlice=(abs(handles.cursor-prevCursor)>=diag(handles.S2(1:3,1:3))') | handles.updatePlots.views2D; %Force update all slices;
+updateSlice=(abs(handles.cursor-prevCursor)>=diag(handles.project.S2(1:3,1:3))') | handles.updatePlots.views2D; %Force update all slices;
 handles.updatePlots.views2D=[0 0 0]; %remove force plot
 
 % coordinates box
@@ -2058,8 +2061,8 @@ if updateSlice(1)
     end
     if handles.updatePlots.resetTAC
         %        axis(handles.axesX, 'image')
-        pixdim=diag(handles.S2(:,1:3));
-        DD=size(handles.T1.img);
+        pixdim=diag(handles.project.S2(:,1:3));
+        DD=size(handles.project.T1.img);
         set(handles.axesX,'xlim',[0 DD(2)],'ylim',[0 DD(3)])
         set(handles.axesX,'DataAspectRatio',[1/pixdim(2) 1/pixdim(3) 1]);
         set(handles.axesX,'YDir','normal')
@@ -2080,9 +2083,9 @@ if updateSlice(1)
                 end
                     
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2103,9 +2106,9 @@ if updateSlice(1)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2123,9 +2126,9 @@ if updateSlice(1)
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
             for i=1:length(handles.targets)
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2139,9 +2142,9 @@ if updateSlice(1)
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2182,8 +2185,8 @@ if updateSlice(2)
     end
     if handles.updatePlots.resetTAC
         %axis(handles.axesY, 'image')
-        pixdim=diag(handles.S2(:,1:3));
-        DD=size(handles.T1.img);
+        pixdim=diag(handles.project.S2(:,1:3));
+        DD=size(handles.project.T1.img);
         set(handles.axesY,'xlim',[0 DD(1)],'ylim',[0 DD(3)])
         set(handles.axesY,'DataAspectRatio',[1/pixdim(1) 1/pixdim(3) 1]);
         set(handles.axesY,'YDir','normal')
@@ -2204,9 +2207,9 @@ if updateSlice(2)
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2227,9 +2230,9 @@ if updateSlice(2)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2246,9 +2249,9 @@ if updateSlice(2)
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
             for i=1:length(handles.targets)
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2262,9 +2265,9 @@ if updateSlice(2)
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2303,8 +2306,8 @@ if updateSlice(3)
     end
     if handles.updatePlots.resetTAC
         %axis(handles.axesZ, 'image')
-        pixdim=diag(handles.S2(:,1:3));
-        DD=size(handles.T1.img);
+        pixdim=diag(handles.project.S2(:,1:3));
+        DD=size(handles.project.T1.img);
         set(handles.axesZ,'xlim',[0 DD(1)],'ylim',[0 DD(2)])
         set(handles.axesZ,'DataAspectRatio',[1/pixdim(1) 1/pixdim(2) 1]);
         set(handles.axesZ,'YDir','normal')
@@ -2325,9 +2328,9 @@ if updateSlice(3)
                 end
 
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2348,9 +2351,9 @@ if updateSlice(3)
                     markerElectrodes=handles.colors.electrodesMarker2D;
                 end
                 if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.projection{1}.x handles.electrodes{i}.projection{1}.y handles.electrodes{i}.projection{1}.z],handles.project.S2);
                 else
-                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.S2);
+                    c=AnatSpace2Mesh([handles.electrodes{i}.x handles.electrodes{i}.y handles.electrodes{i}.z],handles.project.S2);
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
@@ -2367,9 +2370,9 @@ if updateSlice(3)
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
             for i=1:length(handles.targets)
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2383,9 +2386,9 @@ if updateSlice(3)
             i=str2double(get(handles.arrayPlanningNumberText,'String'));
             if i>0
                 if isempty(handles.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.S2); %2D model / depth
+                    c=AnatSpace2Mesh([handles.targets{i}.x handles.targets{i}.y handles.targets{i}.z],handles.project.S2); %2D model / depth
                 else
-                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.S2); % fitted grid
+                    c=AnatSpace2Mesh([handles.targets{i}.projection{1}.x handles.targets{i}.projection{1}.y handles.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
                 end
                 if get(handles.Collapsecheckbox,'Value')
                     line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
@@ -2719,36 +2722,36 @@ if handles.updatePlots.surfaces
     
     % use subject surface
     if strcmp(handles.currentSpace,'Native')
-        if ~isempty(handles.verticesR) %plot pials
+        if ~isempty(handles.project.verticesR) %plot pials
             if get(handles.Rightcheckbox,'Value')
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.plot3Dhandles.surfaces(1)=mvis(handles.verticesR,handles.facesR,handles.AnnotColor_R); %annotation in colors
+                    handles.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR,handles.AnnotColor_R); %annotation in colors
                 else
-                    handles.plot3Dhandles.surfaces(1)=mvis(handles.verticesR,handles.facesR); %grey
+                    handles.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR); %grey
                 end
                 hind(1)=1;
                 hold on;
             end
             if get(handles.Leftcheckbox,'Value')                
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.plot3Dhandles.surfaces(2)=mvis(handles.verticesL,handles.facesL, handles.AnnotColor_L); % annotation in colors
+                    handles.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL, handles.AnnotColor_L); % annotation in colors
                 else
-                    handles.plot3Dhandles.surfaces(2)=mvis(handles.verticesL,handles.facesL);% grey    
+                    handles.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL);% grey    
                 end
                 hind(2)=1;
                 hold on;
             end
         end
-        if ~isempty(handles.vertices_SCE_R) && get(handles.RightSCEcheckbox,'Value')
-%         if ~isempty(handles.vertices_SCE_R) && get(handles.projectSCEcheckbox,'Value') % plot projection to SCE
+        if ~isempty(handles.project.vertices_SCE_R) && get(handles.RightSCEcheckbox,'Value')
+%         if ~isempty(handles.project.vertices_SCE_R) && get(handles.projectSCEcheckbox,'Value') % plot projection to SCE
 %             if get(handles.RightSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(3)=mvis(handles.vertices_SCE_R,handles.faces_SCE_R);
+            handles.plot3Dhandles.surfaces(3)=mvis(handles.project.vertices_SCE_R,handles.project.faces_SCE_R);
             hind(3)=1;
             hold on;
         end
-        if ~isempty(handles.vertices_SCE_L) && get(handles.LeftSCEcheckbox,'Value')
+        if ~isempty(handles.project.vertices_SCE_L) && get(handles.LeftSCEcheckbox,'Value')
 %               if get(handles.LeftSCEcheckbox,'Value')
-            handles.plot3Dhandles.surfaces(4)=mvis(handles.vertices_SCE_L,handles.faces_SCE_L);
+            handles.plot3Dhandles.surfaces(4)=mvis(handles.project.vertices_SCE_L,handles.project.faces_SCE_L);
             hind(4)=1;
             hold on;
 %            end
@@ -2852,7 +2855,7 @@ function handles=cross2D(handles) %,updateSlice)
     y=round(get(handles.sliderY,'Value'));
     z=round(get(handles.sliderZ,'Value'));
     
-    D=size(handles.T1.img);
+    D=size(handles.project.T1.img);
 
     % X plane
     set(handles.figure1,'CurrentAxes',handles.axesX);
@@ -2957,7 +2960,7 @@ function handles=cross3D(handles)%,new)
 % new = 1 plot new
 % new = 0 update plot
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning('First Load MRI image. Click New button or open existing project');
     return;
 end
@@ -2967,7 +2970,7 @@ x=floor(get(handles.sliderX,'Value'));
 y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
-crd=mesh2AnatSpace([x,y,z],handles.S2);
+crd=mesh2AnatSpace([x,y,z],handles.project.S2);
 
 xl=get(handles.axes2,'XLim'); 
 yl=get(handles.axes2,'YLim'); 
@@ -3006,7 +3009,7 @@ function handles=cross3DThres(handles)
 % updating handle structure. call guidata(hObject, handles) afterwards.
 % inicialize cross handles
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning('First Load MRI image. Click New button or open existing project');
     return;
 end
@@ -3016,7 +3019,7 @@ x=floor(get(handles.sliderX,'Value'));
 y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
-crd=mesh2AnatSpace([x,y,z],handles.S2);
+crd=mesh2AnatSpace([x,y,z],handles.project.S2);
 
 %plot crosshair in 3D Threshold using 2D cords
 axes(handles.axes1);
@@ -3053,7 +3056,7 @@ function GoToButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -3100,12 +3103,12 @@ axes(handles.axes1) %makes a new axes
 axis image
 cla
 
-if isempty(handles.TAC)
+if isempty(handles.project.TAC)
     text (0.25,0.5,'No CT image to threshold. Click Load CT button');
 else
     
     % img is a grayscale matrix
-    img=handles.TAC.img; 
+    img=handles.project.TAC.img; 
 
     % denoise 
     denKernelSize = round(get(handles.denoiseSlider, 'value'));
@@ -3118,7 +3121,7 @@ else
     hiThr =  get(handles.sliderThrMax,'Value') * (handles.maxValue-handles.minValue) + handles.minValue; 
     
     % img is converted to a binary images
-    img=(img> lowThr ) & (img< hiThr) & logical(handles.mask.img); %only maked voxels
+    img=(img> lowThr ) & (img< hiThr) & logical(handles.project.mask.img); %only maked voxels
     
     % indices to thresholded voxels
     ind=find(img);
@@ -3131,8 +3134,8 @@ else
             localizedCrd=[localizedCrd; handles.electrodes{j}.brushCrd];
         end
         
-        localizedCTCords=round(AnatSpace2Mesh(localizedCrd,handles.S2));
-        indexCT=sub2ind(size(handles.TAC.img),localizedCTCords(:,1),localizedCTCords(:,2),localizedCTCords(:,3));
+        localizedCTCords=round(AnatSpace2Mesh(localizedCrd,handles.project.S2));
+        indexCT=sub2ind(size(handles.project.TAC.img),localizedCTCords(:,1),localizedCTCords(:,2),localizedCTCords(:,3));
 
         % remove voxels present in old localizations
         k =  ~ismember(ind,indexCT); 
@@ -3146,9 +3149,9 @@ else
              disp(['The limit value can be changed in src/project/default_ielectrodes_options.m'])
              ind=ind(randperm(length(ind),handles.options.scatter3D_elem_limit)); % take a random selection of points
          end     
-        vTAC=handles.TAC.img(ind); %values
+        vTAC=handles.project.TAC.img(ind); %values
         [crd(1,:),crd(2,:),crd(3,:)]=ind2sub(size(img),ind); % coords in (i,j,k) image space
-        crd=mesh2AnatSpace(crd',handles.S2); %transform to real space
+        crd=mesh2AnatSpace(crd',handles.project.S2); %transform to real space
         handles.sct=scatter3(handles.axes1, crd(:,1),crd(:,2),crd(:,3),20,vTAC,'o', 'filled');
     end
     xlabel(handles.axes1,'x'); ylabel(handles.axes1,'y'); zlabel(handles.axes1,'z');
@@ -3404,23 +3407,23 @@ opt.edgeCT=get(handles.edgeCheckbox,'Value'); %edgeCT
 opt.win=[get(handles.MinWinslider,'Value') get(handles.MaxWinslider,'Value')];
 mixValue=get(handles.TAC_MRIslider,'Value');
 
-if ~isempty(handles.T1)
+if ~isempty(handles.project.T1)
     
-    T1=single(handles.T1.img);
+    T1=single(handles.project.T1.img);
 % normalized T1 in int16 format - mixImages has to be fixed to work with
 % int16
-%     T1=int16(handles.T1.img);
+%     T1=int16(handles.project.T1.img);
 %     T1=T1-min(T1(:));
 %     T1=T1 * ( (2^15-1) / max(T1(:)));
         
-    if isempty(handles.TAC)
+    if isempty(handles.project.TAC)
         %only MRI
        handles.imgW=mixImages(T1,[],mixValue,opt);
     else
         %MRI and CT mixture
-        TAC=single(handles.TAC.img);
+        TAC=single(handles.project.TAC.img);
         % normalized T1 in int16 format
-%         TAC=int16(handles.TAC.img);
+%         TAC=int16(handles.project.TAC.img);
 %         TAC=TAC-min(TAC(:));
 %         TAC=TAC * ( (2^15-1) / max(TAC(:)));
 
@@ -3570,11 +3573,11 @@ function ImgDilatePushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to ImgDilatePushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.mask)
+if isempty(handles.project.mask)
     warning('Mask image not present');
     return;
 else
-    handles.mask.img=imdilate( handles.mask.img, ones(3,3,3));
+    handles.project.mask.img=imdilate( handles.project.mask.img, ones(3,3,3));
     handles=updatePlot(handles);
 end
 
@@ -3586,11 +3589,11 @@ function ImgErodePushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to ImgErodePushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.mask)
+if isempty(handles.project.mask)
     warning('Mask image not present');
     return;
 else
-    handles.mask.img=imerode( handles.mask.img, ones(3,3,3));
+    handles.project.mask.img=imerode( handles.project.mask.img, ones(3,3,3));
     handles=updatePlot(handles);
 end
 
@@ -3896,9 +3899,9 @@ else
     end
 end
 
-TACCords=round(AnatSpace2Mesh(brushCrd,handles.S2));
-indexTAC=sub2ind(size(handles.TAC.img),TACCords(:,1),TACCords(:,2),TACCords(:,3));
-weight=double(handles.TAC.img(indexTAC))-double(min(handles.TAC.img(:))); %convert to double to avoid out of range
+TACCords=round(AnatSpace2Mesh(brushCrd,handles.project.S2));
+indexTAC=sub2ind(size(handles.project.TAC.img),TACCords(:,1),TACCords(:,2),TACCords(:,3));
+weight=double(handles.project.TAC.img(indexTAC))-double(min(handles.project.TAC.img(:))); %convert to double to avoid out of range
 
 %--------------------------------------------------------------------
 %%%%%%%%%%%%%%%        Manually add coordinates             %%%%%%%%%%%%%%%
@@ -3908,7 +3911,7 @@ function AddCoordinateButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % get sliders values
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -3918,10 +3921,10 @@ y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
 crd=[x y z];
-crd=mesh2AnatSpace(crd,handles.S2);
+crd=mesh2AnatSpace(crd,handles.project.S2);
 
-if ~isempty(handles.TAC)
-    weight=handles.TAC.img(x,y,z)-min(handles.TAC.img(:));
+if ~isempty(handles.project.TAC)
+    weight=handles.project.TAC.img(x,y,z)-min(handles.project.TAC.img(:));
 else
     weight=0; % force to zero if CT not present
 end
@@ -3952,7 +3955,7 @@ function DelCoordinateButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -3962,7 +3965,7 @@ y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
 crd=[x y z];
-crd=mesh2AnatSpace(crd,handles.S2);
+crd=mesh2AnatSpace(crd,handles.project.S2);
 
 %search for closest coordinate 
 dist=eucDistMat(handles.GS,crd);
@@ -4005,7 +4008,7 @@ function ClearAllButton_Callback(hObject, eventdata, handles)
 % hObject    handle to ClearAllButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -4037,7 +4040,7 @@ function ClearLastButton_Callback(hObject, eventdata, handles)
 % % hObject    handle to ClearLastButton (see GCBO)
 % % eventdata  reserved - to be defined in a future version of MATLAB
 % % handles    structure with handles and user data (see GUIDATA)
-% if isempty(handles.T1)
+% if isempty(handles.project.T1)
 %     warning ('First Load MRI image. Click New button or open existing project.')
 %     return
 % end
@@ -4262,7 +4265,7 @@ d1=handles.electrodes{l}.x(1);
 d2=handles.electrodes{l}.y(1);
 d3=handles.electrodes{l}.z(1);
 
-D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
 set(handles.sliderX,'Value',D(1));
 set(handles.sliderY,'Value',D(2));
 set(handles.sliderZ,'Value',D(3));
@@ -4777,8 +4780,8 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
                 handles.electrodes=electrodes2hullCorrection(handles.electrodes,handles.v_MNI_SCE,handles.f_MNI_SCE, handles.options, projDone);
                 
             else  % Native space
-                if ~isempty(handles.vertices_SCE_L)
-                    [vertices,faces]=mergemesh(handles.vertices_SCE_L, handles.faces_SCE_L, handles.vertices_SCE_R, handles.faces_SCE_R );
+                if ~isempty(handles.project.vertices_SCE_L)
+                    [vertices,faces]=mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
                     handles.electrodes=electrodes2hullCorrection(handles.electrodes,vertices,faces,handles.options,projDone);
                 else
                     warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
@@ -4930,7 +4933,7 @@ if l < length(handles.electrodes)
     end
 
     
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));    
@@ -4980,7 +4983,7 @@ if l>1
         d3=handles.electrodes{l-1}.z(a);
     end
 
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
@@ -5027,7 +5030,7 @@ if l <= handles.electrodes{a}.nElectrodes
         d3=handles.electrodes{a}.z(l);
     end
 
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
@@ -5070,7 +5073,7 @@ if l >= 1
         d3=handles.electrodes{a}.z(l);
     end
     
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
@@ -5138,7 +5141,7 @@ if ~isempty(handles.electrodes)
         d2=handles.electrodes{a}.y(1);
         d3=handles.electrodes{a}.z(1);
         
-        D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+        D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
         set(handles.sliderX,'Value',D(1));
         set(handles.sliderY,'Value',D(2));
         set(handles.sliderZ,'Value',D(3));
@@ -5323,7 +5326,7 @@ function TargetInpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to TargetInpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -5366,7 +5369,7 @@ end
 
 % set target coordinates
 % define anatomical coords
-coords=mesh2AnatSpace([x y z], handles.S2);
+coords=mesh2AnatSpace([x y z], handles.project.S2);
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.targets{l}.targetIn.x=coords(1);
@@ -5404,7 +5407,7 @@ function TargetOutpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to TargetOutpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.T1)
+if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
 end
@@ -5454,7 +5457,7 @@ end
 
 % set target coordinates
 % define anatomical coords
-coords=mesh2AnatSpace([x y z], handles.S2);
+coords=mesh2AnatSpace([x y z], handles.project.S2);
 
 l=str2double(get(handles.arrayPlanningNumberText,'String'));
 handles.targets{l}.targetOut.x=coords(1);
@@ -6078,7 +6081,7 @@ function newPlanningGridButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % check for the presence of SCE
-if isempty(handles.vertices_SCE_R)
+if isempty(handles.project.vertices_SCE_R)
     warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose.')
     return;
 end
@@ -6091,7 +6094,7 @@ cols=str2num(get(handles.columnsPlanningGridEdit,'String'));    % cols
 eDist=str2num(get(handles.distancePlanningGridEdit,'String'));  % inter-electrode distance
 
 options=[];
-[pTan,hemisphere]=tangentialGrid(crd,rows,cols,eDist,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,rows,cols,eDist,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 % save as a structure
 target=[];
@@ -6179,14 +6182,14 @@ options.SCE_projection_method = 'springs';
 options.SCE_springs_projection = options.SCE_springs_projection_planning;
 
 
-[vertices,faces] = mergemesh(handles.vertices_SCE_L, handles.faces_SCE_L, handles.vertices_SCE_R, handles.faces_SCE_R );
+[vertices,faces] = mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
 targetCell = electrodes2hullCorrection({target},vertices,faces,options);
 
 % SPLIT LEFT AND RIGHT ??? 
 % if strcmp(target.hemisphere,'left')
-%     target=electrodes2hullCorrection({target},handles.vertices_SCE_L,handles.faces_SCE_L,handles.options);
+%     target=electrodes2hullCorrection({target},handles.project.vertices_SCE_L,handles.project.faces_SCE_L,handles.options);
 % else
-%    target=electrodes2hullCorrection({target},handles.vertices_SCE_R,handles.faces_SCE_R,handles.options);
+%    target=electrodes2hullCorrection({target},handles.project.vertices_SCE_R,handles.project.faces_SCE_R,handles.options);
 % end
 
 handles.targets{a}=targetCell{1};
@@ -6220,7 +6223,7 @@ crd=handles.cursor;
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6263,7 +6266,7 @@ crd = mprev + [0,0,1]; % make more superior
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6305,7 +6308,7 @@ crd = mprev + [0,0,-1]; % make more inferior
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6348,7 +6351,7 @@ crd = mprev + [0,-1,0]; % make more posterior
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6390,7 +6393,7 @@ crd = mprev + [0,1,0]; % make more anterior
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6432,7 +6435,7 @@ crd = mprev + [-1,0,0]; % make more left
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6474,7 +6477,7 @@ crd = mprev + [1,0,0]; % make more right
 
 options=[];
 options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6517,7 +6520,7 @@ crd = mprev; % same
 options=[];
 options.previousGrid=X;
 options.additionalRotation = - 5; % rotate left
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6560,7 +6563,7 @@ crd = mprev; % same
 options=[];
 options.previousGrid=X;
 options.additionalRotation = 5; % rotate left
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.vertices_SCE_L,handles.vertices_SCE_R,options);
+[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
 
 target.x=pTan(:,1);
 target.y=pTan(:,2);
@@ -6612,7 +6615,7 @@ d1=handles.targets{l}.x(1);
 d2=handles.targets{l}.y(1);
 d3=handles.targets{l}.z(1);
 
-D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
 set(handles.sliderX,'Value',D(1));
 set(handles.sliderY,'Value',D(2));
 set(handles.sliderZ,'Value',D(3));
@@ -6661,7 +6664,7 @@ if ~isempty(handles.targets)
         d2=handles.targets{a}.y(1);
         d3=handles.targets{a}.z(1);
         
-        D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+        D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
         set(handles.sliderX,'Value',D(1));
         set(handles.sliderY,'Value',D(2));
         set(handles.sliderZ,'Value',D(3));
@@ -6805,7 +6808,7 @@ if l < length(handles.targets)
         d3=handles.targets{l+1}.z(a);
     end
     
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));    
@@ -6854,7 +6857,7 @@ if l>1
         d3=handles.targets{l-1}.z(a);
     end
     
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
@@ -6903,7 +6906,7 @@ if l <= handles.targets{a}.nElectrodes
     end
     
         
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
@@ -6947,7 +6950,7 @@ if l >= 1
         d3=handles.targets{a}.z(l);
     end
     
-    D=AnatSpace2Mesh([d1 d2 d3],handles.S2);
+    D=AnatSpace2Mesh([d1 d2 d3],handles.project.S2);
     set(handles.sliderX,'Value',D(1));
     set(handles.sliderY,'Value',D(2));
     set(handles.sliderZ,'Value',D(3));
