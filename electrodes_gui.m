@@ -2476,11 +2476,11 @@ if handles.updatePlots.cla
     axis image
     xlabel(handles.axes2,'x'); ylabel(handles.axes2,'y'); zlabel(handles.axes2,'z');
     handles.plot3Dhandles.GS=[];
-    handles.plot3Dhandles.project.electrodes=[];
+    handles.plot3Dhandles.electrodes=[];
     handles.plot3Dhandles.labels=[];
     handles.plot3Dhandles.targetLabels=[];
     handles.plot3Dhandles.elecLines=[];
-    handles.plot3Dhandles.project.targets=[];
+    handles.plot3Dhandles.targets=[];
     handles.plot3Dhandles.targetLines=[];
     handles.plot3Dhandles.surfaces=[];
     handles.plot3Dhandles.hcam=[];
@@ -2520,9 +2520,9 @@ end
 % plot electrodes
 if handles.updatePlots.electrodes %plot
     %clear and replace
-    dlt=ishandle(handles.plot3Dhandles.project.electrodes);
+    dlt=ishandle(handles.plot3Dhandles.electrodes);
     if any(dlt) 
-        delete(handles.plot3Dhandles.project.electrodes(dlt));
+        delete(handles.plot3Dhandles.electrodes(dlt));
     end
     
     if ~isempty(handles.project.electrodes)>0 % plot electrodes
@@ -2539,10 +2539,10 @@ if handles.updatePlots.electrodes %plot
             %plot electrodes
             if isfield (handles.project.electrodes{j},'Type') & strcmp(handles.project.electrodes{j}.Type,'grid');
                 %grids
-                handles.plot3Dhandles.project.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesGrid3D,handles.colors.electrodesMarker3D, 'filled');%'ro'
+                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesGrid3D,handles.colors.electrodesMarker3D, 'filled');%'ro'
             else
                 %depth
-                handles.plot3Dhandles.project.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesDepth3D,handles.colors.electrodesMarker3D, 'filled');%'bo'
+                handles.plot3Dhandles.electrodes(j)=scatter3(handles.axes2,x,y,z,handles.colors.electrodesSize3D,handles.colors.electrodesDepth3D,handles.colors.electrodesMarker3D, 'filled');%'bo'
             end
         end
         
@@ -2550,10 +2550,10 @@ if handles.updatePlots.electrodes %plot
         a=str2double(get(handles.arrayNumberText,'String'));
         l=str2double(get(handles.elecNumberText,'String'));
         if get(handles.projectSCEcheckbox,'Value')  && isfield(handles.project.electrodes{a},'projection')% projection to SCE
-            handles.plot3Dhandles.project.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
+            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.projection{1}.x(l),...
                 handles.project.electrodes{a}.projection{1}.y(l),handles.project.electrodes{a}.projection{1}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
         else
-            handles.plot3Dhandles.project.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.x(l),...
+            handles.plot3Dhandles.electrodes(end+1)=scatter3(handles.axes2,handles.project.electrodes{a}.x(l),...
                 handles.project.electrodes{a}.y(l),handles.project.electrodes{a}.z(l),handles.colors.electrodesSize3D,handles.colors.electrodesSelected3D,handles.colors.electrodesMarker3D, 'filled');
         end
     end
@@ -2664,10 +2664,10 @@ end
 if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
 
     %clear and replace    
-    for k=1:length(handles.plot3Dhandles.project.targets)
-        dlt=ishandle(handles.plot3Dhandles.project.targets{k});
+    for k=1:length(handles.plot3Dhandles.targets)
+        dlt=ishandle(handles.plot3Dhandles.targets{k});
         if any(dlt)
-            delete(handles.plot3Dhandles.project.targets{k});
+            delete(handles.plot3Dhandles.targets{k});
         end
     end
         
@@ -2681,7 +2681,7 @@ if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
             y=handles.project.targets{j}.y;
             z=handles.project.targets{j}.z;
         end
-        handles.plot3Dhandles.project.targets{j}=scatter3(handles.axes2,x,y,z,handles.colors.targetSize3D,handles.colors.target3D,handles.colors.targetMarker3D, 'filled');%'go'
+        handles.plot3Dhandles.targets{j}=scatter3(handles.axes2,x,y,z,handles.colors.targetSize3D,handles.colors.target3D,handles.colors.targetMarker3D, 'filled');%'go'
     end
     
     % plot selected target in black
@@ -2689,10 +2689,10 @@ if ~isempty(handles.project.targets)>0 && handles.updatePlots.targets
     l=str2double(get(handles.elecPlanningNumberText,'String'));
     
     if ~isempty(handles.project.targets{j}.projection)
-        handles.plot3Dhandles.project.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
+        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.projection{1}.x(l),...
             handles.project.targets{a}.projection{1}.y(l),handles.project.targets{a}.projection{1}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
     else
-        handles.plot3Dhandles.project.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.x(l),...
+        handles.plot3Dhandles.targets{end+1}=scatter3(handles.axes2,handles.project.targets{a}.x(l),...
             handles.project.targets{a}.y(l),handles.project.targets{a}.z(l),handles.colors.targetSize3D,handles.colors.targetSelected3D,handles.colors.targetMarker3D, 'filled');%'ko'
     end
     handles.updatePlots.targets=0;    
