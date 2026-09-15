@@ -4617,13 +4617,11 @@ if isempty(handles.project.electrodes)
     return;
 end
 l=selectedArray(handles);
-N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
-handles.project.electrodes{l}.Name = elecBaseName;
 
-for i=1:N
-    handles.project.electrodes{l}.ch_label{i}=[elecBaseName int2str(i)];
-end
+% The naming itself lives in src/labeling/ so a script can do it too.
+handles.project.electrodes{l} = ...
+    nameArrayContacts(handles.project.electrodes{l}, elecBaseName);
 
 handles = setSelectedContact(handles, 1);
 set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
@@ -4651,8 +4649,7 @@ end
 l=selectedArray(handles);
 N=handles.project.electrodes{l}.nElectrodes;
 elecBaseName=get(handles.labelEdit, 'String');
-handles.project.electrodes{l}.Name = elecBaseName;
-    
+
 %get labels from file
 if isempty(handles.project.elecListLabels)
     temp=getLabelsFromFile(handles.work.PathName);
@@ -4715,10 +4712,10 @@ end
 
 handles.project.elecListLabels=left;
 
-%label
-for i=1:N
-    handles.project.electrodes{l}.ch_label{i}=right{i};
-end
+% Same boundary as the Auto button: the dialogs above chose the labels,
+% the assignment itself lives in src/labeling/.
+handles.project.electrodes{l} = ...
+    applyContactLabels(handles.project.electrodes{l}, right, elecBaseName);
 
 set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 handles = setSelectedContact(handles, 1);
