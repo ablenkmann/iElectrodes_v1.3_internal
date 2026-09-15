@@ -1714,11 +1714,10 @@ end
 if isempty(handles.project.targets)
     warning('Targets is empty')
 else
-    targets=handles.project.targets;
     [FileName,PathName] = uiputfile('*.mat','Save planning structure', handles.work.PathName);
     if FileName~=0
-    handles.work.PathName=PathName;
-        save([handles.work.PathName, FileName],'targets');
+        handles.work.PathName=PathName;
+        savePlanningTargets(handles.project.targets, [handles.work.PathName, FileName]);
         disp (['Saved targets in ' handles.work.PathName, FileName])
     end
 end
@@ -1741,8 +1740,7 @@ end
 [FileName,PathName] = uigetfile('*.mat','Load planning structure',handles.work.PathName);
 if FileName~=0
     handles.work.PathName=PathName;
-    load([handles.work.PathName, FileName],'targets');
-    handles.project.targets=targets;
+    handles.project.targets = loadPlanningTargets([handles.work.PathName, FileName]);
     disp (['Loaded targets from ' handles.work.PathName, FileName])
 
     
