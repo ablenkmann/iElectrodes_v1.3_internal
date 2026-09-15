@@ -1233,21 +1233,12 @@ end
 
 if ~isequal(wmparcFile,0)
     handles.work.PathName=PathName;
-    vprm = spm_imatrix(handles.project.T1.vol.mat);
-    voxdim = vprm(7:9);
-    bbox=world_bb(handles.project.T1.vol);
-    
-    [handles.project.wmparc]=loading_images_SPM(PathName,wmparcFile,0,voxdim,bbox); %interpolation = nearest neighbour
-    handles.project.wmparcS=handles.project.wmparc.vol.mat(1:3,:);
-    
-    load(handles.options.atlasLUTFile,'values','labels','RGB'); %FreeSurferColorLUT.mat;% -> values(1271x1), labels{1271x1}, RGB(1271x3)
-    % just for testing, random colors
-    % RGB=round(rand(1271,3)*255)/255; %IMPORTANT add right solution to checkProjectStructure
-    
-    [~,lob]=ismember(int32(handles.project.wmparc.img),int32(values));
-    lob(lob==0)=1; % in case index not found, set to 1 -> unknown
-    c=RGB(lob,:)/255;
-    handles.wmparcColors=reshape(c,[size(handles.project.wmparc.img),3]);
+
+    [handles.project.wmparc, handles.project.wmparcS] = ...
+        loadParcellation(PathName, wmparcFile, handles.project.T1);
+
+    handles.wmparcColors = ...
+        parcellationColours(handles.project.wmparc.img, handles.options.atlasLUTFile);
     
     
 %    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);

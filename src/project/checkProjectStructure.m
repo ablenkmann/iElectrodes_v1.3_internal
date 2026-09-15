@@ -125,14 +125,9 @@ else
     if isfield(s,'wmparcColors') 
         iel.wmparcColors=s.wmparcColors;
     else
-        load FreeSurferColorLUT.mat;% -> values(1271x1), labels{1271x1}, colors(1271x3)
-        % just for testing, random colors
-        % RGB=round(rand(1271,3)*255)/255; %IMPORTANT add right solution to checkProjectStructure
-    
-        [~,lob]=ismember(int32(s.wmparc.img),int32(values));
-        lob(lob==0)=1; % in case index not found, set to 1 -> unknown
-        c=RGB(lob,:)/255;
-        iel.wmparcColors=reshape(c,[size(s.wmparc.img),3]);
+        % Same mapping the Load parcellation button uses; see
+        % src/labeling/parcellationColours.m
+        iel.wmparcColors=parcellationColours(s.wmparc.img);
     end
 end
 
