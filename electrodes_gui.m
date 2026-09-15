@@ -1749,8 +1749,7 @@ if FileName~=0
     
     handles = setSelectedPlanningArray(handles, l);
     
-    UpdateTargetEditBox(hObject, eventdata, handles);
-    % handles = guidata(hObject); %returns previous handles structure
+    handles = UpdateTargetEditBox(handles);
     
     handles.ui.updatePlots.targets=1;
     handles.ui.updatePlots.targetLines=1;
@@ -5270,19 +5269,6 @@ handles = updateTarget(handles);
 guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%        edit target Name                     %%%%%%%%%%%%%%%
-function TargetNameedit_Callback(hObject, eventdata, handles)
-% hObject    handle to TargetNameedit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of TargetNameedit as text
-%        str2double(get(hObject,'String')) returns contents of TargetNameedit as a double
-l=selectedPlanningArray(handles);
-handles.project.targets{l}.Name=get(handles.TargetNameedit,'String');
-
-% Update handles structure
-guidata(hObject, handles);
-
 %%%%%%%%%%%%%%%   edit target distance beteween electrodes  %%%%%%%%%%%%%%%
 function FirstSecondTargetedit_Callback(hObject, eventdata, handles)
 % hObject    handle to FirstSecondTargetedit (see GCBO)
@@ -5678,7 +5664,7 @@ guidata(hObject, handles);
 function handles=angleChange(handles)
 
 l=selectedPlanningArray(handles);
-n=handles.project.targets{l}.Electrodes;
+n=handles.project.targets{l}.nElectrodes;
 fs_dist=handles.project.targets{l}.FirstSecond;
 sl_dist=handles.project.targets{l}.SecondLast;
 
@@ -5941,7 +5927,7 @@ function handles=AlphaBetaChange(handles)
 
 l=selectedPlanningArray(handles);
 
-n=handles.project.targets{l}.Electrodes;
+n=handles.project.targets{l}.nElectrodes;
 fs_dist=handles.project.targets{l}.FirstSecond;
 sl_dist=handles.project.targets{l}.SecondLast;
 
@@ -5985,114 +5971,151 @@ set(handles.TargetOutZedit,'String',num2str(xo(3)));
 handles=updateTarget(handles); %this will call to estimateAnglesFrame that should estimate the same angles
 
 
-function UpdateTargetEditBox(hObject, eventdata, handles)
+function handles = UpdateTargetEditBox(handles)
+% Refresh the Simulate panel from the selected planning array.
+%
+% Returns handles because it does more than write to controls: the
+% backward-compatibility block below fills in frameDown, framePosition,
+% alpha and beta for projects saved before those fields existed. The caller
+% must keep the returned struct, or that work is computed and thrown away.
 
 l=selectedPlanningArray(handles);
-set(handles.TargetNameedit,'String',handles.project.targets{l}.Name);
-set(handles.nTargetEdit,'String',num2str(handles.project.targets{l}.Electrodes));
-set(handles.FirstSecondTargetedit,'String',num2str(handles.project.targets{l}.FirstSecond));
-set(handles.SecondLastTargetEdit,'String',num2str(handles.project.targets{l}.SecondLast));
-set(handles.TargetElectext,'String',num2str(1));
-
-%punto Target IN
-xi(1)=handles.project.targets{l}.targetIn.x;
-xi(2)=handles.project.targets{l}.targetIn.y;
-xi(3)=handles.project.targets{l}.targetIn.z;
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    xi=round(xi,3,'significant');
-end
-
-set(handles.TargetInXedit,'String',num2str(xi(1)));
-set(handles.TargetInYedit,'String',num2str(xi(2)));
-set(handles.TargetInZedit,'String',num2str(xi(3)));
+set(handles.editPlanningArrayName,'String',handles.project.targets{l}.Name);
+set(handles.nTargetEdit,'String',num2str(handles.project.targets{l}.nElectrodes));
+handles = setSelectedPlanningTarget(handles, 1);
+set(handles.editPlanningElecLabel,'string',handles.project.targets{l}.ch_label{1});
 
 
-%punto taget OUT
-xo(1)=handles.project.targets{l}.targetOut.x;
-xo(2)=handles.project.targets{l}.targetOut.y;
-xo(3)=handles.project.targets{l}.targetOut.z;
+% Everything below belongs to a DEPTH planning array: an entry point, a
+% target point, the trajectory angles and the stereotactic frame.
+% checkElectrodeStructure creates those fields only for arrays whose Type
+% is 'depth' (see its planning block), so reading them for a grid array
+% fails with "Unrecognized field name".
+%
+% That is what used to happen. This function assumed every planning array
+% was a depth electrode, so Load simulated coordinates crashed on any
+% project holding a planning GRID - which is every project made with the
+% New button in Grids mode.
+%
+% The grid case is NOT implemented here. The panel has a Grids mode with
+% its own rows, columns and distance boxes, and deciding what this
+% function should put in them is a design question for the toolbox author,
+% not something this restructuring should settle. Until then the depth
+% boxes are cleared rather than left showing another array's numbers.
+% See docs/OPEN_QUESTIONS.md, item 8.
+if strcmp(handles.project.targets{l}.Type, 'depth')
 
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    xo=round(xo,3,'significant');
-end
+    set(handles.FirstSecondTargetedit,'String',num2str(handles.project.targets{l}.FirstSecond));
+    set(handles.SecondLastTargetEdit,'String',num2str(handles.project.targets{l}.SecondLast));
 
-%punto taget Out
-set(handles.TargetOutXedit,'String',num2str(xo(1)));
-set(handles.TargetOutYedit,'String',num2str(xo(2)));
-set(handles.TargetOutZedit,'String',num2str(xo(3)));
+    %punto Target IN
+    xi(1)=handles.project.targets{l}.targetIn.x;
+    xi(2)=handles.project.targets{l}.targetIn.y;
+    xi(3)=handles.project.targets{l}.targetIn.z;
 
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier 
-    az=handles.project.targets{l}.azimut;
-    el=handles.project.targets{l}.elevation;
-else
-    % execute code for R2014b or later
-    az=round(handles.project.targets{l}.azimut,4,'significant');
-    el=round(handles.project.targets{l}.elevation,4,'significant');
-end
-
-
-% Azimuth
-set(handles.AzimuthTargetedit,'String',num2str(az))
-
-% Elevation
-set(handles.ElevacionTargetedit,'String',num2str(el))
-
-
-% backward compatibility ---
-if isfield (handles.project.targets{l},'frameDown')
-    if isempty (handles.project.targets{l}.frameDown)
-        handles.project.targets{l}.framePosition='Anterior';
-        handles.project.targets{l}.frameDown =  handles.project.targets{l}.z(handles.project.targets{l}.Electrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
-        handles=estimateAnglesFrame(handles); %estimate alpha and beta
+    if verLessThan('matlab','8.4.0')
+        % execute code for R2014a or earlier
+    else
+        xi=round(xi,3,'significant');
     end
-else
-    handles.project.targets{l}.framePosition='Anterior';
-    handles.project.targets{l}.frameDown = handles.project.targets{l}.z(handles.project.targets{l}.Electrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
+
+    set(handles.TargetInXedit,'String',num2str(xi(1)));
+    set(handles.TargetInYedit,'String',num2str(xi(2)));
+    set(handles.TargetInZedit,'String',num2str(xi(3)));
+
+
+    %punto taget OUT
+    xo(1)=handles.project.targets{l}.targetOut.x;
+    xo(2)=handles.project.targets{l}.targetOut.y;
+    xo(3)=handles.project.targets{l}.targetOut.z;
+
+    if verLessThan('matlab','8.4.0')
+        % execute code for R2014a or earlier
+    else
+        xo=round(xo,3,'significant');
+    end
+
+    %punto taget Out
+    set(handles.TargetOutXedit,'String',num2str(xo(1)));
+    set(handles.TargetOutYedit,'String',num2str(xo(2)));
+    set(handles.TargetOutZedit,'String',num2str(xo(3)));
+
+
+    if verLessThan('matlab','8.4.0')
+        % execute code for R2014a or earlier 
+        az=handles.project.targets{l}.azimut;
+        el=handles.project.targets{l}.elevation;
+    else
+        % execute code for R2014b or later
+        az=round(handles.project.targets{l}.azimut,4,'significant');
+        el=round(handles.project.targets{l}.elevation,4,'significant');
+    end
+
+
+    % Azimuth
+    set(handles.AzimuthTargetedit,'String',num2str(az))
+
+    % Elevation
+    set(handles.ElevacionTargetedit,'String',num2str(el))
+
+
+    % backward compatibility ---
+    if isfield (handles.project.targets{l},'frameDown')
+        if isempty (handles.project.targets{l}.frameDown)
+            handles.project.targets{l}.framePosition='Anterior';
+            handles.project.targets{l}.frameDown =  handles.project.targets{l}.z(handles.project.targets{l}.nElectrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
+            handles=estimateAnglesFrame(handles); %estimate alpha and beta
+        end
+    else
+        handles.project.targets{l}.framePosition='Anterior';
+        handles.project.targets{l}.frameDown = handles.project.targets{l}.z(handles.project.targets{l}.nElectrodes) < 0; %handles.project.targets{l}.targetIn.z < 0;
     
-    handles=estimateAnglesFrame(handles); %estimate alpha and beta
+        handles=estimateAnglesFrame(handles); %estimate alpha and beta
     
-end
-% ----
+    end
+    % ----
 
 
-%left frame
-if strcmp(handles.project.targets{l}.framePosition,'Left');
-    set(handles.LeftFrameradiobutton,'value',1)
-    %right frame
-elseif  strcmp(handles.project.targets{l}.framePosition,'Right');
-    set(handles.RightFrameradiobutton,'value',1)
-    %anterior frame
-elseif  strcmp(handles.project.targets{l}.framePosition,'Anterior');
-    set(handles.AnteriorFrameradiobutton,'value',1)
-    %posterior frame
-elseif strcmp(handles.project.targets{l}.framePosition,'Posterior');
-    set(handles.PosteriorFrameradiobutton,'value',1)
-end
+    %left frame
+    if strcmp(handles.project.targets{l}.framePosition,'Left');
+        set(handles.LeftFrameradiobutton,'value',1)
+        %right frame
+    elseif  strcmp(handles.project.targets{l}.framePosition,'Right');
+        set(handles.RightFrameradiobutton,'value',1)
+        %anterior frame
+    elseif  strcmp(handles.project.targets{l}.framePosition,'Anterior');
+        set(handles.AnteriorFrameradiobutton,'value',1)
+        %posterior frame
+    elseif strcmp(handles.project.targets{l}.framePosition,'Posterior');
+        set(handles.PosteriorFrameradiobutton,'value',1)
+    end
 
 
 
-beta=handles.project.targets{l}.beta;
-alpha=handles.project.targets{l}.alpha;
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
+    beta=handles.project.targets{l}.beta;
+    alpha=handles.project.targets{l}.alpha;
+    if verLessThan('matlab','8.4.0')
+        % execute code for R2014a or earlier
+    else
+        % execute code for R2014b or later
+        alpha=round(alpha,3,'significant');
+        beta=round(beta,3,'significant');
+    end
+
+    set(handles.AlphaAngleEdit,'string', num2str(alpha));
+    set(handles.BetaAngleEdit,'string', num2str(beta));
+
 else
-    % execute code for R2014b or later
-    alpha=round(alpha,3,'significant');
-    beta=round(beta,3,'significant');
+    % Not a depth array: clear the depth boxes so they cannot be read as
+    % belonging to the array that is now selected.
+    for thisBox = {'FirstSecondTargetedit','SecondLastTargetEdit', ...
+                   'TargetInXedit','TargetInYedit','TargetInZedit', ...
+                   'TargetOutXedit','TargetOutYedit','TargetOutZedit', ...
+                   'AzimuthTargetedit','ElevacionTargetedit', ...
+                   'AlphaAngleEdit','BetaAngleEdit'}
+        set(handles.(thisBox{1}), 'String', '');
+    end
 end
-
-set(handles.AlphaAngleEdit,'string', num2str(alpha));
-set(handles.BetaAngleEdit,'string', num2str(beta));
-
-% Update handles structure
-guidata(hObject, handles);
 
 
 

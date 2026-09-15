@@ -177,3 +177,68 @@ labelling bugs above, it has been left for a separate dedicated commit.
 
 **Status:** left unfixed. Present in v1.020, not introduced by the
 restructuring.
+
+---
+
+## 8. The Simulate panel has no grid mode, so loading a planning grid fails
+
+**Where:** `UpdateTargetEditBox` in `electrodes_gui.m`
+
+`checkElectrodeStructure` gives a planning array different fields depending
+on its type:
+
+```matlab
+if strcmp(elec.planning, 'yes')
+    if strcmp(elec.Type, 'grid')
+        hemisphere, rotation, distance
+    end
+    if strcmp(elec.Type, 'depth')
+        targetIn, targetOut, FirstSecond, SecondLast,
+        framePosition, frameDown, delta, beta, azimut, elevation
+    end
+end
+```
+
+`UpdateTargetEditBox` refreshes the whole Simulate panel from the selected
+planning array, and read the depth-only fields unconditionally. For a
+planning **grid** it therefore failed with `Unrecognized field name
+"FirstSecond"` before it could draw anything.
+
+Its only live caller is the **Load simulated coordinates** button, so that
+button has been unusable for every project containing a planning grid -
+which is every project made with the New button in Grids mode. The shipped
+`examples/exampleNativeSpace.iel` is one: all six of its planning arrays
+are grids.
+
+**What was done:** the depth-only part is now inside
+`if strcmp(Type,'depth')`, and for any other type those boxes are cleared
+instead of being left showing the previously selected array's numbers. The
+button works again and no longer misreports.
+
+A related symptom, visible once the button works: the panel's
+`Depths` / `Grids` radio pair does not follow the selected array either. It
+stays wherever the user last left it, so a grid array can be displayed with
+`Depths` selected. Same cause - nothing in the refresh path knows the
+array's type.
+
+**Decision needed:** what should the panel show when a planning GRID is
+selected? The panel has a Grids mode with its own rows, columns and
+distance boxes, and the array carries `rows`, `columns`, `distance`,
+`hemisphere` and `rotation`. Filling those in, and moving the radio pair to
+match the array, is the obvious answer - but it is a design choice about
+the interface, so it was deliberately left out of the restructuring.
+
+**Two smaller faults fixed in the same path, both from the same redesign:**
+
+- `TargetNameedit` and `TargetElectext` do not exist among the .fig's 209
+  controls. Replaced with `editPlanningArrayName` and the planning target
+  counter, which is what every other site uses. `TargetNameedit_Callback`,
+  the callback of the missing control, was removed - it renamed the
+  selected planning array, which `editPlanningArrayName_Callback` already
+  does.
+- `targets{..}.Electrodes` is read in five places and assigned nowhere in
+  the repository. The real field is `nElectrodes`. Two lines computing the
+  same value, one of each spelling, made this unambiguous. Fixing it also
+  unbreaks `angleChange` and `AlphaBetaChange`, so the azimuth, elevation,
+  alpha and beta boxes work again.
+
