@@ -1385,13 +1385,7 @@ if isequal(lFile,0)
 end
 lFile=[PathName lFile]; %concat file name
 
-try % orginal FS files
-    [vR,fR]=read_surf(rFile);
-    [vL,fL]=read_surf(lFile);
-catch %iso2mesh asc files
-    [vR,fR]=readasc(rFile);
-    [vL,fL]=readasc(lFile);
-end
+[vR,fR,vL,fL] = readSurfacePair(rFile, lFile);
 disp (['Loaded surfaces from ' rFile ' (right hem) and '  lFile ' (left hem)' ])
 
 
@@ -1401,9 +1395,7 @@ choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
 switch choice
     case 'Yes'
         % translate pial surfaces to MRI center
-        trans=mesh2AnatSpace(size(handles.ui.imgW)/2,handles.project.S2);
-        vR=vR+repmat(trans,size(vR,1),1);
-        vL=vL+repmat(trans,size(vL,1),1);
+        [vR,vL] = centreSurfaces(size(handles.project.T1.img), handles.project.S2, vR, vL);
         disp (['Surfaces centered'])
 
     case 'No'
@@ -1471,13 +1463,8 @@ switch choice
         [vert_L,AnnotLabel_L,AnnotColortable_L]=read_annotation(AnnotFile_L);
         disp (['Loaded annotation files from ' AnnotFile_R ' (right hem) and ' AnnotFile_L ' (left hem)'])
         
-        [~,rindC]=ismember(AnnotLabel_R,AnnotColortable_R.table(:,5)); %some labels (nodes) are not assigned to any structure
-        [~,lindC]=ismember(AnnotLabel_L,AnnotColortable_L.table(:,5)); %some labels (nodes) are not assigned to any structure
-        
-        AnnotColor_R=ones(length(rindC),3)*.5; %grey?
-        AnnotColor_L=ones(length(lindC),3)*.5; %grey?
-        AnnotColor_R(find(rindC),:)=AnnotColortable_R.table(rindC(find(rindC)),1:3)/255; %get RGB colors of the defined nodes
-        AnnotColor_L(find(lindC),:)=AnnotColortable_L.table(lindC(find(lindC)),1:3)/255;
+        AnnotColor_R = annotationColours(AnnotLabel_R, AnnotColortable_R);
+        AnnotColor_L = annotationColours(AnnotLabel_L, AnnotColortable_L);
         
         handles.project.AnnotLabel_R=AnnotLabel_R; %label for each node
         handles.project.AnnotLabel_L=AnnotLabel_L; %label for each node
@@ -1574,13 +1561,7 @@ switch type
             
             if ~isequal(lFile,0)
                 
-                try % orginal FS files
-                    [vR,fR]=read_surf([PathName rFile]);
-                    [vL,fL]=read_surf([PathName lFile]);
-                catch %iso2mesh asc files
-                    [vR,fR]=readasc([PathName rFile]);
-                    [vL,fL]=readasc([PathName lFile]);
-                end
+                [vR,fR,vL,fL] = readSurfacePair([PathName rFile], [PathName lFile]);
                 
                 disp (['Loaded surfaces from ' PathName, rFile ' and ' PathName, lFile ])
                 
@@ -1590,9 +1571,7 @@ switch type
                 switch choice
                     case 'Yes'
                         % translate pial surfaces to MRI center
-                        trans=mesh2AnatSpace(size(handles.ui.imgW)/2,handles.project.S2);
-                        vR=vR+repmat(trans,size(vR,1),1);
-                        vL=vL+repmat(trans,size(vL,1),1);
+                        [vR,vL] = centreSurfaces(size(handles.project.T1.img), handles.project.S2, vR, vL);
                         
                     case 'No'
                         % do nothing
