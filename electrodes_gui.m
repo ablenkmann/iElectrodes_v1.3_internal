@@ -1763,7 +1763,12 @@ function resetTACplotButton_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to resetTACplotButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles.ui.updatePlots.resetTAC=1;
+% Both flags, as everywhere else that resets the 2-D axes. resetTAC alone
+% does nothing: updateTAC only redraws a plane when its slice has changed
+% or views2D forces it, and the axis-limit reset lives inside that test. So
+% pressing this button without moving the cursor used to be a no-op, quietly.
+handles.ui.updatePlots.views2D=[1 1 1];  % Force update all slices
+handles.ui.updatePlots.resetTAC=1;       % reset 2D views axes
 handles=updateTAC(handles);
 
 % Update handles structure
