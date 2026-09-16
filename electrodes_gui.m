@@ -2841,59 +2841,36 @@ if isempty(handles.project.TAC)
     text (0.25,0.5,'No CT image to threshold. Click Load CT button');
 else
     
-    % img is a grayscale matrix
-    img=handles.project.TAC.img; 
-
-    % denoise 
-    denKernelSize = round(get(handles.denoiseSlider, 'value'));
-    if denKernelSize>1
-        img=imerode( img, ones(denKernelSize,denKernelSize,denKernelSize));
-        img=imdilate( img, ones(denKernelSize,denKernelSize,denKernelSize));
-    end
-    
-    lowThr = get(handles.sliderThrMin,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
-    hiThr =  get(handles.sliderThrMax,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue; 
-    
-    % img is converted to a binary images
-    img=(img> lowThr ) & (img< hiThr) & logical(handles.project.mask.img); %only maked voxels
-    
-    % indices to thresholded voxels
-    ind=find(img);
+    % Which voxels are bright enough to be contacts, and where they are.
+    % The selection itself lives in src/localization/, so it can be run and
+    % checked without a figure; what stays here is reading the settings off
+    % the controls.
+    opt.lowThreshold  = get(handles.sliderThrMin,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
+    opt.highThreshold = get(handles.sliderThrMax,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
+    opt.denoiseKernel = round(get(handles.denoiseSlider, 'value'));
+    opt.maxCount      = handles.options.scatter3D_elem_limit;
 
     % Remove already localized voxels
+    opt.excludeCoordinates = [];
     if get(handles.LocalizedCheckbox,'value')
-        
-        localizedCrd=[];
         for j=1:length(handles.project.electrodes)
-            localizedCrd=[localizedCrd; handles.project.electrodes{j}.brushCrd];
+            opt.excludeCoordinates=[opt.excludeCoordinates; handles.project.electrodes{j}.brushCrd];
         end
-        
-        localizedCTCords=round(AnatSpace2Mesh(localizedCrd,handles.project.S2));
-        indexCT=sub2ind(size(handles.project.TAC.img),localizedCTCords(:,1),localizedCTCords(:,2),localizedCTCords(:,3));
-
-        % remove voxels present in old localizations
-        k =  ~ismember(ind,indexCT); 
-        ind = ind(k);
     end
 
+    [crd,vTAC] = thresholdCTVoxels(handles.project.TAC, handles.project.mask, ...
+                                   handles.project.S2, opt);
+
     % skip if there are no points to plot
-    if ~isempty(ind)
-         if length(ind)> handles.options.scatter3D_elem_limit %arbitrary limit value
-             warning([num2str(length(ind)) ' voxels thresholded. Only a random selection of ' num2str(handles.options.scatter3D_elem_limit) ' voxels are plotted']);
-             disp(['The limit value can be changed in src/project/default_ielectrodes_options.m'])
-             ind=ind(randperm(length(ind),handles.options.scatter3D_elem_limit)); % take a random selection of points
-         end     
-        vTAC=handles.project.TAC.img(ind); %values
-        [crd(1,:),crd(2,:),crd(3,:)]=ind2sub(size(img),ind); % coords in (i,j,k) image space
-        crd=mesh2AnatSpace(crd',handles.project.S2); %transform to real space
+    if ~isempty(crd)
         handles.ui.sct=scatter3(handles.axes1, crd(:,1),crd(:,2),crd(:,3),20,vTAC,'o', 'filled');
     end
     xlabel(handles.axes1,'x'); ylabel(handles.axes1,'y'); zlabel(handles.axes1,'z');
     axis(handles.axes1, 'image')
     %----------
     
-    set(handles.text1,'String', round(hiThr));
-    set(handles.text2,'String', round(lowThr));
+    set(handles.text1,'String', round(opt.highThreshold));
+    set(handles.text2,'String', round(opt.lowThreshold));
     
     
     % update cross in axes1 (3D Threshold)

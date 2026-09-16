@@ -144,6 +144,12 @@ whether App Designer features introduced in recent releases can be used.
 
 **Where:** `getThresholdedVoxels` in `electrodes_gui.m`
 
+**Note on the name.** Despite what it is called, this function does not
+threshold anything. It returns the voxels the user has *brushed* in the 3D
+view, for clustering. The thresholding proper now lives in
+`src/localization/thresholdCTVoxels.m`. When this function is extracted in
+turn, `brushedVoxels` would say what it does.
+
 The function has three guard branches that warn and return early:
 
 ```matlab
