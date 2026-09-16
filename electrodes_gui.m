@@ -2006,367 +2006,127 @@ markerPlanning=handles.ui.colors.targetMarker2D;
 colorPlanning=handles.ui.colors.target2D;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ------------- X plane ------------------------
-set(handles.figure1,'CurrentAxes',handles.axesX);
+% ------------- the three 2-D plane views -------
+%
+% X, Y and Z used to be three blocks of 120 lines that differed only in
+% which axis is sliced. Everything else - the image, the parcellation
+% overlay, the electrode overlay, the planning overlay - was the same work
+% written three times, so a change to one view had to be made three times
+% to keep the views consistent, and nothing said so.
+%
+% The whole difference between them is the table below. For plane p:
+%
+%   planeAxes(p)   the axes it is drawn in
+%   sliceVoxel(p)  the slider position, which fixes the slice
+%   inPlane        the two image dimensions that remain, ascending
+%
+% inPlane is simply "every dimension except p", which is why the in-plane
+% marker columns, the axis limits and the pixel aspect ratio all follow
+% from p alone.
 
-if updateSlice(1)
-    set(handles.axesX,'NextPlot','replacechildren');
+planeAxes  = [handles.axesX handles.axesY handles.axesZ];
+sliceVoxel = [x y z];
+
+for p = 1:3
+
+    thisAxes = planeAxes(p);
+    inPlane  = setdiff(1:3, p);      % p=1 -> [2 3], p=2 -> [1 3], p=3 -> [1 2]
+    v        = sliceVoxel(p);
+
+    set(handles.figure1,'CurrentAxes',thisAxes);
+
+    if ~updateSlice(p)
+        continue
+    end
+
+    set(thisAxes,'NextPlot','replacechildren');
+
+    % the slice itself: colon on the two in-plane dimensions, the slider
+    % position on the third
+    sliceIdx    = {':',':',':'};
+    sliceIdx{p} = v;
+
     if handles.ui.color
-        img=squeeze(handles.ui.imgW(x,:,:,:)); %true color imgW:(dimX,dimY,dimZ,3)
+        img=squeeze(handles.ui.imgW(sliceIdx{:},:)); %true color imgW:(dimX,dimY,dimZ,3)
         if ~isempty(handles.wmparcColors)
-            imgAtlas=squeeze(handles.wmparcColors(x,:,:,:));
+            imgAtlas=squeeze(handles.wmparcColors(sliceIdx{:},:));
             alphaMask=double(sum(imgAtlas,3)>0);
         else
             imgAtlas=[];
             alphaMask=1;
         end
     else
-       img=squeeze(handles.ui.imgW(x,:,:));
+        img=squeeze(handles.ui.imgW(sliceIdx{:}));
     end
-%     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
+
     imagesc(fliplr(rot90(img,3)));
-    set(handles.axesX,'NextPlot','add');
+    set(thisAxes,'NextPlot','add');
+
     if get(handles.parcellationCheckbox,'Value')
         imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
     end
+
     if handles.ui.updatePlots.resetTAC
-        %        axis(handles.axesX, 'image')
         pixdim=diag(handles.project.S2(:,1:3));
         DD=size(handles.project.T1.img);
-        set(handles.axesX,'xlim',[0 DD(2)],'ylim',[0 DD(3)])
-        set(handles.axesX,'DataAspectRatio',[1/pixdim(2) 1/pixdim(3) 1]);
-        set(handles.axesX,'YDir','normal')
-        set(handles.axesX,'XDir','reverse')
-        %handles.ui.updatePlots.resetTAC=0; only in last plane
+        set(thisAxes,'xlim',[0 DD(inPlane(1))],'ylim',[0 DD(inPlane(2))])
+        set(thisAxes,'DataAspectRatio',[1/pixdim(inPlane(1)) 1/pixdim(inPlane(2)) 1]);
+        set(thisAxes,'YDir','normal')
+        set(thisAxes,'XDir','reverse')
+        if p == 3
+            handles.ui.updatePlots.resetTAC=0;   % cleared once, after the last plane
+        end
     end
-    
+
     %overlay electrodes
     if get(handles.ElecOverlaycheckbox,'value')
         if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.project.electrodes)
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-                    
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,1)-x)<1;
-                    line(c(ind,2),c(ind,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
-            end
+            arrayList = 1:length(handles.project.electrodes);
         else %plot only selected electrode
-            i=selectedArray(handles);
-            if i~=0
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,2),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,1)-x)<1;
-                    line(c(ind,2),c(ind,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
+            arrayList = selectedArray(handles);
+            if arrayList == 0, arrayList = []; end
+        end
+        for i = arrayList
+            if strcmp(handles.project.electrodes{i}.Type,'grid')
+                colorElectrodes=handles.ui.colors.electrodesGrid2D;
+                markerElectrodes=handles.ui.colors.electrodesMarker2D;
+            else
+                colorElectrodes=handles.ui.colors.electrodesDepth2D;
+                markerElectrodes=handles.ui.colors.electrodesMarker2D;
+            end
+            if get(handles.projectSCEcheckbox,'Value') % projection to SCE
+                c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
+            else
+                c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
+            end
+            if get(handles.Collapsecheckbox,'Value')
+                line(c(:,inPlane(1)),c(:,inPlane(2)),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
+            else
+                ind= abs(c(:,p)-v)<1;
+                line(c(ind,inPlane(1)),c(ind,inPlane(2)),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
             end
         end
     end
-    
-    %overlay planning electrodes
+
+    %overlay planning
     if get(handles.planningOverlaycheckbox,'value')
         if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.project.targets)
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,1)-x)<1;
-                    line(c(ind,2),c(ind,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
-            end
+            targetList = 1:length(handles.project.targets);
         else %plot only selected planning electrode
-            i=selectedPlanningArray(handles);
-            if i>0
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,2),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,1)-x)<1;
-                    line(c(ind,2),c(ind,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
-            end
+            targetList = selectedPlanningArray(handles);
+            if targetList <= 0, targetList = []; end
         end
-    end
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ------------- Y plane ------------------------
-set(handles.figure1,'CurrentAxes',handles.axesY);
-
-if updateSlice(2)
-    
-    set(handles.axesY,'NextPlot','replacechildren');
-    if handles.ui.color
-        img=squeeze(handles.ui.imgW(:,y,:,:));%true color imgW:(dimX,dimY,dimZ,3)
-        if ~isempty(handles.wmparcColors)
-            imgAtlas=squeeze(handles.wmparcColors(:,y,:,:));
-            alphaMask=double(sum(imgAtlas,3)>0);
-        else
-            imgAtlas=[];
-            alphaMask=1;
-        end
-    else
-        img=squeeze(handles.ui.imgW(:,y,:));
-    end
-%     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
-    imagesc(fliplr(rot90(img,3)));
-    set(handles.axesY,'NextPlot','add');
-    if get(handles.parcellationCheckbox,'Value')
-        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
-    end
-    if handles.ui.updatePlots.resetTAC
-        %axis(handles.axesY, 'image')
-        pixdim=diag(handles.project.S2(:,1:3));
-        DD=size(handles.project.T1.img);
-        set(handles.axesY,'xlim',[0 DD(1)],'ylim',[0 DD(3)])
-        set(handles.axesY,'DataAspectRatio',[1/pixdim(1) 1/pixdim(3) 1]);
-        set(handles.axesY,'YDir','normal')
-        set(handles.axesY,'XDir','reverse')
-        %handles.ui.updatePlots.resetTAC=0; only in last plane
-    end
-    
-    %overlay electrodes
-    if get(handles.ElecOverlaycheckbox,'value')
-        if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.project.electrodes)
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,2)-y)<1;
-                    line(c(ind,1),c(ind,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
+        for i = targetList
+            if isempty(handles.project.targets{i}.projection)
+                c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2);
+            else
+                c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2);
             end
-        else %plot only selected electrode
-            i=selectedArray(handles);
-            if i~=0
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,2)-y)<1;
-                    line(c(ind,1),c(ind,3),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
-            end
-        end
-    end
-    %overlay planning electrodes
-    if get(handles.planningOverlaycheckbox,'value')
-        if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.project.targets)
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,2)-y)<1;
-                    line(c(ind,1),c(ind,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
-            end
-        else %plot only selected planning electrode
-            i=selectedPlanningArray(handles);
-            if i>0
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,2)-y)<1;
-                    line(c(ind,1),c(ind,3),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
-            end
-        end
-    end
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ------------- Z plane ------------------------
-set(handles.figure1,'CurrentAxes',handles.axesZ);
-if updateSlice(3)
-    set(handles.axesZ,'NextPlot','replacechildren');
-    if handles.ui.color
-        img=squeeze(handles.ui.imgW(:,:,z,:)); %true color imgW:(dimX,dimY,dimZ,3)
-        if ~isempty(handles.wmparcColors)
-            imgAtlas=squeeze(handles.wmparcColors(:,:,z,:));
-            alphaMask=double(sum(imgAtlas,3)>0);
-        else
-            imgAtlas=[];
-            alphaMask=1;
-        end
-    else
-        img=squeeze(handles.ui.imgW(:,:,z));
-    end
-%     imagesc(fliplr(rot90(img,3)),[mWS MWS]);
-    imagesc(fliplr(rot90(img,3)));
-    set(handles.axesZ,'NextPlot','add');
-    if get(handles.parcellationCheckbox,'Value')
-        imagesc(fliplr(rot90(imgAtlas,3)),'AlphaData',fliplr(rot90(alphaMask,3))*handles.ui.colors.alphaAtlas);
-    end
-    if handles.ui.updatePlots.resetTAC
-        %axis(handles.axesZ, 'image')
-        pixdim=diag(handles.project.S2(:,1:3));
-        DD=size(handles.project.T1.img);
-        set(handles.axesZ,'xlim',[0 DD(1)],'ylim',[0 DD(2)])
-        set(handles.axesZ,'DataAspectRatio',[1/pixdim(1) 1/pixdim(2) 1]);
-        set(handles.axesZ,'YDir','normal')
-        set(handles.axesZ,'XDir','reverse')
-        handles.ui.updatePlots.resetTAC=0;
-    end
-    
-    %overlay electrodes
-    if get(handles.ElecOverlaycheckbox,'value')
-        if get(handles.plotAllRadiobutton,'value') %plot all
-            for i=1:length(handles.project.electrodes)
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,3)-z)<1;
-                    line(c(ind,1),c(ind,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
-            end
-        else %plot only selected electrode
-            i=selectedArray(handles);
-            if i~=0
-                if strcmp(handles.project.electrodes{i}.Type,'grid')
-                    colorElectrodes=handles.ui.colors.electrodesGrid2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                else
-                    colorElectrodes=handles.ui.colors.electrodesDepth2D;
-                    markerElectrodes=handles.ui.colors.electrodesMarker2D;
-                end
-                if get(handles.projectSCEcheckbox,'Value') % projection to SCE
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.projection{1}.x handles.project.electrodes{i}.projection{1}.y handles.project.electrodes{i}.projection{1}.z],handles.project.S2);
-                else
-                    c=AnatSpace2Mesh([handles.project.electrodes{i}.x handles.project.electrodes{i}.y handles.project.electrodes{i}.z],handles.project.S2);
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,3)-z)<1;
-                    line(c(ind,1),c(ind,2),'Marker',markerElectrodes,'Color',colorElectrodes,'LineStyle','none');
-                end
-            end
-        end
-    end
-    %overlay planning electrodes
-    if get(handles.planningOverlaycheckbox,'value')
-        if get(handles.plotAllPlanningRadioButton,'value') %plot all
-            for i=1:length(handles.project.targets)
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,3)-z)<1;
-                    line(c(ind,1),c(ind,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
-            end
-        else %plot only selected planning electrode
-            i=selectedPlanningArray(handles);
-            if i>0
-                if isempty(handles.project.targets{i}.projection)
-                    c=AnatSpace2Mesh([handles.project.targets{i}.x handles.project.targets{i}.y handles.project.targets{i}.z],handles.project.S2); %2D model / depth
-                else
-                    c=AnatSpace2Mesh([handles.project.targets{i}.projection{1}.x handles.project.targets{i}.projection{1}.y handles.project.targets{i}.projection{1}.z],handles.project.S2); % fitted grid
-                end
-                if get(handles.Collapsecheckbox,'Value')
-                    line(c(:,1),c(:,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                else
-                    % remove coordinates away from slice
-                    ind= abs(c(:,3)-z)<1;
-                    line(c(ind,1),c(ind,2),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
-                end
+            if get(handles.Collapsecheckbox,'Value')
+                line(c(:,inPlane(1)),c(:,inPlane(2)),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
+            else
+                ind= abs(c(:,p)-v)<1;
+                line(c(ind,inPlane(1)),c(ind,inPlane(2)),'Marker',markerPlanning,'Color',colorPlanning,'LineStyle','none');
             end
         end
     end
