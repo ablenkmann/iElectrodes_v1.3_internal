@@ -618,17 +618,16 @@ choice = 'No'; % code below is not ready
     end
     
     % load with high resolution interpolation
-    [handles.project.TAC]=loading_images_SPM(PathName,TACfile,4,voxdim,bbox); %interpolation = 4
+    [handles.project.TAC]= ...
+        loadVolumeOntoMRI(PathName,TACfile,handles.project.T1,4); %interpolation = 4
     disp (['Loaded CT from ' PathName, TACfile])
 
     %load mask file    
     [maskfile,PathName]=uigetfile('*.nii', 'Load mask file',PathName);
     
     if maskfile~=0
-        vprm = spm_imatrix(handles.project.T1.vol.mat);
-        voxdim = vprm(7:9);
-        bbox=world_bb(handles.project.T1.vol);
-        [inskullMask]=loading_images_SPM(PathName,maskfile,1,voxdim,bbox); %interpolation = 1
+        [inskullMask]= ...
+            loadVolumeOntoMRI(PathName,maskfile,handles.project.T1,1); %interpolation = 1
         disp (['Loaded Mask from ' PathName, maskfile])
         
         handles.project.mask=inskullMask; %loading the img and the vol

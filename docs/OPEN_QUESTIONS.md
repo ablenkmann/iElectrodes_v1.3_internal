@@ -242,3 +242,42 @@ the interface, so it was deliberately left out of the restructuring.
   unbreaks `angleChange` and `AlphaBetaChange`, so the azimuth, elevation,
   alpha and beta boxes work again.
 
+---
+
+## 9. The CT coregistration in the Load CT button is unreachable and broken
+
+**Where:** `LoadCTtool_ClickedCallback` in `electrodes_gui.m`
+
+Of that callback's 194 lines, about 115 can never run. Just before the
+switch that would select them:
+
+```matlab
+choice = 'No'; % code below is not ready
+```
+
+`choice` is assigned a constant, so the switch always takes `case 'No'`,
+which does nothing, and execution continues to the plain load below.
+
+The unreachable part offers three ways to align the CT with the MRI: a
+manual dialog with rotate and centre buttons, an SPM `spm_coreg` estimate
+saved to `MatCT2MR.mat`, and a step that applies a previously saved
+transformation. It would not survive being reached, either:
+
+```matlab
+VolCT = spm_vol(fileCT);                      % fileCT is never defined
+load([pathBase 'MatCT2MR.mat'], 'MatCT2MR')   % pathBase is never defined
+```
+
+So it is not merely disabled - it is unfinished.
+
+**Decision needed:** is this work in progress that should be completed, or
+an abandoned attempt that should be removed? It was left in place, because
+deleting someone's unfinished feature is not a call the restructuring
+should make. Either answer is easy to act on; leaving it as it is, is what
+costs - 115 lines that look like behaviour and are not.
+
+Worth noting alongside: with this code inert, iElectrodes offers no way to
+coregister a CT that is not already aligned with the MRI. Users have to do
+it in SPM or elsewhere first. If that is the intended workflow, saying so
+in the documentation would help more than the dead code does.
+
