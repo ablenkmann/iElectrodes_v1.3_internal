@@ -287,3 +287,45 @@ coregister a CT that is not already aligned with the MRI. Users have to do
 it in SPM or elsewhere first. If that is the intended workflow, saying so
 in the documentation would help more than the dead code does.
 
+
+---
+
+## 10. Renaming an array renumbers its contacts, but only for planning arrays
+
+**Where:** `editArrayName_Callback` and `editPlanningArrayName_Callback` in
+`electrodes_gui.m`
+
+The two name boxes behave differently. Renaming a **planning** array also
+rewrites every contact label:
+
+```matlab
+handles.project.targets{a} = nameArrayContacts(handles.project.targets{a}, str);
+% -> targets{a}.ch_label = {str1, str2, ...}
+```
+
+Renaming a **localized** array only sets the name. The loop that would
+rewrite the labels is still there, commented out, with a note:
+
+```matlab
+% Electrode labels and Array are independent now
+% N=handles.project.electrodes{a}.nElectrodes;
+% for i=1:N
+%     handles.project.electrodes{a}.ch_label{i}=[str int2str(i)];
+% end
+```
+
+That note reads like a deliberate decision: once contacts have been labelled
+from a recording montage, an array rename should not silently overwrite
+those labels. The `Auto` button under *Label electrodes* is what renumbers
+them on purpose.
+
+If that reasoning is right, it applies to planning arrays too - a planned
+array can be labelled from a list just as a localized one can, and renaming
+it currently throws those labels away without asking.
+
+**Decision needed:** should the planning name box follow the localized one
+and leave contact labels alone? It is a behaviour change, so it is left for
+a separate dedicated commit.
+
+**Status:** left as it is. Present in v1.020, not introduced by the
+restructuring.

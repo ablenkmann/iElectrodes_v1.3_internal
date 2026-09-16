@@ -12,14 +12,20 @@ function names = workFieldNames()
 %     work      what is being done right now
 %     ui        graphics objects and presentation state
 %
-%   PARTIAL LIST. What has moved so far is everything that is plain data with
-%   no GUI representation. Still flat, and needing a decision before they can
-%   move: `options`, which mixes scientific settings with display settings and
-%   should be split first, and `uitable_elecNum`, which is written by a dialog
-%   callback holding a stale copy of handles. See docs/STATE_FIELD_MAPPING.md.
+%   PARTIAL LIST, and it lists only the fields that can arrive FLAT and so
+%   have to be lifted. Working data that is only ever assigned into
+%   handles.work directly - the selection, the toolbox path and version, the
+%   electrode-numbering table - is not here, because there is nothing to lift.
+%   The MNI template surfaces and atlas below are in that situation too since
+%   defaultGuiVariables started writing them into the group; they are kept
+%   listed because a .iel file could still carry an old flat copy.
 %
-%   NOTE ON .iel FILES: unlike most working data, these eight ARE written to
-%   the project file today, so FLATTENPROJECT puts them back at the top level
+%   Still flat, and needing a decision before it can move: `options`, which
+%   mixes scientific settings with display settings and should be split
+%   first. See docs/STATE_FIELD_MAPPING.md.
+%
+%   NOTE ON .iel FILES: unlike most working data, twelve of these ARE written
+%   to the project file today, so FLATTENPROJECT puts them back at the top level
 %   when saving. Whether they should be saved at all is case 1 in
 %   docs/STATE_FIELD_MAPPING.md - a question for the toolbox author, not one
 %   this restructuring answers.

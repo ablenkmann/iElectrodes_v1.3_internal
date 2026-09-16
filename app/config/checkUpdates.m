@@ -4,16 +4,16 @@ function handles=checkUpdates(handles)
 % Version managing 
 % ALWAYS USE X.xxx format !!!!
 
-handles.iElectrodes_version='1.020';
-handles.iElectrodes_date='12 May 2023';
+handles.work.iElectrodes_version='1.020';
+handles.work.iElectrodes_date='12 May 2023';
 
 % overwrite version.txt automatically - Important for developing new
 % versions
 
-fid=fopen([handles.pathstr '/version.txt'],'w+'); 
+fid=fopen([handles.work.pathstr '/version.txt'],'w+'); 
 if fid~=-1
-    fprintf(fid,'%s \n',handles.iElectrodes_version);
-    fprintf(fid,'%s \n',handles.iElectrodes_date);
+    fprintf(fid,'%s \n',handles.work.iElectrodes_version);
+    fprintf(fid,'%s \n',handles.work.iElectrodes_date);
     fclose(fid);
 else
     warning('cannot update version.txt');
@@ -29,12 +29,12 @@ if ~isempty(web_data)
     last_version=web_data(1:5);
     last_date=web_data(8:end);
 
-if str2double(last_version)>str2double(handles.iElectrodes_version)
+if str2double(last_version)>str2double(handles.work.iElectrodes_version)
     
     % Construct a questdlg with 2 options
     choice = questdlg( {'Would you like to download the last version?';
           '';
-          ['Your version: ' handles.iElectrodes_version ' - ' handles.iElectrodes_date];
+          ['Your version: ' handles.work.iElectrodes_version ' - ' handles.work.iElectrodes_date];
           ['Last version: ' last_version ' - ' last_date]} , ...
         'You don''t have the last iElectrodes version',...
         'Yes (recomended)','No','Yes (recomended)');

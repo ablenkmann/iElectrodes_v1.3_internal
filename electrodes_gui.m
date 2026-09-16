@@ -116,7 +116,7 @@ function electrodes_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for electrodes_gui
 handles.output = hObject;
 
-[handles.pathstr,~,~] = fileparts(which('electrodes_gui.m'));
+[handles.work.pathstr,~,~] = fileparts(which('electrodes_gui.m'));
 global debugging;
 debugging=0;
 
@@ -138,7 +138,7 @@ debugging=0;
 % ---------------------------------------------------------------------
 iElectrodesFolders = {'src','app','assets','third_party','priv'};
 for iFolder = 1:numel(iElectrodesFolders)
-    thisFolder = fullfile(handles.pathstr, iElectrodesFolders{iFolder});
+    thisFolder = fullfile(handles.work.pathstr, iElectrodesFolders{iFolder});
     if isfolder(thisFolder)
         addpath(genpath(thisFolder));
     end
@@ -161,6 +161,13 @@ handles=checkUpdates(handles);
 % make project structure
 handles=checkProjectStructure([],handles);
 
+% Patient data -> handles.project, work in progress -> handles.work.
+% defaultGuiVariables used to assign some of these flat, so lifting had to
+% come last; it now writes into the two groups directly, which frees the
+% lifts to run here, straight after the structure they act on was filled.
+handles=liftToProject(handles);   % patient data     -> handles.project
+handles=liftToWork(handles);      % work in progress -> handles.work
+
 % load default options
 options=[];
 handles.options=default_ielectrodes_options(options);
@@ -170,12 +177,6 @@ handles.ui.colors=defaultColors(colors);
 
 % reset gui variables
 handles=defaultGuiVariables(handles);
-
-% Patient data -> handles.project. This must come AFTER defaultGuiVariables,
-% which still assigns a flat handles.currentSpace; lifting last guarantees a
-% single authoritative copy of every migrated field.
-handles=liftToProject(handles);   % patient data     -> handles.project
-handles=liftToWork(handles);      % work in progress -> handles.work
 
 % layout 
 if ~handles.options.showLocalizeTools
@@ -1908,8 +1909,8 @@ function uipushtool13_ClickedCallback(hObject, eventdata, handles)
 
 msgbox({
     ' iElectrodes'
-    [' Version: ' handles.iElectrodes_version]
-    [' ' handles.iElectrodes_date]
+    [' Version: ' handles.work.iElectrodes_version]
+    [' ' handles.work.iElectrodes_date]
     ''
     ' Copyright (C) 2014, 2015, 2016, 2017  '
     ' Alejandro Omar Blenkmann, PhD'
@@ -3481,7 +3482,7 @@ end
 %check if there are some "Nailed electrodes" as previously selected (GS)
 %coordinates
 if ~isempty(handles.work.GS)
-    handles.uitable_elecNum = [];
+    handles.work.uitable_elecNum = [];
     
     % save old GS
     handles.work.oldGS=handles.work.GS;
@@ -3494,7 +3495,7 @@ if ~isempty(handles.work.GS)
     electrodeNailNaumber_uitable (hObject, handles,rows*cols); %use graphical interface. This will change content in handles.
     handles = guidata(hObject); % retrive updated data
     
-    options.NailElectrodeNumber = handles.uitable_elecNum;
+    options.NailElectrodeNumber = handles.work.uitable_elecNum;
     options.NailElectrodeCrd = handles.work.GS;
     
     % if some coords are not selected, nan is given
@@ -3929,16 +3930,8 @@ function handles = addElectrode2structure(handles,electrodes,array)
 % if arrray is empty, make a new electrode cell at the endl
 % Otherwise, replce electrode
 
-if isempty(array)
-    % add to structure
-    L=length(handles.project.electrodes);
-    l=L+1; % new electrode array
-else
-    %overwrite
-    L=array;
-    l=L;
-end
-handles.project.electrodes{l}=electrodes;
+% append when ARRAY is empty, overwrite that index otherwise
+[handles.project.electrodes, l] = addArray(handles.project.electrodes, electrodes, array);
 
 % process projections if needed
 handles=processProjections(handles);
@@ -4830,19 +4823,13 @@ if ~isempty(handles.project.electrodes)
     if strcmp(choice,'No')
        return;
     end
-    handles.project.electrodes(l)=[];
-    if isempty(handles.project.electrodes)
-        handles = setSelectedArray(handles, 0);
+    [handles.project.electrodes, a] = removeArray(handles.project.electrodes, l);
+    handles = setSelectedArray(handles, a);
+
+    if a == 0 % nothing left
         handles = setSelectedContact(handles, 0);
 
     else % at least one electrode left
-        if l-1>0 
-            a=l-1;
-            handles = setSelectedArray(handles, a);
-        else
-            a=l;
-            handles = setSelectedArray(handles, a);
-        end
         handles = setSelectedContact(handles, 1);
         
         d1=handles.project.electrodes{a}.x(1);
@@ -6327,9 +6314,7 @@ function handles = addtarget2structure(handles,target)
 % Add target to handles.project.targets 
 % 
 % add to structure
-L=length(handles.project.targets);
-l=L+1; % new electrode array
-handles.project.targets{l}=target;
+[handles.project.targets, l] = addArray(handles.project.targets, target);
 
 
 % anatomical labeling (electrodes and projections)
@@ -6377,19 +6362,13 @@ if ~isempty(handles.project.targets)
     if strcmp(choice,'No')
        return;
     end
-    handles.project.targets(l)=[];
-    if isempty(handles.project.targets)
-        handles = setSelectedPlanningArray(handles, 0);
+    [handles.project.targets, a] = removeArray(handles.project.targets, l);
+    handles = setSelectedPlanningArray(handles, a);
+
+    if a == 0 % nothing left
         handles = setSelectedPlanningTarget(handles, 0);
 
     else % at least one electrode left
-        if l-1>0 
-            a=l-1;
-            handles = setSelectedPlanningArray(handles, a);
-        else
-            a=l;
-            handles = setSelectedPlanningArray(handles, a);
-        end
         handles = setSelectedPlanningTarget(handles, 1);
         
         d1=handles.project.targets{a}.x(1);
@@ -6430,13 +6409,7 @@ end
 str=get(handles.editPlanningArrayName,'String');
 a=selectedPlanningArray(handles);
 
-handles.project.targets{a}.Name=str;
-
-N=handles.project.targets{a}.nElectrodes;
-
-for i=1:N
-    handles.project.targets{a}.ch_label{i}=[str int2str(i)];
-end
+handles.project.targets{a} = nameArrayContacts(handles.project.targets{a}, str);
 
 handles.ui.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);

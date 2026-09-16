@@ -3,20 +3,20 @@ function handles=defaultGuiVariables(handles)
 
 %MNI brain
 load MNImesh.mat;
-handles.f_MNI=f_MNI;
-handles.v_MNI=v_MNI;
+handles.work.f_MNI=f_MNI;
+handles.work.v_MNI=v_MNI;
 
 %load MNI convex hull
 load MNI_hull_LR.mat;
-handles.f_MNI_SCE=f_hull;
-handles.v_MNI_SCE=v_hull;
+handles.work.f_MNI_SCE=f_hull;
+handles.work.v_MNI_SCE=v_hull;
 
 
 % HO atlas
 load ('HOatlas_cort-subCort_lateralized.mat');
-handles.MNIlabels=labels;
-handles.MNIprob = prob;
-handles.MNI_S_matrix=S;
+handles.work.MNIlabels=labels;
+handles.work.MNIprob = prob;
+handles.work.MNI_S_matrix=S;
 
 colormap gray
 handles.ui.layout=0; %default layaut
@@ -53,12 +53,12 @@ handles.ui.plot3Dhandles.hcam=[];
 handles.ui.viewPoint=[-135,25];
 
 
-handles.PathName=pwd;
+handles.work.PathName=pwd;
 
 handles.ui.color=1;
 
 % we assume starting in MNI
-handles.currentSpace='MNI'; % options are 'Native' 'MNI' 
+handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 set(handles.MNILabelstogglebutton,'State','On'); % this will call to labels2NativeSpace and updateElectrodes3D
 
 % cursor
@@ -119,4 +119,4 @@ handles.ui.cross.z3DThres=line([0 0],[0 0],[0 0],'Color',handles.ui.colors.z);
 handles.ui.sct=[];
 
 % max value
-handles.maxValue=[];
+handles.work.maxValue=[];
