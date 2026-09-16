@@ -1582,26 +1582,12 @@ switch type
                 end
                 
                 %reduce to 15k vertices for nice resolution and speed plots
-                k=15000/length(vR);
-                if k<1
-                    try
-                        [handles.project.vertices_SCE_R,handles.project.faces_SCE_R]=meshresample(vR,fR,k);
-                        [handles.project.vertices_SCE_L,handles.project.faces_SCE_L]=meshresample(vL,fL,k);
-                    catch
-                        disp({'WARNING - iso2mesh function meshresample not found or error.'
-                            'SCE surfaces will not be resampled. 3D view could be slowed down.'})
-                        handles.project.vertices_SCE_R=vR;
-                        handles.project.faces_SCE_R=fR;
-                        handles.project.vertices_SCE_L=vL;
-                        handles.project.faces_SCE_L=fL;
-                    end
-                    
-                else
-                    handles.project.vertices_SCE_R=vR;
-                    handles.project.vertices_SCE_L=vL;
-                    handles.project.faces_SCE_R=fR;
-                    handles.project.faces_SCE_L=fL;
-                end
+                [vR,fR,vL,fL] = resampleSurfacePair(vR,fR,vL,fL,15000);
+
+                handles.project.vertices_SCE_R=vR;
+                handles.project.faces_SCE_R=fR;
+                handles.project.vertices_SCE_L=vL;
+                handles.project.faces_SCE_L=fL;
                 
             else
                 return; % no file
@@ -1617,26 +1603,12 @@ switch type
         [vR,fR] = buildSCE(handles.project.verticesR,handles.project.facesR,handles.options);
         
         %reduce to 15k vertices for nice resolution and speed plots
-        k=15000/length(vR);
-        if k<1
-            try
-                disp('resampling mesh')
-                [handles.project.vertices_SCE_R,handles.project.faces_SCE_R]=meshresample(vR,fR,k);
-                [handles.project.vertices_SCE_L,handles.project.faces_SCE_L]=meshresample(vL,fL,k);
-            catch
-                disp({'WARNING - iso2mesh function meshresample not found or error.'
-                    'SCE surfaces will not be resampled. 3D view could be slowed down.'})
-                handles.project.vertices_SCE_R=vR;
-                handles.project.faces_SCE_R=fR;
-                handles.project.vertices_SCE_L=vL;
-                handles.project.faces_SCE_L=fL;
-            end
-        else
-            handles.project.vertices_SCE_R=vR;
-            handles.project.vertices_SCE_L=vL;
-            handles.project.faces_SCE_R=fR;
-            handles.project.faces_SCE_L=fL;
-        end
+        [vR,fR,vL,fL] = resampleSurfacePair(vR,fR,vL,fL,15000);
+
+        handles.project.vertices_SCE_R=vR;
+        handles.project.faces_SCE_R=fR;
+        handles.project.vertices_SCE_L=vL;
+        handles.project.faces_SCE_L=fL;
         
 end
 
