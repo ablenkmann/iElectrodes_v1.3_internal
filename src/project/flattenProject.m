@@ -16,10 +16,17 @@ function flat = flattenProject(handles)
 %   changing it would change the file format, so this function deliberately
 %   preserves it.
 %
+%   The three colour caches listed by UIFIELDNAMES are COPIED out of
+%   handles.ui as well, and left in place there. They are presentation data
+%   and belong in ui, but the file carries them and iElectrodes 1.020 refuses
+%   to open a project without them, so they have to appear at the top level
+%   when saving. This is the file format's requirement, not the model's.
+%
 %   Use it only at that boundary. Everywhere else, read the values from
 %   handles.project or handles.work directly.
 %
-%   See also PROJECTFIELDNAMES, WORKFIELDNAMES, LIFTTOPROJECT, LIFTTOWORK.
+%   See also PROJECTFIELDNAMES, WORKFIELDNAMES, UIFIELDNAMES, LIFTTOPROJECT,
+%   LIFTTOWORK, LIFTTOUI.
 
 flat   = handles;
 groups = {'project','work'};
@@ -32,6 +39,17 @@ for g = 1:numel(groups)
             flat.(names{k}) = flat.(thisGroup).(names{k});
         end
         flat = rmfield(flat, thisGroup);
+    end
+end
+
+% Copied, not moved: handles.ui keeps its own copy and is left alone
+if isfield(handles, 'ui')
+    uiNames = uiFieldNames();
+    for k = 1:numel(uiNames)
+        thisField = uiNames{k};
+        if isfield(handles.ui, thisField)
+            flat.(thisField) = handles.ui.(thisField);
+        end
     end
 end
 end

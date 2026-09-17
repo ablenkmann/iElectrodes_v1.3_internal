@@ -167,6 +167,7 @@ handles=checkProjectStructure([],handles);
 % lifts to run here, straight after the structure they act on was filled.
 handles=liftToProject(handles);   % patient data     -> handles.project
 handles=liftToWork(handles);      % work in progress -> handles.work
+handles=liftToUi(handles);        % colour caches    -> handles.ui
 
 % load default options
 options=[];
@@ -422,6 +423,7 @@ if T1file ~=0
     handles=checkProjectStructure([],handles);
     handles=liftToProject(handles);   % patient data     -> handles.project
     handles=liftToWork(handles);      % work in progress -> handles.work
+    handles=liftToUi(handles);        % colour caches    -> handles.ui
  
     %fiugre name
     set(handles.figure1,'name',['iElectrodes - ' PathName T1file]);
@@ -738,6 +740,7 @@ if FileName ~=0
     handles=checkProjectStructure(s,handles);
     handles=liftToProject(handles);   % patient data     -> handles.project
     handles=liftToWork(handles);      % work in progress -> handles.work
+    handles=liftToUi(handles);        % colour caches    -> handles.ui
 
     handles.work.FileName=FileName;
     handles.work.PathName=PathName;
@@ -1237,7 +1240,7 @@ if ~isequal(wmparcFile,0)
     [handles.project.wmparc, handles.project.wmparcS] = ...
         loadParcellation(PathName, wmparcFile, handles.project.T1);
 
-    handles.wmparcColors = ...
+    handles.ui.wmparcColors = ...
         parcellationColours(handles.project.wmparc.img, handles.options.atlasLUTFile);
     
     
@@ -1470,8 +1473,8 @@ switch choice
         handles.project.AnnotLabel_L=AnnotLabel_L; %label for each node
         handles.project.AnnotColortable_R=AnnotColortable_R; %colortable info
         handles.project.AnnotColortable_L=AnnotColortable_L; %colortable info
-        handles.AnnotColor_R=AnnotColor_R; %actual color used for each node
-        handles.AnnotColor_L=AnnotColor_L; %actual color used for each node
+        handles.ui.AnnotColor_R=AnnotColor_R; %actual color used for each node
+        handles.ui.AnnotColor_L=AnnotColor_L; %actual color used for each node
         
     case 'No'
         
@@ -1479,8 +1482,8 @@ switch choice
         handles.project.AnnotLabel_L=[]; %label for each node
         handles.project.AnnotColortable_R=[]; %colortable info
         handles.project.AnnotColortable_L=[]; %colortable info
-        handles.AnnotColor_R=ones(length(handles.project.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
-        handles.AnnotColor_L=ones(length(handles.project.verticesL),3)*.5; %actual color used for each node
+        handles.ui.AnnotColor_R=ones(length(handles.project.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
+        handles.ui.AnnotColor_L=ones(length(handles.project.verticesL),3)*.5; %actual color used for each node
         
     case 'Cancel'
         return;
@@ -1520,8 +1523,8 @@ handles.project.AnnotLabel_R=[];
 handles.project.AnnotLabel_L=[];
 handles.project.AnnotColortable_R=[]; 
 handles.project.AnnotColortable_L=[]; 
-handles.AnnotColor_R=[];
-handles.AnnotColor_L=[];
+handles.ui.AnnotColor_R=[];
+handles.ui.AnnotColor_L=[];
 
 handles.project.currentSpace='MNI'; % options are 'Native' 'MNI' 
 handles.ui.updatePlots.surfaces=1;
@@ -2053,8 +2056,8 @@ for p = 1:3
 
     if handles.ui.color
         img=squeeze(handles.ui.imgW(sliceIdx{:},:)); %true color imgW:(dimX,dimY,dimZ,3)
-        if ~isempty(handles.wmparcColors)
-            imgAtlas=squeeze(handles.wmparcColors(sliceIdx{:},:));
+        if ~isempty(handles.ui.wmparcColors)
+            imgAtlas=squeeze(handles.ui.wmparcColors(sliceIdx{:},:));
             alphaMask=double(sum(imgAtlas,3)>0);
         else
             imgAtlas=[];
@@ -2460,7 +2463,7 @@ if handles.ui.updatePlots.surfaces
         if ~isempty(handles.project.verticesR) %plot pials
             if get(handles.Rightcheckbox,'Value')
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR,handles.AnnotColor_R); %annotation in colors
+                    handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR,handles.ui.AnnotColor_R); %annotation in colors
                 else
                     handles.ui.plot3Dhandles.surfaces(1)=mvis(handles.project.verticesR,handles.project.facesR); %grey
                 end
@@ -2469,7 +2472,7 @@ if handles.ui.updatePlots.surfaces
             end
             if get(handles.Leftcheckbox,'Value')                
                 if get(handles.Annotationcheckbox,'Value')
-                    handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL, handles.AnnotColor_L); % annotation in colors
+                    handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL, handles.ui.AnnotColor_L); % annotation in colors
                 else
                     handles.ui.plot3Dhandles.surfaces(2)=mvis(handles.project.verticesL,handles.project.facesL);% grey    
                 end

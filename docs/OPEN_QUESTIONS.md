@@ -329,3 +329,41 @@ a separate dedicated commit.
 
 **Status:** left as it is. Present in v1.020, not introduced by the
 restructuring.
+
+---
+
+## 11. Two toolbar buttons are hidden, so their callbacks can never run
+
+**Where:** `electrodes_gui.fig`, and the callbacks in `electrodes_gui.m`
+
+Two toolbar buttons carry `Visible = 'off'` in the .fig, and nothing in
+`electrodes_gui.m` ever turns them back on:
+
+| Tag | Tooltip | Callback |
+|-----|---------|----------|
+| `ClearFSsurfaceuipushtool2` | Remove pial surface | line 1507, 18 code lines |
+| `removeSCEuipushtooluipushtool` | Remove smoothed cortical envelope | line 1626, 11 code lines |
+
+Both sit next to their working counterparts - `addFSsurfacesuipushtool`
+("Load pial surfaces") and `addSCEuipushtool` ("Load or build smoothed
+cortical envelope"), which are visible - so the toolbar offers a way to add
+each surface and no way to take it back. The user sees four brain icons'
+worth of space occupied by two.
+
+The callbacks themselves look finished and correct. Removing the pial
+surfaces clears the vertices, faces, annotation labels, colortables and
+colour caches, sets `currentSpace` back to `'MNI'` and re-labels; removing
+the SCE does the matching thing for the envelope surfaces. Neither is a stub.
+
+Found while testing the colour-cache move: the test asked for "press Remove
+pial surface" and there was no such button to press.
+
+**Decision needed:** were these hidden deliberately - because clearing a
+surface discards annotation data that then has to be re-loaded from
+FreeSurfer, and that is easy to do by accident - or did the `Visible` flag get
+switched off during some earlier editing session and never switched back? If
+deliberate, the callbacks are dead weight and should say so; if accidental,
+making them visible is a one-property change in the .fig.
+
+**Status:** left as it is. Present in v1.020, not introduced by the
+restructuring.
