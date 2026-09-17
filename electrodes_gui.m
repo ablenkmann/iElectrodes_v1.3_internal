@@ -853,145 +853,81 @@ if valid
     projMethod = crd.projectionMethod;
     anatLabel  = crd.anatomicalLabel;
 
-    % write coordinates to file
+    % write coordinates to file. Each case picks a file and says what it
+    % did; the writers in src/export/ produce the file itself.
     switch selection
-        case 1 % MATLAB
+        case 1 % iElectrodes structure
             [FileName,PathName] = uiputfile('*.mat','Save electrodes structure', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                save([handles.work.PathName, FileName],'electrodes');
+                writeElectrodeStructure([handles.work.PathName, FileName], electrodes);
                 disp (['Saved electrode structure in ' handles.work.PathName, FileName])
             end
 
-        case 2 % elec - EEGLAB
-            [FileName,PathName] = uiputfile('*.txt','Save electrode coordinates in EEGLAB format', handles.work.PathName);
+        case {2, 3} % EEGLAB - contacts (2) or projections (3)
+            if selection==2
+                what = 'electrode';
+            else
+                what = 'SCE-projected';
+            end
+            [FileName,PathName] = uiputfile('*.txt',['Save ' what ' coordinates in EEGLAB format'], handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                fid=fopen([PathName FileName],'w+'); %overwrite
-                for i=1:length(x)
-                    fprintf(fid,'%s\t %e\t %e\t %e\n',cl{i},x(i),y(i),z(i));
-                end
-                disp([' electrode coordinates saved in ' PathName FileName ] )
+                writeEEGLABcoordinates([PathName FileName], crd);
+                disp([' ' what ' coordinates saved in ' PathName FileName ] )
                 disp (' load to EEGLAB with the command:')
                 disp (' EEG.chanlocs=readlocs( [ path file] , ''filetype'', ''custom'',''format'',{''labels'',''-Y'',''X'',''Z''}) ')
-                fclose(fid)
-            end
-            
-        case 3 % proj - EEGLAB
-            
-            [FileName,PathName] = uiputfile('*.txt','Save SCE-projected coordinates in EEGLAB format', handles.work.PathName);
-            if FileName~=0
-                handles.work.PathName=PathName;
-                fid=fopen([PathName FileName],'w+'); %overwrite
-                for i=1:length(x)
-                    fprintf(fid,'%s\t %e\t %e\t %e\n',cl{i},x(i),y(i),z(i));
-                end
-                disp([' SCE-projected coordinates saved in ' PathName FileName ] )
-                disp (' load to EEGLAB with the command:')
-                disp (' EEG.chanlocs=readlocs( [ path file] , ''filetype'', ''custom'',''format'',{''labels'',''-Y'',''X'',''Z''}) ')
-                fclose(fid)
             end
 
-        case 4 % elec - FIELDTRIP
-            
-            elec.label=cl';
-            elec.elecpos=[x',y',z'];
-            % elec.chanpos= []; 
-            % elec.tra = []; combination to make channels
-            elec.unit='mm';
-            elec.coordsys=handles.project.currentSpace; % 'MNI' or 'Native' (defined by user)
-            elec.adjMat=concatenateAdjMat(electrodes); % Adjacency Matrix
-            elec.cfg.method = 'iElectrodes';
-            elec.cfg.projection='No';
-            
-            [FileName,PathName] = uiputfile('*.mat','Save electrode coordinates in FIELDTRIP structure', handles.work.PathName);
-            if FileName~=0
-                handles.work.PathName=PathName;
-                save([handles.work.PathName, FileName],'elec');
-                disp (['Saved electrode coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
+        case {4, 5} % FIELDTRIP - contacts (4) or projections (5)
+            if selection==4
+                what = 'electrode';       projected = 'No';
+            else
+                what = 'SCE-projected';   projected = 'Yes';
             end
-
-           
-        case 5 % proj - FIELDTRIP
-            
-            elec.label=cl';
-            elec.elecpos=[x',y',z'];
-            % elec.chanpos= []; 
-            % elec.tra = []; combination to make channels
-            elec.unit='mm';
-            elec.coordsys=handles.project.currentSpace; % 'MNI' or 'Native' (defined by user)
-            elec.adjMat=concatenateAdjMat(electrodes); % Adjacency Matrix
-            elec.cfg.method = 'iElectrodes';
-            elec.cfg.projection='Yes';
-            
-            [FileName,PathName] = uiputfile('*.mat','Save SCE-projected coordinates in FIELDTRIP structure', handles.work.PathName);
+            [FileName,PathName] = uiputfile('*.mat',['Save ' what ' coordinates in FIELDTRIP structure'], handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                save([handles.work.PathName, FileName],'elec');
-                disp (['Saved SCE-projected coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
+                writeFieldTripElectrodes([handles.work.PathName, FileName], crd, ...
+                    electrodes, handles.project.currentSpace, projected);
+                disp (['Saved ' what ' coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
             end
 
         case 6 % elec-BIDS
-            % BIDS required columns for electrodes: name x y z size
-            elecTable=table(cl', x', y', z', nan(size(x')), type', projMethod', anatLabel', ...
-                'VariableNames',{'name','x','y','z','size','Electrode Type','Projection Method','Anatomical Label'});
-
             [FileName,PathName] = uiputfile('*.tsv','Save electrode coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writetable(elecTable, [handles.work.PathName, FileName],'FileType','text','Delimiter','tab');
+                writeBIDSelectrodes([handles.work.PathName, FileName], crd);
                 disp (['Saved electrodes using BIDS format  in ' handles.work.PathName, FileName]);
             end
-  
-            % BIDS coordinate system json file
-            coordSys = struct( 'iEEGCoordinateSystem', 'ScanRAS',...       
-                'iEEGCoordinateUnits','mm', ...                             
-                'IndendedFor',  handles.project.TAC.vol.fname,...                  % point to CT file
-                'iEEGCoordinateSystemDescription', 'Coordinates system is RAS from imported CT image.',...
-                'iEEGCoordinateProcessingDescripton', 'none',...       % projection?
-                'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ');
 
             [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                fid=fopen([handles.work.PathName, FileName],'w');
-                encodedJSON = jsonencode(coordSys);
-                fprintf(fid, encodedJSON);
-                fclose (fid);
+                writeBIDScoordinateSystem([handles.work.PathName, FileName], ...
+                    handles.project.TAC.vol.fname, ...                         % point to CT file
+                    'none', ...                                                % projection?
+                    'Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ');
                 disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
             end
 
         case 7 % proj-BIDS
-
-            % BIDS required columns: name x y z size
-
-            elecTable=table(cl', x', y', z', nan(size(x')), type', projMethod', anatLabel', ...
-                'VariableNames',{'name','x','y','z','size','Electrode Type','Projection Method','Anatomical Label'});
-            
             [FileName,PathName] = uiputfile('*.tsv','Save electrode SCE-projected coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writetable(elecTable, [handles.work.PathName, FileName],'FileType','text','Delimiter','tab');
+                writeBIDSelectrodes([handles.work.PathName, FileName], crd);
                 disp (['Saved electrode SCE-projected coordinates using BIDS format  in ' handles.work.PathName, FileName]);
             end
-
-            % BIDS coordinate system json file
-            coordSys = struct( 'iEEGCoordinateSystem', 'ScanRAS',...       
-                'iEEGCoordinateUnits','mm', ...                             
-                'IndendedFor',  handles.project.TAC.vol.fname,...                                           % point to CT file
-                'iEEGCoordinateSystemDescription', 'Coordinates system is RAS from imported CT image.',...
-               'iEEGCoordinateProcessingDescripton',  projMethod{1},...       % projection?
-                'iEEGCoordinateProcessingReference','Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014; Blenkmann et al., 2023. https://doi.org/10.1101/2023.05.08.539503');
 
             [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                fid=fopen([handles.work.PathName, FileName],'w');
-                encodedJSON = jsonencode(coordSys);
-                fprintf(fid, encodedJSON);
-                fclose (fid);
+                writeBIDScoordinateSystem([handles.work.PathName, FileName], ...
+                    handles.project.TAC.vol.fname, ...                         % point to CT file
+                    projMethod{1}, ...                                         % projection?
+                    ['Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014; ' ...
+                     'Blenkmann et al., 2023. https://doi.org/10.1101/2023.05.08.539503']);
                 disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
-
             end
 
     end
