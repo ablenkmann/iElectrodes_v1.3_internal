@@ -963,24 +963,12 @@ if valid
 
         if FileName~=0
             handles.work.PathName=PathName;
-            s=load([handles.work.PathName, FileName],'electrodes');
-            if ~isfield(s,'electrodes')
-                warning(['The file ' handles.work.PathName FileName 'does not contain an electrodes structure]']);
+            try
+                elecNew = readElectrodeStructure([handles.work.PathName, FileName]);
+            catch err
+                warning(err.message);
                 return;
             end
-            electrodes=s.electrodes;
-            
-            % electrodes en forma de estructura los convierto a celda
-            if isstruct(electrodes)
-                electrodes2=electrodes;
-                clear electrodes
-                for i=1:length(electrodes2)
-                    electrodes{i}=electrodes2(i);
-                end
-                clear electrodes2
-            end
-            
-            elecNew=checkElectrodeStructure(electrodes); 
         else
             return;
         end
@@ -990,10 +978,12 @@ if valid
 
         if FileName~=0
             handles.work.PathName=PathName;
-            load([handles.work.PathName, FileName],'EEG','-mat'); %load as matlab file EEG structure
-            labels={EEG.chanlocs.labels};
-            pos = [-[EEG.chanlocs.Y];  [EEG.chanlocs.X];  [EEG.chanlocs.Z] ]'; 
-
+            try
+                [labels,pos] = readEEGLABelectrodes([handles.work.PathName, FileName]);
+            catch err
+                warning(err.message);
+                return;
+            end
         else
             return;
         end
@@ -1003,18 +993,12 @@ if valid
 
         if FileName~=0
             handles.work.PathName=PathName;
-            s=load([handles.work.PathName, FileName],'elec'); %load as matlab file elec structure
-            if ~isfield(s,'elec')
-                warning(['The file ' handles.work.PathName FileName 'does not contain an elec structure]']);
+            try
+                [labels,pos] = readFieldTripElectrodes([handles.work.PathName, FileName]);
+            catch err
+                warning(err.message);
                 return;
             end
-            labels=s.elec.label;
-            pos=s.elec.elecpos;
-            
-            % remove if there is any NaN coordinate electrode
-            i=find(sum(isnan(pos)')');
-            pos(i,:)=[]; 
-            labels(i)=[];
         else
             return;
         end
