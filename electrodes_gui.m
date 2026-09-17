@@ -3228,38 +3228,16 @@ function ClusterButton_Callback(hObject, eventdata, handles)
 
 nClus=str2double( get(handles.clusNElecEdit,'String'));
 
-if exist('kmedoids.m','file')    
-    disp('Running K-medoids clustering algorithm. This can take some time...');
-    
-    % good solutions, but time consuming
-    [clusters] = kmedoids(brushCrd,nClus,'Algorithm','pam', 'OnlinePhase','on');
-    
-    GS=zeros(nClus,3); % cluster
-    %get center of mass
-    for i=1:nClus
-        weight=double(weight);
-        ind=clusters==i;
-        W=sum(weight(ind));
-        GS(i,:)=sum(diag(weight(ind))* brushCrd(ind,:),1)*(1/W);
-    end
-else
-    disp('K-medoids algorithm not found. Running k-means algorithm')
-    [GS,clusters]=clustering (nClus,brushCrd,weight);
-end
+[GS,clusters,weight,quality] = clusterContacts(brushCrd,weight,nClus);
 
-
-% check distribution of distances to clossest neighbour
-DD=eucDistMat(GS,GS);
-DD(eye(size(DD))==1)=nan;
-dd=min(DD); %closest neighbour
+% report how regular the spacing came out. The numbers are computed in
+% clusterContacts; the wording belongs here.
 disp([num2str(nClus) ' electrodes localized' ])
-disp(['Mean Inter-Electrode Distance: ' num2str(mean(dd),2) ' mm'])
-disp(['MAD Inter-Electrode Distance: ' num2str(mad(dd),2) ' mm'])
+disp(['Mean Inter-Electrode Distance: ' num2str(quality.meanDistance,2) ' mm'])
+disp(['MAD Inter-Electrode Distance: ' num2str(quality.madDistance,2) ' mm'])
 
-loc_error=any(isoutlier(dd)) || any(abs(dd/median(dd)-1)>0.20); % would be good to know IED to check: || any(dd<M1/2) || any(dd>2*M1)
-
-if loc_error
-    disp( [ num2str(sum(isoutlier(dd))) ' outliers observed. ' num2str(sum(abs(dd/median(dd)-1)>0.20)) ' show > 20% change in IED.' ])
+if quality.suspect
+    disp( [ num2str(quality.nOutliers) ' outliers observed. ' num2str(quality.nLargeChange) ' show > 20% change in IED.' ])
     disp('Possible localization error. Check your results visually.');     
     disp('If the solution is not optimal, try to split the voxels into smaller groups and rerun clustering');
     disp('If that doesn''t work, use GridFit algorithm instead.');
