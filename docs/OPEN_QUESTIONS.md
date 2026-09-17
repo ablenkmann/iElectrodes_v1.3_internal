@@ -367,3 +367,49 @@ making them visible is a one-property change in the .fig.
 
 **Status:** left as it is. Present in v1.020, not introduced by the
 restructuring.
+
+---
+
+## 12. Two misspelled keys in the BIDS coordinate-system json
+
+**Where:** `SaveElectrodespushtool_ClickedCallback` in `electrodes_gui.m`,
+BIDS options 6 and 7
+
+The json written next to the BIDS electrodes.tsv contains:
+
+```json
+"IndendedFor": "/data/Images/HRM007-OC/rTAC.nii",
+"iEEGCoordinateProcessingDescripton": "none",
+```
+
+The BIDS specification names these `IntendedFor` and
+`iEEGCoordinateProcessingDescription`. Both spellings in the code are wrong,
+so a validator does not recognise either field: the pointer to the CT and the
+note about whether coordinates were projected are both silently ignored.
+
+The other four keys - `iEEGCoordinateSystem`, `iEEGCoordinateUnits`,
+`iEEGCoordinateSystemDescription`, `iEEGCoordinateProcessingReference` - are
+spelled correctly.
+
+**Related, and a separate question.** `IntendedFor` is meant to hold a BIDS
+URI relative to the dataset. The value written is
+`handles.project.TAC.vol.fname`, the absolute path the CT happened to have on
+the machine where the project was made - in the shipped example,
+`/data/Images/HRM007-OC/rTAC.nii`. That path means nothing on any other
+computer. iElectrodes does not know where the BIDS dataset root is, so it
+cannot compute the relative path on its own; it would have to ask.
+
+**Also worth deciding.** The electrodes.tsv carries three extra columns named
+`Electrode Type`, `Projection Method` and `Anatomical Label`. BIDS allows
+extra columns, but names with spaces are awkward to read back, and BIDS
+already defines an optional `type` column that `Electrode Type` duplicates
+under a different name.
+
+**Decision needed:** the two typos are a one-word fix each, but they change
+what the toolbox writes, so they belong in their own commit - and it is worth
+asking first whether any downstream script has come to depend on the
+misspelled names. The `IntendedFor` value and the column names are design
+questions, not typos.
+
+**Status:** left as it is. Present in v1.020, not introduced by the
+restructuring. Found while testing the BIDS export by hand.

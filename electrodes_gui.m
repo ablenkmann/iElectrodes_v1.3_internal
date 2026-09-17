@@ -836,52 +836,23 @@ end
 % fetch coordinates 
 if valid
     electrodes=handles.project.electrodes;
-    i=1; x=[]; y=[]; z=[];
 
-    if find (selection==[2 4 6]) % export coordinates electrodes
-        for j=1:length(electrodes)
-            for k=1:electrodes{j}.nElectrodes
-                %get coordinates
-                x(i)=electrodes{j}.x(k);
-                y(i)=electrodes{j}.y(k);
-                z(i)=electrodes{j}.z(k);
-                type{i} = electrodes{j}.Type;
-                projMethod{i}='none';
-                anatLabel{i}=electrodes{j}.aLabels{k};
-
-                % electrode labels
-                %aStr=electrodes{j}.ch_label{k};
-                %aStr(~isstrprop(aStr,'alphanum')) = '';  % remove non alpha num-characters
-                %cl{i}=aStr;
-                cl{i}=electrodes{j}.ch_label{k};
-                i=i+1;
-            end
-        end
+    % Which coordinates the chosen format wants. Option 1 writes the
+    % electrodes structure itself and needs none, so it gets empty lists.
+    if any(selection == [2 4 6])
+        crd = electrodeCoordinates(electrodes, 'contacts');
+    elseif any(selection == [3 5 7])
+        crd = electrodeCoordinates(electrodes, 'projection');
+    else
+        crd = electrodeCoordinates({});
     end
-    
-    if find (selection==[3 5 7]) % export coordinates projections
-        for j=1:length(electrodes)
-            for k=1:electrodes{j}.nElectrodes
-                %get coordinates
-                x(i)=electrodes{j}.projection{1}.x(k); % export first projection (SCE for now)
-                y(i)=electrodes{j}.projection{1}.y(k);
-                z(i)=electrodes{j}.projection{1}.z(k);
 
+    x = crd.x;  y = crd.y;  z = crd.z;
+    cl         = crd.label;
+    type       = crd.type;
+    projMethod = crd.projectionMethod;
+    anatLabel  = crd.anatomicalLabel;
 
-                type{i} = electrodes{j}.Type;
-                projMethod{i}=electrodes{j}.projection{1}.method;
-                anatLabel{i}=electrodes{j}.projection{1}.aLabels{k};
-
-                % electrode labels
-                %aStr=electrodes{j}.ch_label{k};
-                %aStr(~isstrprop(aStr,'alphanum')) = '';  % remove non alpha num-characters
-                %cl{i}=aStr;
-                cl{i}=electrodes{j}.ch_label{k};
-                i=i+1;
-            end
-        end
-    end
-    
     % write coordinates to file
     switch selection
         case 1 % MATLAB
