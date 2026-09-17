@@ -420,16 +420,10 @@ if T1file ~=0
     disp (['Loaded MRI from ' PathName, T1file])
 
     handles=defaultGuiVariables(handles);
-    handles=checkProjectStructure([],handles);
-    handles=liftToProject(handles);   % patient data     -> handles.project
-    handles=liftToWork(handles);      % work in progress -> handles.work
-    handles=liftToUi(handles);        % colour caches    -> handles.ui
+    handles=newProject(handles,T1);   % empty project around the new MRI
  
     %fiugre name
     set(handles.figure1,'name',['iElectrodes - ' PathName T1file]);
-    
-    handles.project.T1=T1; % MRI T1 origninal (SPM data structure)
-    handles.project.S2=T1.vol.mat(1:3,:);
     
     handles.work.PathName=PathName;
 
@@ -674,18 +668,19 @@ if isempty(handles.project.T1)
     warning ('MRI is empty. Load images first. Click New button or open existing project');
     return;
 else
-    % get the variables needed to be saved
-    s=checkProjectStructure(flattenProject(handles));   % .iel format stays flat
-    
     if isempty( handles.work.FileName)
         [FileName,PathName] = uiputfile('*.iel','Save filename',handles.work.PathName);
     else
         [FileName,PathName] = uiputfile('*.iel','Save filename',[handles.work.PathName handles.work.FileName]);
     end
     if FileName ~=0
+        % Written before the new name is recorded, so that s.FileName and
+        % s.PathName carry what the project already held - as they did when
+        % this was one long callback.
+        saveProject([PathName, FileName], handles.project, handles.work, handles.ui);
+
         handles.work.FileName=FileName;
         handles.work.PathName=PathName;
-        save([handles.work.PathName, handles.work.FileName],'s','-v7.3');
         disp (['Saved project in ' handles.work.PathName, handles.work.FileName])
         
         %fiugre name
@@ -730,8 +725,7 @@ end
 [FileName,PathName]=uigetfile('*.iel', 'Load iElectrodes file', handles.work.PathName);
 
 if FileName ~=0   
-    % varialbe is loaded as s
-    load([PathName, FileName],'-mat');
+    s = openProject([PathName, FileName]);
     disp (['Loaded project from ' PathName, FileName])
        
     % load defaults, including plot updates
