@@ -427,11 +427,25 @@ extra columns, but names with spaces are awkward to read back, and BIDS
 already defines an optional `type` column that `Electrode Type` duplicates
 under a different name.
 
-**Decision needed:** the two typos are a one-word fix each, but they change
-what the toolbox writes, so they belong in their own commit - and it is worth
-asking first whether any downstream script has come to depend on the
-misspelled names. The `IntendedFor` value and the column names are design
-questions, not typos.
+**Status: the two typos are FIXED.** Alejandro: "go ahead and fix them". A
+script that reads the old spellings will stop finding those fields; nothing
+inside the toolbox does.
 
-**Status:** left as it is. Present in v1.020, not introduced by the
-restructuring. Found while testing the BIDS export by hand.
+The `fprintf` escape problem is fixed in the same place - the json is now
+written with `fprintf(fid, '%s', text)`, so a Windows path stays a path.
+`tests/test_electrodeExports.m` writes a json with `C:\temp\new.nii` in it
+and decodes the result, which is the check that would have caught it.
+
+That test no longer compares the json against the original code, since the
+original output is now the thing that must not come back. It decodes the file
+and checks it against the specification instead.
+
+**STILL OPEN - the value of `IntendedFor`,** which is the absolute path the CT
+had on the machine where the project was made, where BIDS wants a URI relative
+to the dataset root. iElectrodes does not know where that root is, so it would
+have to ask. Not raised with Alejandro yet.
+
+**ALSO STILL OPEN - the three extra `.tsv` columns** named `Electrode Type`,
+`Projection Method` and `Anatomical Label`. BIDS allows extra columns, but
+names with spaces are awkward to read back, and BIDS already defines an
+optional `type` column that `Electrode Type` duplicates.

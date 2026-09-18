@@ -14,11 +14,9 @@ function ok = test_electrodeExports()
 %   toolboxes, so a difference in number formatting, column order or line
 %   endings matters as much as a difference in the coordinates.
 %
-%   The BIDS json is compared the same way, which means this test currently
-%   REQUIRES the two misspelled keys - IndendedFor and
-%   iEEGCoordinateProcessingDescripton. That is deliberate: see
-%   docs/OPEN_QUESTIONS.md item 12. When the spelling is corrected, this test
-%   has to be updated in the same commit, which is exactly the point.
+%   The BIDS json is the exception. Two of its keys were misspelled in
+%   v1.020 and are now correct, so there is no old output to match - it is
+%   checked against the BIDS specification instead, by decoding it.
 %
 %   Usage:  cd into the repository, then
 %              test_electrodeExports
@@ -94,22 +92,54 @@ nFail = nFail + check(startsWith(header, sprintf('name\tx\ty\tz\tsize')), ...
     'the five BIDS columns come first, in order', '');
 
 %% -------------------------------------------------------- BIDS .json
+% This one is NOT compared against the original code: two of its keys were
+% misspelled and are now correct, so the old output is what must not come
+% back. It is checked against the BIDS specification instead.
 fprintf('\n--- BIDS coordinate system (.json) ---------------------------\n');
 intendedFor = prj.TAC.vol.fname;
 reference   = 'Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ';
 
 writeBIDScoordinateSystem(new('.json'), intendedFor, 'none', reference);
-originalBIDSjson(old('.json'), intendedFor, 'none', reference);
-nFail = nFail + check(sameFile(new('.json'), old('.json')), 'identical file', ...
+written = fileread(new('.json'));
+nFail = nFail + check(~isempty(written), 'the file is written', ...
     sprintf('%d bytes', bytesOf(new('.json'))));
 
-written = fileread(new('.json'));
-nFail = nFail + check(contains(written,'"iEEGCoordinateSystem":"ScanRAS"'), ...
-    'the coordinate system is named', '');
-nFail = nFail + check(contains(written,'"IndendedFor"'), ...
-    'the misspelled IndendedFor is still written', 'OPEN_QUESTIONS item 12');
-nFail = nFail + check(contains(written,'"iEEGCoordinateProcessingDescripton"'), ...
-    'and the misspelled Descripton', 'OPEN_QUESTIONS item 12');
+decoded = [];
+try
+    decoded = jsondecode(written);
+catch err
+    fprintf('              %s\n', err.message);
+end
+nFail = nFail + check(~isempty(decoded), 'and is valid json', '');
+
+if ~isempty(decoded)
+    for f = {'iEEGCoordinateSystem','iEEGCoordinateUnits','IntendedFor', ...
+             'iEEGCoordinateSystemDescription', ...
+             'iEEGCoordinateProcessingDescription', ...
+             'iEEGCoordinateProcessingReference'}
+        nFail = nFail + check(isfield(decoded, f{1}), ...
+            ['BIDS key ' f{1}], '');
+    end
+    nFail = nFail + check(strcmp(decoded.iEEGCoordinateSystem,'ScanRAS'), ...
+        'the coordinate system is named', decoded.iEEGCoordinateSystem);
+    nFail = nFail + check(strcmp(decoded.iEEGCoordinateUnits,'mm'), ...
+        'the units are mm', '');
+end
+
+% the two spellings v1.020 wrote, which a validator ignored
+nFail = nFail + check(~contains(written,'"IndendedFor"'), ...
+    'the misspelled IndendedFor is gone', '');
+nFail = nFail + check(~contains(written,'"iEEGCoordinateProcessingDescripton"'), ...
+    'and the misspelled Descripton', '');
+
+% a Windows path used to be read as format escapes, because the text was
+% passed to fprintf as the format string
+fprintf('\n--- a path with backslashes ----------------------------------\n');
+windowsPath = 'C:\temp\new.nii';
+writeBIDScoordinateSystem(new('.json'), windowsPath, 'none', reference);
+decodedPath = jsondecode(fileread(new('.json')));
+nFail = nFail + check(strcmp(decodedPath.IntendedFor, windowsPath), ...
+    'the path survives unchanged', decodedPath.IntendedFor);
 
 %% clean up
 for ext = {'.mat','.txt','.tsv','.json'}
@@ -156,19 +186,6 @@ function originalBIDStable(fullPath, x, y, z, cl, type, projMethod, anatLabel)
 elecTable=table(cl', x', y', z', nan(size(x')), type', projMethod', anatLabel', ...
     'VariableNames',{'name','x','y','z','size','Electrode Type','Projection Method','Anatomical Label'});
 writetable(elecTable, fullPath,'FileType','text','Delimiter','tab');
-end
-
-function originalBIDSjson(fullPath, intendedFor, processing, reference)
-coordSys = struct( 'iEEGCoordinateSystem', 'ScanRAS',...
-    'iEEGCoordinateUnits','mm', ...
-    'IndendedFor',  intendedFor,...
-    'iEEGCoordinateSystemDescription', 'Coordinates system is RAS from imported CT image.',...
-    'iEEGCoordinateProcessingDescripton', processing,...
-    'iEEGCoordinateProcessingReference', reference);
-fid=fopen(fullPath,'w');
-encodedJSON = jsonencode(coordSys);
-fprintf(fid, encodedJSON);
-fclose (fid);
 end
 
 % ============================== small helpers ==============================
