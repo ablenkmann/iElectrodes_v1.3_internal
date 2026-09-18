@@ -4788,6 +4788,24 @@ function TargetInpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to TargetInpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = setPlanningPoint(handles, 'targetIn');
+guidata(hObject, handles);
+
+% --- Executes on button press in TargetOutpushbutton.
+function TargetOutpushbutton_Callback(hObject, eventdata, handles)
+% hObject    handle to TargetOutpushbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = setPlanningPoint(handles, 'targetOut');
+guidata(hObject, handles);
+
+
+% --- Let the user click one end of a planning depth electrode in a 2-D view.
+% POINTFIELD is 'targetIn' (the target) or 'targetOut' (the entry point).
+% The two buttons did the same 80 lines each, differing in which field they
+% wrote and which boxes they filled - and in one more thing, see below.
+function handles = setPlanningPoint(handles, pointField)
+
 if isempty(handles.project.T1)
     warning ('First Load MRI image. Click New button or open existing project.')
     return
@@ -4798,157 +4816,68 @@ if isempty(handles.project.targets)
     return;
 end
 
+switch pointField
+    case 'targetIn'
+        boxes = {'TargetInXedit','TargetInYedit','TargetInZedit'};
+        % The Target button does NOT round the click before using it, while
+        % the Entry P button does. That difference is v1.020's, preserved
+        % here rather than quietly settled - see docs/OPEN_QUESTIONS.md
+        % item 13.
+        roundClick = false;
+    case 'targetOut'
+        boxes = {'TargetOutXedit','TargetOutYedit','TargetOutZedit'};
+        roundClick = true;
+end
+
 [d1,d2]=ginput(1);
 
-G=gca;
-% X-view
-if G == handles.axesX %get(handles.radiobuttonX,'Value')
-    x=get(handles.sliderX,'Value');
-    y=d1;
-    z=d2;
-    set(handles.sliderY,'Value',d1);
-    set(handles.sliderZ,'Value',d2);
-    
-    % Y-view
-elseif G == handles.axesY %get(handles.radiobuttonY,'Value')
-    x=d1;
-    y=get(handles.sliderY,'Value');
-    z=d2;
-    set(handles.sliderX,'Value',d1);
-    set(handles.sliderZ,'Value',d2);
-    
-    % Z-view
-elseif G == handles.axesZ % get(handles.radiobuttonZ,'Value')
-    x=d1;
-    y=d2;
-    z=get(handles.sliderZ,'Value');
-    set(handles.sliderX,'Value',d1);
-    set(handles.sliderY,'Value',d2);
-else
-    warning('you must click inside one off the three 2D plane views')
-    return;
-end
-
-% set target coordinates
-% define anatomical coords
-coords=mesh2AnatSpace([x y z], handles.project.S2);
-
-l=selectedPlanningArray(handles);
-handles.project.targets{l}.targetIn.x=coords(1);
-handles.project.targets{l}.targetIn.y=coords(2);
-handles.project.targets{l}.targetIn.z=coords(3);
-
-%handles.project.targets(l).frameDown = handles.project.targets(l).coordinates(handles.project.targets(l).n,3) < 0; %handles.project.targets(l).targetIn.z < 0;
-
-
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    % execute code for R2014b or later
-    coords=round(coords,3,'significant');
-end
-
-set(handles.TargetInXedit,'String',num2str(coords(1)));
-set(handles.TargetInYedit,'String',num2str(coords(2)));
-set(handles.TargetInZedit,'String',num2str(coords(3)));
-
-handles=updateTarget(handles);
-handles.ui.updatePlots.views2D=[1 1 1];
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-
-handles=updateTAC(handles);
-handles=updateElectrodes3D(handles);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes on button press in TargetOutpushbutton.
-function TargetOutpushbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to TargetOutpushbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.project.T1)
-    warning ('First Load MRI image. Click New button or open existing project.')
-    return
-end
-
-if isempty(handles.project.targets)
-    warning('First create a new target')
-    return;
-end
-[d1,d2]=ginput(1);
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    % execute code for R2014b or later
+if roundClick && ~verLessThan('matlab','8.4.0')
     d1=round(d1,3,'significant');
     d2=round(d2,3,'significant');
 end
 
-G=gca;
-% X-view
-if G == handles.axesX %get(handles.radiobuttonX,'Value')
-    x=get(handles.sliderX,'Value');
-    y=d1;
-    z=d2;
-    set(handles.sliderY,'Value',d1);
-    set(handles.sliderZ,'Value',d2);
-    
-    % Y-view
-elseif G == handles.axesY %get(handles.radiobuttonY,'Value')
-    x=d1;
-    y=get(handles.sliderY,'Value');
-    z=d2;
-    set(handles.sliderX,'Value',d1);
-    set(handles.sliderZ,'Value',d2);
-    
-    % Z-view
-elseif G == handles.axesZ % get(handles.radiobuttonZ,'Value')
-    x=d1;
-    y=d2;
-    z=get(handles.sliderZ,'Value');
-    set(handles.sliderX,'Value',d1);
-    set(handles.sliderY,'Value',d2);
-else
+% which view was clicked, and which sliders it therefore moves
+planeAxes   = [handles.axesX handles.axesY handles.axesZ];
+planeSlider = {handles.sliderX, handles.sliderY, handles.sliderZ};
+
+plane = find(gca == planeAxes, 1);
+if isempty(plane)
     warning('you must click inside one off the three 2D plane views')
     return;
 end
 
+inPlane = setdiff(1:3, plane);
+set(planeSlider{inPlane(1)}, 'Value', d1);
+set(planeSlider{inPlane(2)}, 'Value', d2);
+
+voxel = voxelFromPlaneClick(plane, get(planeSlider{plane},'Value'), [d1 d2]);
+
 % set target coordinates
 % define anatomical coords
-coords=mesh2AnatSpace([x y z], handles.project.S2);
+coords=mesh2AnatSpace(voxel, handles.project.S2);
 
 l=selectedPlanningArray(handles);
-handles.project.targets{l}.targetOut.x=coords(1);
-handles.project.targets{l}.targetOut.y=coords(2);
-handles.project.targets{l}.targetOut.z=coords(3);
+handles.project.targets{l}.(pointField).x=coords(1);
+handles.project.targets{l}.(pointField).y=coords(2);
+handles.project.targets{l}.(pointField).z=coords(3);
 
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    % execute code for R2014b or later
-   coords=round(coords,3,'significant');
+if ~verLessThan('matlab','8.4.0')
+    coords=round(coords,3,'significant');
 end
-set(handles.TargetOutXedit,'String',num2str(coords(1)));
-set(handles.TargetOutYedit,'String',num2str(coords(2)));
-set(handles.TargetOutZedit,'String',num2str(coords(3)));
+
+for k = 1:3
+    set(handles.(boxes{k}), 'String', num2str(coords(k)));
+end
 
 handles=updateTarget(handles);
 handles.ui.updatePlots.views2D=[1 1 1];
 handles.ui.updatePlots.targets=1;
 handles.ui.updatePlots.targetLines=1;
+
 handles=updateTAC(handles);
 handles=updateElectrodes3D(handles);
 
-% Update handles structure
-guidata(hObject, handles);
 
-%--------------------------------------------------------------------
-%%%%%%%%%%%%%% change target locations editing coordinates  %%%%%%%%%%%%%%%
 function TargetInXedit_Callback(hObject, eventdata, handles)
 % hObject    handle to TargetInXedit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB

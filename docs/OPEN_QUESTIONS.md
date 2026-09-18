@@ -483,3 +483,42 @@ have to ask. Not raised with Alejandro yet.
 `Projection Method` and `Anatomical Label`. BIDS allows extra columns, but
 names with spaces are awkward to read back, and BIDS already defines an
 optional `type` column that `Electrode Type` duplicates.
+
+---
+
+## 13. Target and Entry P treat the click differently
+
+**Where:** `setPlanningPoint` in `electrodes_gui.m`, called by
+`TargetInpushbutton_Callback` and `TargetOutpushbutton_Callback`
+
+The two buttons let the user click one end of a planning depth electrode in a
+2-D view. They were written out separately, about eighty lines each, and one
+difference survived between them:
+
+```matlab
+[d1,d2]=ginput(1);
+
+% Entry P only:
+d1=round(d1,3,'significant');
+d2=round(d2,3,'significant');
+```
+
+`Entry P` rounds the clicked position to three significant digits before
+using it; `Target` uses it as clicked. In a 256-voxel image three significant
+digits is roughly voxel precision, so the entry point snaps to a voxel and
+the target point does not.
+
+Both then round the ANATOMICAL coordinates to three significant digits before
+writing them into the edit boxes, so the difference is not visible in the
+boxes - only in the sliders and in what is stored.
+
+The two callbacks are now one function and the difference is a flag in it,
+kept rather than settled.
+
+**Decision needed:** should both round, or neither? Rounding to a voxel is
+defensible - the user cannot click more precisely than a voxel anyway - but
+doing it to one end of the electrode and not the other is hard to defend
+either way.
+
+**Status:** preserved. Present in v1.020, not introduced by the
+restructuring.
