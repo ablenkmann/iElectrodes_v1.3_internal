@@ -298,16 +298,28 @@ load([pathBase 'MatCT2MR.mat'], 'MatCT2MR')   % pathBase is never defined
 
 So it is not merely disabled - it is unfinished.
 
-**Decision needed:** is this work in progress that should be completed, or
-an abandoned attempt that should be removed? It was left in place, because
-deleting someone's unfinished feature is not a call the restructuring
-should make. Either answer is easy to act on; leaving it as it is, is what
-costs - 115 lines that look like behaviour and are not.
+**Status: REMOVED.** Alejandro: "Delete".
 
-Worth noting alongside: with this code inert, iElectrodes offers no way to
-coregister a CT that is not already aligned with the MRI. Users have to do
-it in SPM or elsewhere first. If that is the intended workflow, saying so
-in the documentation would help more than the dead code does.
+Checked before deleting, because removing a block that size on a reading of
+the code alone is not something to do lightly:
+
+- `choice` is assigned exactly once in that function, to the literal `'No'`.
+  Every other `choice =` in the file is a local variable in a different
+  function.
+- `coregDlg` and `angle_tra2rmat`, both called inside the branch, do not
+  exist anywhere in the toolbox - not in `app/`, `extras/`, `legacy/`,
+  `src/` or the repository root.
+- `fileCT` and `pathBase` are used in the branch and assigned nowhere.
+
+So the branch could not have run even if `choice` had been `'Yes'`. 128 lines
+went, and `LoadCTtool_ClickedCallback` is now 72 lines instead of 193. The
+history keeps it: `git log -S "spm_coreg" -- electrodes_gui.m` finds the
+commit that removed it.
+
+**What the user is left with,** and it is now said in the callback: the CT
+must already be coregistered to the MRI, done in SPM or elsewhere first.
+That was already true - the code that claimed otherwise never ran - but
+nothing said so. Worth putting in the user documentation as well.
 
 
 ---
