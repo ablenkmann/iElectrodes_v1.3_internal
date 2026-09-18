@@ -43,9 +43,15 @@ pushes the targets outside the MNI volume, which is exactly what the warning
 reports. So this is not only visible in the source - it fires on the example
 project that ships with the toolbox.
 
-**Status:** deliberately left unfixed. The extraction was kept
-behaviour-preserving on purpose; the fix belongs in its own commit so its
-effect can be measured separately.
+**Status: FIXED.** Alejandro approved it - "seems strange because it worked
+as it should. Fix it then". The reason it looked as though it worked is that
+native-space labelling uses `[x y z]` correctly; only the MNI path was
+affected, and planning targets are rarely labelled in MNI space. The run-time
+warning above is the evidence that it was not working.
+
+Labels reported for planning targets in MNI space by 1.020 and earlier are
+wrong. `tests/test_labelingMNI.m` now requires the targets to come back with
+labels, which they could not do before.
 
 ---
 
@@ -71,7 +77,17 @@ probably never been hit in practice.
 **Decision needed:** confirm it should read `prj.targets{l}.projection`, and
 whether that same `else` branch is worth keeping at all.
 
-**Status:** left unfixed, same reasoning as above.
+**Status: FIXED.** Alejandro: "this is an error that needs to be fixed".
+
+A second fault in the same three lines turned up while fixing it: the label
+count came from `prj.targets{l}.ntargets`, and `ntargets` is not assigned
+anywhere in the toolbox - it appears exactly once, here. So the branch had two
+ways to fail, which is consistent with it never having run. It now reads
+`nElectrodes`, like every other array does.
+
+`tests/test_labelingWithoutAtlas.m` runs the branch on a project with its
+parcellation removed, which is the ordinary state of a project before the
+FreeSurfer output is loaded.
 
 ---
 
@@ -177,12 +193,18 @@ brushCrd = [];
 weight   = [];
 ```
 
-**Decision needed:** confirm this is simply an oversight. It is a behaviour
-change - the user would see a warning instead of an error - so, like the two
-labelling bugs above, it has been left for a separate dedicated commit.
+**Status: FIXED.** Alejandro: "a warning seems better". Both outputs are now
+assigned at the top of the function, so the three guards warn and return as
+they were written to.
 
-**Status:** left unfixed. Present in v1.020, not introduced by the
-restructuring.
+**One more thing turned up when it was tested.** This entry used to claim that
+both callers already test `isempty(brushCrd)`. Only `Fitpushbutton_Callback`
+does. `ClusterButton_Callback` went straight on to the clustering, and the
+missing-output error had been what stopped it. With the outputs assigned,
+pressing `Clus` with nothing selected warned and then failed inside
+`kmedoids` with "X must have more rows than the number of clusters". The same
+guard Fit already had is now in Clus, so both buttons print the same line and
+return.
 
 ---
 

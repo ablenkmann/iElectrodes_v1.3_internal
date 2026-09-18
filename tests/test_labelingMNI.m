@@ -24,6 +24,8 @@ function ok = test_labelingMNI()
 %                                project's coordinates are not in MNI space
 %     'labels differ'            the labelling changed against what the
 %                                project file already holds
+%     'targets ... get labels'   the planning-target coordinate is wrong
+%                                again; it was [x y y] until this was fixed
 %
 %   Usage:  cd into the repository, then
 %              test_labelingMNI
@@ -120,8 +122,6 @@ end
 
 %% the whole function, the way the GUI calls it
 fprintf('\n--- labelElectrodesMNI on the whole project ------------------\n');
-fprintf('   (the planning targets are looked up at [x y y] - a known bug\n');
-fprintf('    in v1.020, preserved on purpose; see labelElectrodesMNI.m)\n');
 
 prj.MNI_S_matrix = S;
 prj.MNIlabels    = labels;
@@ -143,6 +143,24 @@ end
 nFail = nFail + check(withLabels == numel(labelled.electrodes) || ~anyLabelled, ...
     'every electrode array carries labels', ...
     sprintf('%d of %d', withLabels, numel(labelled.electrodes)));
+
+% The planning targets used to be looked up at [x y y] instead of [x y z],
+% which pushed them outside the atlas and returned empty labels. Now that the
+% coordinate is right, a target that sits inside the brain must come back with
+% something - so this check would have failed before the fix.
+if ~isempty(prj.targets)
+    fprintf('\n--- planning targets, at [x y z] ------------------------------\n');
+    labelledTargets = 0;
+    for l = 1:numel(labelled.targets)
+        t = labelled.targets{l};
+        if isfield(t,'aLabels') && iscell(t.aLabels) && ~isempty(t.aLabels)
+            labelledTargets = labelledTargets + 1;
+        end
+    end
+    nFail = nFail + check(labelledTargets > 0, ...
+        'the targets are inside the atlas and get labels', ...
+        sprintf('%d of %d arrays', labelledTargets, numel(labelled.targets)));
+end
 
 fprintf('\n');
 ok = (nFail == 0);

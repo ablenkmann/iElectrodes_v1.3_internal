@@ -23,11 +23,11 @@ function prj = labelElectrodesMNI(prj)
 %   Extracted verbatim from labels2MNIspace in electrodes_gui.m (v1.020)
 %   during the iElectrodes 2 restructuring - the logic below is unchanged.
 %
-%   KNOWN ISSUE (present in v1.020, deliberately preserved here so that the
-%   extraction stays behaviour-preserving): in the planning-targets loop the
-%   position is built as [x y y] instead of [x y z], so targets are looked up
-%   at the wrong 3-D coordinate. Fix this in a separate, dedicated commit so
-%   its effect can be measured on its own.
+%   FIXED HERE, not in v1.020: the planning-targets loop built its position
+%   as [x y y] instead of [x y z], so every planning target was looked up at
+%   the wrong voxel unless y happened to equal z. Labels reported for planning
+%   targets in MNI space by 1.020 and earlier are therefore wrong, and any
+%   report already produced from such a project carries those values.
 %
 %   See also ANATOMICLABEL, LABELELECTRODESNATIVE, CHECKPROJECTSTRUCTURE.
 
@@ -55,7 +55,7 @@ end
 if ~isempty(prj.targets)
     L=length(prj.targets);
     for l=1:L
-        pos=[prj.targets{l}.x prj.targets{l}.y prj.targets{l}.y];
+        pos=[prj.targets{l}.x prj.targets{l}.y prj.targets{l}.z];
 %        prj.targets(l).aLabels=anatomicLabel(pos,prj.MNI_S_matrix,prj.MNIlabels,prj.MNIprob);
         [prj.targets{l}.aLabels,prj.targets{l}.validAnatLabels,prj.targets{l}.anatInd]=...
             anatomicLabel(pos,prj.MNI_S_matrix,prj.MNIlabels,prj.MNIprob);

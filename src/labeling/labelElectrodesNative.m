@@ -115,8 +115,8 @@ if ~isempty(prj.targets)
             prj.targets{l}.validAnatLabels={};
             prj.targets{l}.anatInd=[];
 %             if isfield(prj.targets{l},'projection') && ~isempty(prj.targets{l}.projection.x)
-            for p=1:length(prj.electrodes{l}.projection)    
-                prj.targets{l}.projection{p}.aLabels=repmat({'no atlas loaded'},prj.targets{l}.ntargets,1);
+            for p=1:length(prj.targets{l}.projection)
+                prj.targets{l}.projection{p}.aLabels=repmat({'no atlas loaded'},prj.targets{l}.nElectrodes,1);
                 prj.targets{l}.projection{p}.validAnatLabels={};
                 prj.targets{l}.projection{p}.anatInd=[];
             end

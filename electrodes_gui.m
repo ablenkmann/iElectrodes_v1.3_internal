@@ -3226,6 +3226,11 @@ function ClusterButton_Callback(hObject, eventdata, handles)
 % get coordinates and weights
 [brushCrd,weight]=getThresholdedVoxels(handles);
 
+if isempty(brushCrd)
+    disp('You must select some voxels first');
+    return;
+end
+
 nClus=str2double( get(handles.clusNElecEdit,'String'));
 
 [GS,clusters,weight,quality] = clusterContacts(brushCrd,weight,nClus);
@@ -3445,6 +3450,14 @@ guidata(hObject, handles);
 function [brushCrd,weight]=getThresholdedVoxels(handles)
 % get coordinates and weight of the thresholded voxels in the 3D
 % view. Method called by cluser and fit algorithms
+%
+% Both outputs are assigned up front so that the three "nothing selected"
+% branches below can warn and return. Without that, the warning was followed
+% by "Output argument brushCrd not assigned", and pressing Clus or Fit with
+% no selection looked like a crash. Both callers already test isempty.
+
+brushCrd = [];
+weight   = [];
 
 % do to incompatible access to brushed data in different matlab versions
 if verLessThan('matlab','8.4.0')
