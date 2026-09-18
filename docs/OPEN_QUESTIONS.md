@@ -522,3 +522,88 @@ either way.
 
 **Status:** preserved. Present in v1.020, not introduced by the
 restructuring.
+
+---
+
+## 14. `my_quatrotate` takes one vector, but every caller passes a whole electrode
+
+**Where:** `src/geometry/my_quatrotate.m`, called from `gridMatchEnergy.m`
+(twice), `distanceConstrain.m` and `gridFit.m`
+
+Fitting a depth electrode fails before it starts:
+
+```
+Error using my_quatrotate
+Input vector must be a 3-element vector [x, y, z].
+
+Error in gridMatchEnergy (line 73)
+    pos=my_quatrotate(q,options.posIdeal+t);
+...
+Caused by:
+    Failure in initial objective function evaluation. FMINCON cannot continue.
+```
+
+`my_quatrotate` is a stand-in for the Aerospace Toolbox function
+`quatrotate`. In v1.020 all four call sites used `quatrotate`; in this
+version each one is commented out with the stand-in beneath it:
+
+```matlab
+%    pos=quatrotate(q,options.posIdeal+t);
+    pos=my_quatrotate(q,options.posIdeal+t);
+```
+
+`quatrotate` takes an M-by-3 array and rotates every row. The stand-in
+begins
+
+```matlab
+if numel(vector) ~= 3
+    error('Input vector must be a 3-element vector [x, y, z].');
+end
+```
+
+so it takes one vector and nothing else. What the callers pass is
+`posIdeal + t`, and `posIdeal` is `zeros(rows*cols,3)` - the ideal positions
+of the whole electrode, one contact per row. For an 8-contact depth
+electrode that is an 8-by-3 array, so the guard fires immediately.
+
+The consequence is not subtle. `1D_fix` is the default second minimization
+for depth electrodes:
+
+```matlab
+options.gridFit_depth.minDef2.model = '1D_fix';
+```
+
+and `1D_fix` is the only model that rotates. So **no depth electrode can be
+fitted with GridFit in this version at all**. The first minimization
+completes, the second one dies on its first function evaluation. Grids and
+strips use the `3D` model, never reach these lines, and are unaffected -
+which is presumably why it went unnoticed.
+
+The rotation matrix inside the stand-in is the one `quatrotate` documents,
+so a single vector already gives the right answer. Only the shape handling
+is missing.
+
+```matlab
+if numel(vector) == 3
+    rotated_vector = rotation_matrix * vector(:);
+    rotated_vector = reshape(rotated_vector,size(vector));
+elseif ismatrix(vector) && size(vector,2) == 3
+    rotated_vector = vector * rotation_matrix';   % (R*v')' for every row
+else
+    error('my_quatrotate:badVector', ...);
+end
+```
+
+`tests/test_my_quatrotate.m` checks that rotating an M-by-3 array gives the
+same answer as rotating its rows one at a time, that contact spacing survives
+the rotation, and that a single vector still behaves exactly as before.
+
+**Decision needed:** none about *what* the answer should be - the line this
+stand-in replaced says it. But the replacement itself is recent and not ours,
+so Alejandro should know it shipped in a state where depth fitting could not
+run, in case there is a newer version of the file somewhere that already
+fixes this.
+
+**Status: FIXED, pending confirmation.** Not present in v1.020, which called
+`quatrotate` and needed the Aerospace Toolbox. Introduced by whoever replaced
+it; not by the restructuring.
