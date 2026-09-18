@@ -3284,43 +3284,9 @@ tic;
 disp(['GridFit algorithm finished in ' num2str(toc) ' seconds']);
 
 
-% Define new and empty electrode structure
-electrodes=checkElectrodeStructure();
-electrodes=electrodes{1}; %convert to structure
-
-switch type
-    case 'grid'
-        electrodes.Type='grid';
-    case  'strip'
-        electrodes.Type='strip';
-    case 'depth'
-        electrodes.Type='depth';
-end
-
-electrodes.Name = electrodes.Type; %elecBaseName;
-electrodes.nElectrodes = rows * cols;
-electrodes.rows=rows;
-electrodes.columns=cols;
-
-electrodes.x=pos(:,1);
-electrodes.y=pos(:,2);
-electrodes.z=pos(:,3);
-
-%index in ch labels
-for i=1:(rows*cols)
-    electrodes.ch_label{i}=int2str(i);%[elecBaseName int2str(i)];
-end
-
-% include in electrodes structure
-electrodes.clusters=clusters; 
-electrodes.brushCrd=clusteredCrd;
-electrodes.brushWeight=clusteredWeight;
-electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
-electrodes.method = 'grid_fit';
-electrodes.methodParameters = options; % store gridFit configuration parameters
-
-% make adjacency Matrix
-electrodes.adjMat=makeAdjMat(electrodes.rows,electrodes.columns);
+% Turn the fit into an electrode array structure
+electrodes = electrodeFromGridFit(pos, clusteredCrd, clusteredWeight, clusters, ...
+                                  type, rows, cols, handles.project.currentSpace, options);
 
 
 % add new electrode to handles
