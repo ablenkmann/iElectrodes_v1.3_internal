@@ -4626,15 +4626,33 @@ function PlanningSelectionGroup_SelectionChangedFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 if get(handles.DepthPlanningButton,'Value') % deepth electrode selected
+    showPlanningPanel(handles, 'depth');
+else
+    showPlanningPanel(handles, 'grid');
+end
 
+
+% --- Show the Simulate panel for one kind of planning array.
+% Called both when the user moves the radio pair and when UpdateTargetEditBox
+% follows the selected array, so the two cannot drift apart. Setting
+% SelectedObject does not fire SelectionChangedFcn, which is why this sets
+% the panel visibility itself.
+function showPlanningPanel(handles, arrayType)
+isDepth = strcmp(arrayType, 'depth');
+
+if isDepth
+    set(handles.PlanningSelectionGroup, 'SelectedObject', handles.DepthPlanningButton);
+else
+    set(handles.PlanningSelectionGroup, 'SelectedObject', handles.GridPlanningButton);
+end
+
+if isDepth
     set(handles.PanelPlanningDepths,'Visible','on')
     set(handles.PanelPlanningGrids,'Visible','off')
-
 else
-
     set(handles.PanelPlanningDepths,'Visible','off')
     set(handles.PanelPlanningGrids,'Visible','on')
-end    
+end
 
 
 %%%%%%%%%%%%%%%        new target definition               %%%%%%%%%%%%%%%
@@ -5408,6 +5426,11 @@ function handles = UpdateTargetEditBox(handles)
 % must keep the returned struct, or that work is computed and thrown away.
 
 l=selectedPlanningArray(handles);
+
+% the panel follows the array, rather than staying wherever the user last
+% left the radio pair
+showPlanningPanel(handles, handles.project.targets{l}.Type);
+
 set(handles.editPlanningArrayName,'String',handles.project.targets{l}.Name);
 set(handles.nTargetEdit,'String',num2str(handles.project.targets{l}.nElectrodes));
 handles = setSelectedPlanningTarget(handles, 1);
@@ -5425,12 +5448,13 @@ set(handles.editPlanningElecLabel,'string',handles.project.targets{l}.ch_label{1
 % project holding a planning GRID - which is every project made with the
 % New button in Grids mode.
 %
-% The grid case is NOT implemented here. The panel has a Grids mode with
-% its own rows, columns and distance boxes, and deciding what this
-% function should put in them is a design question for the toolbox author,
-% not something this restructuring should settle. Until then the depth
-% boxes are cleared rather than left showing another array's numbers.
-% See docs/OPEN_QUESTIONS.md, item 8.
+% A planning GRID is now handled too: Alejandro asked for grids to be
+% accepted, so the Grids boxes are filled from the array's own rows,
+% columns and distance, and the panel switches to Grids mode above. Its
+% hemisphere and rotation have no boxes to fill.
+%
+% Either way the boxes belonging to the other mode are cleared, so that
+% they cannot be read as describing the array that is now selected.
 if strcmp(handles.project.targets{l}.Type, 'depth')
 
     set(handles.FirstSecondTargetedit,'String',num2str(handles.project.targets{l}.FirstSecond));
@@ -5533,16 +5557,38 @@ if strcmp(handles.project.targets{l}.Type, 'depth')
     set(handles.AlphaAngleEdit,'string', num2str(alpha));
     set(handles.BetaAngleEdit,'string', num2str(beta));
 
+    clearPlanningBoxes(handles, 'grid');   % the other mode's boxes
+
+elseif strcmp(handles.project.targets{l}.Type, 'grid')
+
+    set(handles.rowsPlanningGridEdit,    'String', num2str(handles.project.targets{l}.rows));
+    set(handles.columnsPlanningGridEdit, 'String', num2str(handles.project.targets{l}.columns));
+    set(handles.distancePlanningGridEdit,'String', num2str(handles.project.targets{l}.distance));
+
+    clearPlanningBoxes(handles, 'depth');  % the other mode's boxes
+
 else
-    % Not a depth array: clear the depth boxes so they cannot be read as
-    % belonging to the array that is now selected.
-    for thisBox = {'FirstSecondTargetedit','SecondLastTargetEdit', ...
-                   'TargetInXedit','TargetInYedit','TargetInZedit', ...
-                   'TargetOutXedit','TargetOutYedit','TargetOutZedit', ...
-                   'AzimuthTargetedit','ElevacionTargetedit', ...
-                   'AlphaAngleEdit','BetaAngleEdit'}
-        set(handles.(thisBox{1}), 'String', '');
-    end
+    % neither: leave nothing behind that could be read as this array's
+    clearPlanningBoxes(handles, 'depth');
+    clearPlanningBoxes(handles, 'grid');
+end
+
+
+% --- Empty the boxes of one Simulate mode.
+function clearPlanningBoxes(handles, mode)
+switch mode
+    case 'depth'
+        boxes = {'FirstSecondTargetedit','SecondLastTargetEdit', ...
+                 'TargetInXedit','TargetInYedit','TargetInZedit', ...
+                 'TargetOutXedit','TargetOutYedit','TargetOutZedit', ...
+                 'AzimuthTargetedit','ElevacionTargetedit', ...
+                 'AlphaAngleEdit','BetaAngleEdit'};
+    case 'grid'
+        boxes = {'rowsPlanningGridEdit','columnsPlanningGridEdit', ...
+                 'distancePlanningGridEdit'};
+end
+for k = 1:numel(boxes)
+    set(handles.(boxes{k}), 'String', '');
 end
 
 
@@ -6283,10 +6329,9 @@ if l < length(handles.project.targets)
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editPlanningArrayName,'String',handles.project.targets{l+1}.Name);
-    set(handles.editPlanningElecLabel,'string', handles.project.targets{l+1}.ch_label{a});
-
-    
+    % refresh the whole Simulate panel, not just the two name boxes: it
+    % has to describe the array that is now selected
+    handles = UpdateTargetEditBox(handles);
 end
 
 % Update handles structure
@@ -6332,8 +6377,9 @@ if l>1
     handles=updateElectrodes3D(handles);
     handles=updateTAC(handles);
     
-    set(handles.editPlanningArrayName,'String',handles.project.targets{l-1}.Name);
-    set(handles.editPlanningElecLabel,'string', handles.project.targets{l-1}.ch_label{a});
+    % refresh the whole Simulate panel, not just the two name boxes: it
+    % has to describe the array that is now selected
+    handles = UpdateTargetEditBox(handles);
 end
 
 % Update handles structure

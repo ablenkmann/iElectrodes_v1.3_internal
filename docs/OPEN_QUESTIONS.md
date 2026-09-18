@@ -249,12 +249,34 @@ stays wherever the user last left it, so a grid array can be displayed with
 `Depths` selected. Same cause - nothing in the refresh path knows the
 array's type.
 
-**Decision needed:** what should the panel show when a planning GRID is
-selected? The panel has a Grids mode with its own rows, columns and
-distance boxes, and the array carries `rows`, `columns`, `distance`,
-`hemisphere` and `rotation`. Filling those in, and moving the radio pair to
-match the array, is the obvious answer - but it is a design choice about
-the interface, so it was deliberately left out of the restructuring.
+**Status: DONE.** Alejandro: "Grids should be accepted to."
+
+The Grids boxes are filled from the array's own `rows`, `columns` and
+`distance`, and the radio pair now follows the selected array instead of
+staying wherever the user last left it. Its `hemisphere` and `rotation` have
+no boxes in the panel, so there is nothing to show for them.
+
+Whichever mode is not the array's has its boxes cleared, so that numbers left
+over from a previously selected array cannot be read as belonging to this
+one.
+
+The radio and the panel visibility are now set in one place,
+`showPlanningPanel`, called both from the radio pair's own callback and from
+`UpdateTargetEditBox`. Setting `SelectedObject` programmatically does not
+fire `SelectionChangedFcn`, so the visibility has to be set alongside it -
+which is exactly the kind of thing that drifts apart when it is written
+twice.
+
+**One more thing turned up while checking it by hand.** The `+` and `-`
+buttons that walk through the planning arrays never called
+`UpdateTargetEditBox` at all - they set the array name and the contact label
+and nothing else. So the Simulate panel kept describing whatever was last
+loaded, whichever array was selected, for depth arrays as much as for grids.
+`Load simulated coordinates` was its only live caller.
+
+Both buttons now refresh the panel, which is what makes any of the above
+visible while working. The two `set` calls they used to make are gone:
+`UpdateTargetEditBox` sets those same two boxes itself.
 
 **Two smaller faults fixed in the same path, both from the same redesign:**
 
