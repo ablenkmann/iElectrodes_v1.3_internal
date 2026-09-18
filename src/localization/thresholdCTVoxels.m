@@ -16,7 +16,10 @@ function [coordinates, values] = thresholdCTVoxels(CT, mask, S2, opt)
 %     .excludeCoordinates  anatomical coordinates already assigned to
 %                          electrodes, to be left out; [] for none
 %     .maxCount            plot at most this many, chosen at random; inf
-%                          for no limit
+%                          for no limit. The GUI passes
+%                          ui.options.scatter3D_elem_limit - how many points
+%                          are drawn is a display setting, not a scientific
+%                          one
 %
 %   The denoising is a morphological opening - erode, then dilate with the
 %   same cube. It removes specks smaller than the kernel while leaving
@@ -62,7 +65,7 @@ end
 if isfield(opt,'maxCount') && numel(ind) > opt.maxCount
     warning([num2str(numel(ind)) ' voxels thresholded. Only a random selection of ' ...
              num2str(opt.maxCount) ' voxels are plotted']);
-    disp('The limit value can be changed in src/project/default_ielectrodes_options.m')
+    disp('The limit value can be changed in app/config/defaultDisplayOptions.m')
     ind = ind(randperm(numel(ind), opt.maxCount));
 end
 

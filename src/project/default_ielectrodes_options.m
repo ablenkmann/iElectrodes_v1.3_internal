@@ -1,5 +1,18 @@
 function options=default_ielectrodes_options(options)
-% default options for iElectrodes processing
+% Scientific settings for iElectrodes processing.
+%
+% These decide what is computed: image resolution, the GridFit parameters,
+% how contacts are indexed, how surfaces are built and projected to, and how
+% anatomical labels are looked up. A result cannot be reproduced without
+% them, which is why they are recorded with the result that used them.
+%
+% They go to handles.work.options.
+%
+% What does NOT belong here: settings that only change what is shown. Those
+% are in app/config/defaultDisplayOptions.m, and colours in
+% app/config/defaultColors.m. Alejandro drew the line: "Non-scientific are
+% colours, default layout, and visualization options. Scientific are the
+% rest."
 
 if nargin<1
     options=[];
@@ -11,11 +24,6 @@ end
 if ~isfield(options, 'image_voxdim')
     options.image_voxdim=[0.5 0.5 0.5]; %Force spatial resolution for images.
 %     options.image_voxdim=[NaN NaN NaN]; %use original images spatial resolution for the MR. CT will be resliced to MR resolution 
-end
-
-% Number of elements in the scatter 3D plot (thresholded view)
-if ~isfield(options, 'scatter3D_elem_limit')
-    options.scatter3D_elem_limit=50000;
 end
 
 % Number of elements to reduce mesh surfaces (pial, SCE)
@@ -254,15 +262,6 @@ if ~isfield(options, 'atlasLabelingMinProb')
 
 end
 
-%% layout
-
-if ~isfield (options, 'showLocalizeTools') 
-    options.showLocalizeTools=true; 
-end
-
-if ~isfield (options, 'showPlanTools')
-    options.showPlanTools=true;
-end
 
 if ~isfield (options, 'atlasLUTFile') % atlas LUT file. If you change the LUT file, load the atlas again.
 %    Files should contain - values integer      Nx1     values present in the atlas file 

@@ -169,9 +169,11 @@ handles=liftToProject(handles);   % patient data     -> handles.project
 handles=liftToWork(handles);      % work in progress -> handles.work
 handles=liftToUi(handles);        % colour caches    -> handles.ui
 
-% load default options
+% load default options: the scientific ones into work, the ones that only
+% change what is shown into ui
 options=[];
-handles.options=default_ielectrodes_options(options);
+handles.work.options = default_ielectrodes_options(options);
+handles.ui.options   = defaultDisplayOptions([]);
 
 colors=[];
 handles.ui.colors=defaultColors(colors);
@@ -180,12 +182,12 @@ handles.ui.colors=defaultColors(colors);
 handles=defaultGuiVariables(handles);
 
 % layout 
-if ~handles.options.showLocalizeTools
+if ~handles.ui.options.showLocalizeTools
     set(handles.PanelClustering,'Visible','off');
     set(handles.PanelLabel,'Visible','off');
 end
 
-if ~handles.options.showPlanTools    
+if ~handles.ui.options.showPlanTools    
     set(handles.PanelPlanningDepths,'Visible','off');
 end
 
@@ -416,7 +418,7 @@ end
 if T1file ~=0
         
 %    [T1,S2,T1file]=loading_images(PathName,T1file);
-    [T1]=loading_images_SPM(PathName,T1file,4,handles.options.image_voxdim); %interpolation = 4
+    [T1]=loading_images_SPM(PathName,T1file,4,handles.work.options.image_voxdim); %interpolation = 4
     disp (['Loaded MRI from ' PathName, T1file])
 
     handles=defaultGuiVariables(handles);
@@ -1005,7 +1007,7 @@ if ~isequal(wmparcFile,0)
         loadParcellation(PathName, wmparcFile, handles.project.T1);
 
     handles.ui.wmparcColors = ...
-        parcellationColours(handles.project.wmparc.img, handles.options.atlasLUTFile);
+        parcellationColours(handles.project.wmparc.img, handles.work.options.atlasLUTFile);
     
     
 %    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);
@@ -1112,7 +1114,7 @@ function handles=labels2NativeSpace(handles)
 % data including the wmparc parcellation, while the labelling options are
 % session settings that still live flat on handles.
 prj         = handles.project;
-prj.options = handles.options;
+prj.options = handles.work.options;
 
 prj = labelElectrodesNative(prj);
 
@@ -1174,7 +1176,7 @@ switch choice
 end
 
 %reduce to 15k vertices for nice resolution and speed plots
-% k = handles.options.reduce_surfaces_elements / length(vR);
+% k = handles.work.options.reduce_surfaces_elements / length(vR);
 % if k< 1
 %     try
 %         [handles.project.verticesR,handles.project.facesR]=meshresample(vR,fR,k);
@@ -1366,8 +1368,8 @@ switch type
     case 'Build'
         
         % compute SCE
-        [vL,fL] = buildSCE(handles.project.verticesL,handles.project.facesL,handles.options);
-        [vR,fR] = buildSCE(handles.project.verticesR,handles.project.facesR,handles.options);
+        [vL,fL] = buildSCE(handles.project.verticesL,handles.project.facesL,handles.work.options);
+        [vR,fR] = buildSCE(handles.project.verticesR,handles.project.facesR,handles.work.options);
         
         %reduce to 15k vertices for nice resolution and speed plots
         [vR,fR,vL,fL] = resampleSurfacePair(vR,fR,vL,fL,15000);
@@ -1582,14 +1584,14 @@ else
     handles.ui.layout=0;
     set(handles.Panel3D,'Position', [0.001 0.5 0.437 0.499]);
     set(handles.PanelThres,'Visible','on');
-    if  handles.options.showLocalizeTools 
+    if  handles.ui.options.showLocalizeTools 
         set(handles.PanelClustering,'Visible','on');
         set(handles.PanelLabel,'Visible','on');
     else
         set(handles.PanelClustering,'Visible','off');
         set(handles.PanelLabel,'Visible','off');
     end
-    if handles.options.showPlanTools
+    if handles.ui.options.showPlanTools
          set(handles.PanelPlanningDepths,'Visible','on'); % 
     else
         set(handles.PanelPlanningDepths,'Visible','off');
@@ -1706,8 +1708,10 @@ function Configpushtool_ClickedCallback(hObject, eventdata, handles)
 
 % Reload configuration from file
 options=[];
-handles.options=default_ielectrodes_options(options);
+handles.work.options = default_ielectrodes_options(options);
+handles.ui.options   = defaultDisplayOptions([]);
 disp('Default_ielectrodes_options.m loaded')
+disp('DefaultDisplayOptions loaded')
 
 colors=[];
 handles.ui.colors=defaultColors(colors);
@@ -1912,11 +1916,11 @@ if strcmp(handles.project.currentSpace, 'MNI')    %strcmp (get(handles.MNILabels
     aL=anatomicLabel(handles.ui.cursor,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
     set(handles.aLabelText,'String',aL);
 elseif ~isempty(handles.project.wmparc) % Native space
-    opt.radio=handles.options.atlasLabelingRadio;
-    opt.mode=handles.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities
-    opt.minProb=handles.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob'
+    opt.radio=handles.work.options.atlasLabelingRadio;
+    opt.mode=handles.work.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities
+    opt.minProb=handles.work.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob'
 
-    aL=anatomicLabelFS(handles.ui.cursor,[],handles.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
+    aL=anatomicLabelFS(handles.ui.cursor,[],handles.work.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
     %aL=anatomicLabelFS(handles.ui.cursor, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
     
     set(handles.aLabelText,'String',aL);
@@ -2065,7 +2069,7 @@ end
                 color=handles.ui.colors.cylColorDepth;
             end
             handles.ui.plot3Dhandles.elecLines{j}=plotElectrodesLines(X,handles.project.electrodes{j}.rows,handles.project.electrodes{j}.columns,color);
-%            set(handles.ui.plot3Dhandles.elecLines{j},'FaceAlpha',handles.options.cylAlpha);
+%            set(handles.ui.plot3Dhandles.elecLines{j},'FaceAlpha',handles.ui.colors.cylAlpha);
         end
     end
      handles.ui.updatePlots.elecLines = 0;       
@@ -2616,7 +2620,7 @@ else
     opt.lowThreshold  = get(handles.sliderThrMin,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
     opt.highThreshold = get(handles.sliderThrMax,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
     opt.denoiseKernel = round(get(handles.denoiseSlider, 'value'));
-    opt.maxCount      = handles.options.scatter3D_elem_limit;
+    opt.maxCount      = handles.ui.options.scatter3D_elem_limit;
 
     % Remove already localized voxels
     opt.excludeCoordinates = [];
@@ -3183,7 +3187,7 @@ switch type
             fixM1 = str2num(dimText{3}); %inter-electrode distance
             overlap = str2num(dimText{4}); %overlap 0/1
         end
-        options=handles.options.gridFit_grids;
+        options=handles.work.options.gridFit_grids;
         
     case 'strip'
         set(handles.GridButton,'value',true);        
@@ -3199,7 +3203,7 @@ switch type
             fixM1 = str2num(dimText{2}); %inter-electrode distance
             overlap = str2num(dimText{3}); %overlap 0/1
         end
-        options=handles.options.gridFit_strips;
+        options=handles.work.options.gridFit_strips;
         
     case 'depth'
         set(handles.DepthButton,'value',true);
@@ -3215,7 +3219,7 @@ switch type
             fixM1_BF = str2num(dimText{2}); % distance between 1st-2nd elec used for Behnke Fried electrodes
             fixM1    = str2num(dimText{3});
         end  
-        options=handles.options.gridFit_depth;
+        options=handles.work.options.gridFit_depth;
         overlap=0; % no overlap defined for depth
        
     otherwise
@@ -3630,7 +3634,7 @@ if isempty(handles.work.GS)
     elseif get(handles.GridButton,'value')
         rows=str2double(get(handles.rowsEdit,'string'));
         columns=str2double(get(handles.colsEdit,'string'));
-        [electrodesOut,Ix]=indexGridElectrodes(pos,rows,columns,'grid',handles.options);
+        [electrodesOut,Ix]=indexGridElectrodes(pos,rows,columns,'grid',handles.work.options);
     end
        
     tempC=electrodes.clusters;
@@ -3655,7 +3659,7 @@ else
     elseif get(handles.GridButton,'value')
         rows=str2double(get(handles.rowsEdit,'string'));
         columns=str2double(get(handles.colsEdit,'string'));
-        [electrodes,Ix]=indexGridElectrodes(handles.work.GS,rows,columns,'grid',handles.options);
+        [electrodes,Ix]=indexGridElectrodes(handles.work.GS,rows,columns,'grid',handles.work.options);
     end
     
     % add info from all voxels in the clusters
@@ -3671,7 +3675,7 @@ else
     electrodes.brushWeight=handles.work.brushWeight;
     electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
     electrodes.method = 'clustering';
-    electrodes.methodParameters.indexing_projection_method = handles.options.indexing_projection_method;
+    electrodes.methodParameters.indexing_projection_method = handles.work.options.indexing_projection_method;
 
     % make adjacency Matrix
     electrodes.adjMat=makeAdjMat(electrodes.rows,electrodes.columns);
@@ -4236,12 +4240,12 @@ if get(handles.projectSCEcheckbox,'Value') % calculate projection
         % Do the projections
         if sum(~projDone)>0
             if strcmp(handles.project.currentSpace,'MNI') % MNI space
-                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.work.v_MNI_SCE,handles.work.f_MNI_SCE, handles.options, projDone);
+                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.work.v_MNI_SCE,handles.work.f_MNI_SCE, handles.work.options, projDone);
                 
             else  % Native space
                 if ~isempty(handles.project.vertices_SCE_L)
                     [vertices,faces]=mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
-                    handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,vertices,faces,handles.options,projDone);
+                    handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,vertices,faces,handles.work.options,projDone);
                 else
                     warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
                     set(handles.projectSCEcheckbox,'Value',0);
@@ -5231,9 +5235,9 @@ handles.project.targets{l}.z=coordinates(:,3);
 
 % %anatomical labels
 % lookAround=1;
-% opt.mode=handles.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities 
-% opt.minProb=handles.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob' 
-% opt.radio=handles.options.atlasLabelingRadio;
+% opt.mode=handles.work.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities 
+% opt.minProb=handles.work.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob' 
+% opt.radio=handles.work.options.atlasLabelingRadio;
 % 
 
 % if strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
@@ -5700,7 +5704,7 @@ end
 a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
-options=handles.options;
+options=handles.work.options;
 options.SCE_projection_method = 'springs';
 options.SCE_springs_projection = options.SCE_springs_projection_planning;
 
@@ -5710,9 +5714,9 @@ targetCell = electrodes2hullCorrection({target},vertices,faces,options);
 
 % SPLIT LEFT AND RIGHT ??? 
 % if strcmp(target.hemisphere,'left')
-%     target=electrodes2hullCorrection({target},handles.project.vertices_SCE_L,handles.project.faces_SCE_L,handles.options);
+%     target=electrodes2hullCorrection({target},handles.project.vertices_SCE_L,handles.project.faces_SCE_L,handles.work.options);
 % else
-%    target=electrodes2hullCorrection({target},handles.project.vertices_SCE_R,handles.project.faces_SCE_R,handles.options);
+%    target=electrodes2hullCorrection({target},handles.project.vertices_SCE_R,handles.project.faces_SCE_R,handles.work.options);
 % end
 
 handles.project.targets{a}=targetCell{1};

@@ -20,9 +20,11 @@ function names = workFieldNames()
 %   defaultGuiVariables started writing them into the group; they are kept
 %   listed because a .iel file could still carry an old flat copy.
 %
-%   Still flat, and needing a decision before it can move: `options`, which
-%   mixes scientific settings with display settings and should be split
-%   first. See docs/STATE_FIELD_MAPPING.md.
+%   `options` was the last field still flat. It has been split: the settings
+%   that decide what is computed are in handles.work.options, and the ones
+%   that only change what is shown are in handles.ui.options. Neither is
+%   listed here, because neither ever arrives flat - they are built at
+%   start-up, not read from a file.
 %
 %   NOTE ON .iel FILES: unlike most working data, twelve of these ARE written
 %   to the project file today, so FLATTENPROJECT puts them back at the top level
