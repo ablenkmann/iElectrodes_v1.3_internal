@@ -5007,16 +5007,10 @@ guidata(hObject, handles);
 %%%%%%             change targetOut location                         %%%%%%
 %%%%%%              editing angles Azimuth or Elevation              %%%%%%
 function handles=angleChange(handles)
+% The user typed a direction: move the far end of the electrode to match.
 
 l=selectedPlanningArray(handles);
-n=handles.project.targets{l}.nElectrodes;
-fs_dist=handles.project.targets{l}.FirstSecond;
-sl_dist=handles.project.targets{l}.SecondLast;
-
-%punto Target IN
-xi(1)= handles.project.targets{l}.targetIn.x;
-xi(2)= handles.project.targets{l}.targetIn.y;
-xi(3)= handles.project.targets{l}.targetIn.z;
+target = handles.project.targets{l};
 
 az=str2double( get(handles.AzimuthTargetedit,'String') );
 el=str2double( get(handles.ElevacionTargetedit,'String') );
@@ -5029,26 +5023,16 @@ end
 if isnan(el)
     return;
 end
-%convert degres to radians
-az=az*pi/180;
-el=el*pi/180;
 
-[dx, dy, dz] =sph2cart(az,el,1); %radius=1
-delta=[dx dy dz];
-
-dist=fs_dist+(n-2)*sl_dist; %length from first to last
-
-xo=xi+dist*delta;
+xi = [target.targetIn.x target.targetIn.y target.targetIn.z];
+xo = trajectoryEndPoint(xi, az, el, target.nElectrodes, ...
+                        target.FirstSecond, target.SecondLast);
 
 handles.project.targets{l}.targetOut.x=xo(1);
 handles.project.targets{l}.targetOut.y=xo(2);
 handles.project.targets{l}.targetOut.z=xo(3);
 
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    % execute code for R2014b or later
+if ~verLessThan('matlab','8.4.0')
     xo=round(xo,3,'significant');
 end
 
@@ -5059,51 +5043,36 @@ set(handles.TargetOutZedit,'String',num2str(xo(3)));
 
 handles=updateTarget(handles);
 
+
 %--------------------------------------------------------------------
-%%%%%%%%% update targets structure after changing parameters      %%%%%%%%%
 function handles=updateTarget(handles)
 %%%%%%%%% update targets structure after changing parameters      %%%%%%%%%
 %%%%%%%%% targetIn, TargetOut, n, fs_dist, sl_dist
 %%%%%%%%% Changes: delta, coordinates, az, el, distances, alpha, beta %%%%%
 
-% read defined values
 l=selectedPlanningArray(handles);
+target = handles.project.targets{l};
 
-n=handles.project.targets{l}.nElectrodes;
+xi = [target.targetIn.x  target.targetIn.y  target.targetIn.z];
+xo = [target.targetOut.x target.targetOut.y target.targetOut.z];
 
-fs_dist=handles.project.targets{l}.FirstSecond;
+trajectory = depthTrajectory(xi, xo, target.nElectrodes, ...
+                             target.FirstSecond, target.SecondLast);
 
-sl_dist=handles.project.targets{l}.SecondLast;
+handles.project.targets{l}.delta     = trajectory.delta;
+handles.project.targets{l}.azimut    = trajectory.azimuth;
+handles.project.targets{l}.elevation = trajectory.elevation;
+handles.project.targets{l}.distances = trajectory.distances;
+handles.project.targets{l}.x = trajectory.coordinates(:,1);
+handles.project.targets{l}.y = trajectory.coordinates(:,2);
+handles.project.targets{l}.z = trajectory.coordinates(:,3);
 
-%punto Target IN
-xi(1)=handles.project.targets{l}.targetIn.x;
-xi(2)=handles.project.targets{l}.targetIn.y;
-xi(3)=handles.project.targets{l}.targetIn.z;
+% the boxes show a rounded angle, and show a straight axis as exactly zero.
+% What is stored above is the full value.
+az = trajectory.azimuth;
+el = trajectory.elevation;
 
-%punto taget Out
-xo(1)=handles.project.targets{l}.targetOut.x;
-xo(2)=handles.project.targets{l}.targetOut.y;
-xo(3)=handles.project.targets{l}.targetOut.z;
-
-dx=handles.project.targets{l}.targetOut.x - handles.project.targets{l}.targetIn.x;
-dy=handles.project.targets{l}.targetOut.y - handles.project.targets{l}.targetIn.y;
-dz=handles.project.targets{l}.targetOut.z - handles.project.targets{l}.targetIn.z;
-
-% compute az, el, coordinates, distances
-delta=[dx dy dz] / norm([dx dy dz]);
-handles.project.targets{l}.delta=delta;
-[az,el,~] =cart2sph(delta(1), delta(2), delta(3));
-%convert from radians to degres
-az=az*180/pi;
-el=el*180/pi;
-
-handles.project.targets{l}.azimut=az;
-handles.project.targets{l}.elevation=el;
-
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    % execute code for R2014b or later
+if ~verLessThan('matlab','8.4.0')
     az=round(az,3,'significant');
     el=round(el,3,'significant');
 end
@@ -5115,46 +5084,19 @@ if abs(el)<0.01
     el=0;
 end
 
-
 set(handles.AzimuthTargetedit,'String',num2str(az))
 set(handles.ElevacionTargetedit,'String',num2str(el))
 
-distances= [0 fs_dist fs_dist + ((1:(n-2))*sl_dist)];
-for i=1:n
-    coordinates(i,:)= xi+ distances(i) * delta;
-end
-handles.project.targets{l}.distances=distances;
-handles.project.targets{l}.x=coordinates(:,1);
-handles.project.targets{l}.y=coordinates(:,2);
-handles.project.targets{l}.z=coordinates(:,3);
-
-% %anatomical labels
-% lookAround=1;
-% opt.mode=handles.work.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities 
-% opt.minProb=handles.work.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob' 
-% opt.radio=handles.work.options.atlasLabelingRadio;
-% 
-
-% if strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-%     handles.project.targets(l).aLabels=anatomicLabel(coordinates,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
-% elseif ~isempty(handles.project.wmparc)
-%     handles.project.targets(l).aLabels=anatomicLabelFS(coordinates, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
-% end
-
-
 % anatomical labeling (electrodes and projections)
-if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace,'MNI') % options are 'Native' 'MNI'
     handles=labels2MNIspace(handles);
 else
     handles=labels2NativeSpace(handles);
 end
-    
 
 handles=estimateAnglesFrame(handles);
 
 
-%--------------------------------------------------------------------
-%%%%%%%%%%      calculate frame  angles alpha and beta      %%%%%%%%%%%%%%%
 function handles=estimateAnglesFrame(handles)
 % estimate angles frame based on coordinates
 % ALL angles in DEGREES
