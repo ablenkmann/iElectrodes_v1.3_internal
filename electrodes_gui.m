@@ -889,14 +889,7 @@ if valid
         % make elec structure out of labels{Nx1} and pos[Nx3]
         % ask for the different types of arrays, index and label
         % automatically
-        N=length(labels);
-        % get array names
-        for i=1:N
-            l=labels{i};
-            d=isstrprop(l, 'alpha'); 
-            labelsAlpha{i}=l(d);
-        end
-        [labelsArray,~,ic]=unique(labelsAlpha); % ic==i contains the indexes to the electrodes in array labelsArray(i)
+        [labelsArray, ic] = groupContactsByArray(labels); % ic==i: the contacts of array labelsArray{i}
         A=length(labelsArray); 
         button=questdlg([ [num2str(A) ' arrays were found: '] labelsArray 'Continue?'],'','Yes','No','Yes');
         if strcmp(button,'No')
@@ -904,19 +897,8 @@ if valid
         end
         for i=1:A
             [type,rows,columns]=elecImportDlg(labelsArray{i},sum(ic==i));
-            
-            % define the basic fields
-            elecNew{i}.Name=labelsArray{i};
-            elecNew{i}.nElectrodes=sum(ic==i);
-            elecNew{i}.x=pos(ic==i,1);
-            elecNew{i}.y=pos(ic==i,2);
-            elecNew{i}.z=pos(ic==i,3);
-            elecNew{i}.rows=rows;
-            elecNew{i}.columns=columns;
-            elecNew{i}.ch_label=labels(ic==i);
-            elecNew{i}.Type=type;
-            elecNew{i}.adjMat=makeAdjMat(rows,columns);
-            elecNew{i}=checkElectrodeStructure(elecNew{i}); % check one by one. Makes it easy to detect errors
+            elecNew{i} = electrodeArrayFromContacts(labelsArray{i}, labels(ic==i), ...
+                                                    pos(ic==i,:), type, rows, columns);
         end
     end
      

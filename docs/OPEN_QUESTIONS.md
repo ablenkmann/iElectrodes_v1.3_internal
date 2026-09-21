@@ -808,3 +808,41 @@ session state that is not saved?
 
 **Status:** not moved, deliberately. No behaviour depends on it until the
 frontend exists.
+
+---
+
+## 19. `checkElectrodeStructure` empties `x` instead of creating `distances`
+
+**Where:** `src/project/checkElectrodeStructure.m`, in the block that fills in
+missing fields for a planning depth array
+
+```matlab
+if ~isfield(elec,'elevation');   elec.elevation=[];   end
+
+if ~isfield(elec,'distances');   elec.x=[];           end   % <- x, not distances
+if ~isfield(elec,'coordinates'); elec.coordinates=[]; end
+```
+
+Every other line in the block creates the field it tests for. This one
+tests for `distances` and empties `x`. It is almost certainly meant to read
+`elec.distances=[];`.
+
+What it does depends on when it is reached:
+
+- A **new** planning depth array passes through before it has coordinates,
+  so emptying `x` changes nothing, and `updateTarget` writes both `x` and
+  `distances` straight afterwards. New projects are not affected.
+- A planning depth array that **already has coordinates but no `distances`
+  field** - one saved by a version from before that field existed - would
+  have `x` emptied, with `y` and `z` left as they were. Opening such a file
+  runs every array through this function.
+
+Found by reading, while the import code was extracted. The second case has
+not been reproduced; it would need a project file old enough to lack the
+field.
+
+**Decision needed:** fix it? One word, and the intent is clear from the
+lines around it.
+
+**Status:** preserved. Present in v1.020, not introduced by the
+restructuring.
