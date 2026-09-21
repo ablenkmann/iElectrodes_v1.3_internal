@@ -56,7 +56,8 @@ for j = 1:numel(prj.electrodes)
         misclassified = misclassified + 1;
         fprintf('            %s is a %s but came back %d\n', e.Name, e.Type, actProjectable(j));
     end
-    % a depth electrode is inside the brain, so there is nothing to project
+    % a depth electrode is corrected by interpolating the surface arrays'
+    % displacement, never projected onto the envelope itself
     if strcmp(e.Type,'depth') && actProjectable(j)
         depthProjectable = depthProjectable + 1;
     end
