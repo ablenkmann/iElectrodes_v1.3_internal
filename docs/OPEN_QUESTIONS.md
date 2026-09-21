@@ -846,3 +846,58 @@ lines around it.
 
 **Status:** preserved. Present in v1.020, not introduced by the
 restructuring.
+
+---
+
+## 20. Unassigned nailed contacts are removed element by element, not row by row
+
+**Where:** the Fit button's options, now `src/localization/gridFitOptions.m`
+
+Before GridFit runs, contacts found earlier by clustering can be "nailed":
+the user says in a small table which contact number each of those
+coordinates is, and GridFit keeps them there. A coordinate the user leaves
+without a number gets NaN and is dropped:
+
+```matlab
+options.NailElectrodeCrd(isnan(options.NailElectrodeNumber)) = [];
+options.NailElectrodeNumber(isnan(options.NailElectrodeNumber)) = [];
+```
+
+`NailElectrodeCrd` is N-by-3 - one row per coordinate - but the index has one
+entry per coordinate, not per element. MATLAB therefore deletes single
+*elements* and flattens what is left into one row. With three coordinates and
+the second one left unassigned, a 3-by-3 matrix becomes a 1-by-8 row, and
+GridFit is handed numbers that are no longer coordinates.
+
+It only happens when a nailed coordinate is left unassigned; when every one
+gets a number, nothing is removed. `tests/test_scriptEntryPoints.m` shows the
+1-by-8 result.
+
+The fix is two characters: `(isnan(...), :)`.
+
+**Decision needed:** fix it? The intent is clear from the comment next to it,
+"crds need to be removed".
+
+**Status:** preserved. Present in v1.020, not introduced by the
+restructuring.
+
+---
+
+## 21. `openProject` has the same name as a MATLAB function
+
+**Where:** `src/project/openProject.m`
+
+MATLAB has had its own `openProject`, for MATLAB Projects (`.prj` files),
+since R2019a. With iElectrodes on the path, ours takes precedence, so
+nothing breaks today. It would start to matter if iElectrodes itself became a
+MATLAB Project, which the reference architecture recommends
+(`iElectrodes.prj`): MATLAB's function would then be hidden by ours.
+
+It also becomes moot if the backend moves into the `+ielectrodes` package,
+where the full name is `ielectrodes.openProject`.
+
+**Decision needed, when the packaging is decided:** rename it, or rely on the
+package.
+
+**Status:** open. Introduced by the restructuring, which gave the function
+this name.

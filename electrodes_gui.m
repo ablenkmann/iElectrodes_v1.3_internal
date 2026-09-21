@@ -3148,6 +3148,8 @@ if isempty(brushCrd)
     return;
 end
 
+fixM1_BF = [];   % only a depth electrode asks for it
+
 type = questdlg('What type of electrode array do you want to fit?', ...
 	'Array', ...
 	'depth','strip','grid','grid');
@@ -3169,7 +3171,6 @@ switch type
             fixM1 = str2num(dimText{3}); %inter-electrode distance
             overlap = str2num(dimText{4}); %overlap 0/1
         end
-        options=handles.work.options.gridFit_grids;
         
     case 'strip'
         set(handles.GridButton,'value',true);        
@@ -3185,7 +3186,6 @@ switch type
             fixM1 = str2num(dimText{2}); %inter-electrode distance
             overlap = str2num(dimText{3}); %overlap 0/1
         end
-        options=handles.work.options.gridFit_strips;
         
     case 'depth'
         set(handles.DepthButton,'value',true);
@@ -3201,19 +3201,12 @@ switch type
             fixM1_BF = str2num(dimText{2}); % distance between 1st-2nd elec used for Behnke Fried electrodes
             fixM1    = str2num(dimText{3});
         end  
-        options=handles.work.options.gridFit_depth;
         overlap=0; % no overlap defined for depth
        
     otherwise
         return;
 end
 
-options.fixM1=fixM1;
-if strcmp(type,'depth')
-     options.fixM1_BF=fixM1_BF;
-else
-     options.fixM1_BF=fixM1;
-end
 
 %check if there are some "Nailed electrodes" as previously selected (GS)
 %coordinates
@@ -3231,14 +3224,8 @@ if ~isempty(handles.work.GS)
     electrodeNailNaumber_uitable (hObject, handles,rows*cols); %use graphical interface. This will change content in handles.
     handles = guidata(hObject); % retrive updated data
     
-    options.NailElectrodeNumber = handles.work.uitable_elecNum;
-    options.NailElectrodeCrd = handles.work.GS;
-    
-    % if some coords are not selected, nan is given
-    % crds need to be removed
-    options.NailElectrodeCrd(isnan(options.NailElectrodeNumber )) = [];
-    options.NailElectrodeNumber(isnan(options.NailElectrodeNumber )) = [];
-    
+    nailNumbers = handles.work.uitable_elecNum;
+    nailCoords  = handles.work.GS;
     
     handles.work.GS = [];
     set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
@@ -3250,12 +3237,15 @@ if ~isempty(handles.work.GS)
 %     end
         
 else
-    options.NailElectrodeNumber = [];
-    options.NailElectrodeCrd =[];
+    nailNumbers = [];
+    nailCoords  = [];
 end
 
-% calculate Kc as optimal Kc from simulations
-options.minDef2.Kc = Kc_optimal(fixM1,rows*cols,overlap,options.minDef2.model,options.type); % coregistration: the higher this number, the stronger the atraction to the CT voxels
+% GridFit's configuration for this array: the defaults for its type, its
+% spacing, the nailed contacts and the attraction to the CT. Assembled in
+% src/localization/.
+options = gridFitOptions(handles.work.options, type, rows, cols, fixM1, fixM1_BF, ...
+                         overlap, nailNumbers, nailCoords);
 
 % Call GridFit
 disp('/// Starting grid/depth fitting algorithm. This may take some minutes depending on the grid size.')
@@ -3321,9 +3311,9 @@ else
     end
 end
 
-TACCords=round(AnatSpace2Mesh(brushCrd,handles.project.S2));
-indexTAC=sub2ind(size(handles.project.TAC.img),TACCords(:,1),TACCords(:,2),TACCords(:,3));
-weight=double(handles.project.TAC.img(indexTAC))-double(min(handles.project.TAC.img(:))); %convert to double to avoid out of range
+% how bright each selected voxel is on the CT - the weight clustering and
+% GridFit give it. Computed in src/localization/.
+weight = voxelWeights(handles.project.TAC, handles.project.S2, brushCrd);
 
 %--------------------------------------------------------------------
 %%%%%%%%%%%%%%%        Manually add coordinates             %%%%%%%%%%%%%%%

@@ -4,10 +4,18 @@ function saveProject(fullPath, project, work, ui)
 %   saveProject(fullPath, project, work) writes the project to FULLPATH in
 %   the .iel format.
 %
-%   saveProject(fullPath, project, work, ui) also writes the colour caches
-%   the file carries. Leave UI out and the file is written without them,
-%   which iElectrodes 1.020 cannot open - see UIFIELDNAMES. The GUI always
-%   passes it.
+%   saveProject(fullPath, project, work, ui) takes the colour caches the
+%   file carries from UI, as the GUI does. Leave UI out - as a script does -
+%   and the annotation colours are computed from the project with
+%   ANNOTATIONCOLOURS, the function the GUI itself uses when annotations are
+%   loaded. Either way the file is complete, and iElectrodes 1.020 can open
+%   it; see UIFIELDNAMES.
+%
+%   Until the headless example was written this was not so: the help said
+%   a file without UI would simply lack the colours, but for any project
+%   with cortical annotations CHECKPROJECTSTRUCTURE requires them, and the
+%   save failed with "Unrecognized field name AnnotColor_R". Nothing had
+%   ever saved without UI before, so it had never shown.
 %
 %   The .iel format is a MATLAB v7.3 file holding a single variable named s,
 %   and s is FLAT: every field sits at the top level, the way the toolbox
@@ -29,15 +37,38 @@ function saveProject(fullPath, project, work, ui)
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also OPENPROJECT, NEWPROJECT, FLATTENPROJECT, CHECKPROJECTSTRUCTURE.
+%   See also LOADPROJECT, OPENPROJECT, NEWPROJECT, FLATTENPROJECT,
+%   CHECKPROJECTSTRUCTURE, ANNOTATIONCOLOURS.
 
 state.project = project;
 state.work    = work;
 if nargin > 3
     state.ui = ui;
+else
+    % no GUI: derive the caches the file needs from the patient data
+    state.ui = struct();
+    state.ui.AnnotColor_R = surfaceColours(project, 'R');
+    state.ui.AnnotColor_L = surfaceColours(project, 'L');
 end
 
 s = checkProjectStructure(flattenProject(state));   %#ok<NASGU> .iel stays flat
 
 save(fullPath, 's', '-v7.3');
+end
+
+% ---------------------------------------------------------------------
+function colours = surfaceColours(project, side)
+% The colour of each vertex of one hemisphere's pial surface: from its
+% annotation when there is one, otherwise grey - the same grey
+% CHECKPROJECTSTRUCTURE gives a surface without annotation.
+labels = fieldOr(project, ['AnnotLabel_' side], []);
+if ~isempty(labels)
+    colours = annotationColours(labels, project.(['AnnotColortable_' side]));
+else
+    colours = ones(length(fieldOr(project, ['vertices' side], [])), 3) * .5;
+end
+end
+
+function value = fieldOr(s, name, default)
+if isfield(s, name), value = s.(name); else, value = default; end
 end
