@@ -762,3 +762,49 @@ follows only makes sense for `a` - but it changes what the toolbox does, so
 it gets its own commit and a yes first.
 
 **Status:** open. Present in v1.020, not introduced by the restructuring.
+
+---
+
+## 18. Where the localization settings should live
+
+**Where:** the threshold sliders, the denoise slider, the cluster-count box
+and the rows / columns boxes of the Localize panel
+
+The plan was to move these values out of the controls and into `work`, so
+that the controls become views of the state rather than the state itself.
+Looking closely first changed the picture.
+
+**The science is already out.** Each value is read once, at the moment it is
+used, and handed as a plain number to a function in `src/`:
+
+| control | read in | passed to |
+|---|---|---|
+| `sliderThrMin`, `sliderThrMax` | the thresholded-voxel view | `thresholdCTVoxels` |
+| `denoiseSlider` | the same place | `thresholdCTVoxels` |
+| `clusNElecEdit` | the Clus button | `clusterContacts` |
+| `rowsEdit`, `colsEdit` | the Index button | `indexGridElectrodes` |
+
+None of those functions sees a control. What is left is only where the
+*current* value is kept - and moving that is not a neutral change:
+
+- **It changes the file.** `saveProject` writes every field of `work` into the
+  `.iel`, so moving the settings into `work` adds a field to every saved
+  project. The file has been kept exactly as v1.020 writes it so far.
+- **It raises a behaviour question nobody has settled.** Should opening a
+  project restore the threshold and cluster count it was localized with?
+  Today it does not: Load CT resets the thresholds to 0.9 and 1, and Open
+  leaves the sliders where they were.
+- **The frontend decides the rest.** In App Designer these values would be
+  bound to the app's own components. Where they are stored should be
+  designed together with that, not before it.
+
+A related point in favour of storing them: GridFit already records its
+configuration with every array it fits (`methodParameters`), but nothing
+records the threshold that produced the voxels it was fitted to.
+
+**Decision needed, at the start of the frontend work:** should localization
+settings be part of the project - saved, and restored on open - or stay as
+session state that is not saved?
+
+**Status:** not moved, deliberately. No behaviour depends on it until the
+frontend exists.
