@@ -5454,42 +5454,19 @@ rows=str2num(get(handles.rowsPlanningGridEdit,'String'));       % rows
 cols=str2num(get(handles.columnsPlanningGridEdit,'String'));    % cols
 eDist=str2num(get(handles.distancePlanningGridEdit,'String'));  % inter-electrode distance
 
-options=[];
-[pTan,hemisphere]=tangentialGrid(crd,rows,cols,eDist,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-% save as a structure
-target=[];
-target.Type='grid';
-target.Name='grid';
-target.planning='yes';
-target=checkElectrodeStructure(target);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.rows=rows;
-target.columns=cols;
-target.nElectrodes=rows*cols;
-target.hemisphere=hemisphere;
-target.rotation=0;
-target.distance=eDist;
-
-for i=1:target.nElectrodes 
-    target.ch_label{i} = [target.Name num2str(i)];
-end
-% make adjacency Matrix
-target.adjMat=makeAdjMat(target.rows,target.columns);
+target = newPlanningGrid(crd, rows, cols, eDist, ...
+    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
 
 % add new electrode to handles
 handles = addtarget2structure(handles,target);
 
 % anatomical labeling (electrodes and projections)
-if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'        %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
+if strcmp(handles.project.currentSpace,'MNI') % options are 'Native' 'MNI'
     handles=labels2MNIspace(handles);
 else
     handles=labels2NativeSpace(handles);
 end
-    
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -5575,33 +5552,15 @@ function ChangeCenterPlanningGridButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% Unlike the eight buttons below, this one has never checked that a planning
+% array exists, so with none it fails on the next line instead of warning.
+% Kept as it is - see docs/OPEN_QUESTIONS.md item 15.
 a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
-X= [target.x target.y target.z];
-
-crd=handles.ui.cursor;
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
+handles.project.targets{a} = placePlanningGrid(target, handles.ui.cursor, [], ...
+    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
+handles = redrawPlanningGrid(handles);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -5613,40 +5572,7 @@ function pushbuttonSup_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [0,0,1]; % make more superior 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [0 0 1], []);   % superior
 guidata(hObject, handles);
 
 % --- Inferior
@@ -5655,41 +5581,7 @@ function moveInfButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [0,0,-1]; % make more inferior 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [0 0 -1], []);   % inferior
 guidata(hObject, handles);
 
 % --- Posterior
@@ -5698,40 +5590,7 @@ function movePosButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [0,-1,0]; % make more posterior 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [0 -1 0], []);   % posterior
 guidata(hObject, handles);
 
 % --- Anterior
@@ -5740,40 +5599,7 @@ function moveAntButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [0,1,0]; % make more anterior 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [0 1 0], []);   % anterior
 guidata(hObject, handles);
 
 % ---Left
@@ -5782,40 +5608,7 @@ function pushbuttonLeft_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [-1,0,0]; % make more left 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [-1 0 0], []);   % left
 guidata(hObject, handles);
 
 % --- Right
@@ -5824,40 +5617,7 @@ function pushbuttonRight_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev + [1,0,0]; % make more right 
-
-options=[];
-options.previousGrid=X;
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [1 0 0], []);   % right
 guidata(hObject, handles);
 
 % --- Rotation Left
@@ -5866,41 +5626,7 @@ function RotLButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if isempty(handles.project.targets)
-    warning('Targets is empty');
-    return;
-end
-
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
-
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev; % same
-
-options=[];
-options.previousGrid=X;
-options.additionalRotation = - 5; % rotate left
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
-
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
-
-% add new electrode to handles
-handles.project.targets{a} = target;
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
-
-% Update handles structure
+handles = nudgePlanningGrid(handles, [0 0 0], -5);   % turn 5 degrees one way
 guidata(hObject, handles);
 
 % --- Rotation Right
@@ -5909,6 +5635,17 @@ function rotRButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles = nudgePlanningGrid(handles, [0 0 0], 5);   % turn 5 degrees the other way
+guidata(hObject, handles);
+
+
+%--------------------------------------------------------------------
+% --- Move or turn the selected planning grid, for the eight buttons above.
+% OFFSET is added to the centre of the grid, in mm. ROTATION turns it about
+% that centre, in degrees, and is [] for none - see PLACEPLANNINGGRID for why
+% it must be [] and not 0.
+function handles = nudgePlanningGrid(handles, offset, rotation)
+
 if isempty(handles.project.targets)
     warning('Targets is empty');
     return;
@@ -5917,24 +5654,15 @@ end
 a=selectedPlanningArray(handles);
 target=handles.project.targets{a};
 
-X= [target.x target.y target.z];
-mprev = mean (X); % previous center
-crd = mprev; % same
+centre = mean([target.x target.y target.z]) + offset;
 
-options=[];
-options.previousGrid=X;
-options.additionalRotation = 5; % rotate left
-[pTan,hemisphere]=tangentialGrid(crd,target.rows,target.columns,target.distance,handles.project.vertices_SCE_L,handles.project.vertices_SCE_R,options);
+handles.project.targets{a} = placePlanningGrid(target, centre, rotation, ...
+    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
+handles = redrawPlanningGrid(handles);
 
-target.x=pTan(:,1);
-target.y=pTan(:,2);
-target.z=pTan(:,3);
-target.hemisphere=hemisphere;
-target.projection={};
-target=checkElectrodeStructure(target);
 
-% add new electrode to handles
-handles.project.targets{a} = target;
+% --- Redraw after a planning grid has moved.
+function handles = redrawPlanningGrid(handles)
 
 handles.ui.updatePlots.targets=1;
 handles.ui.updatePlots.targetLines=1;
@@ -5942,9 +5670,6 @@ handles.ui.updatePlots.targetLabels=1;
 
 handles=updateElectrodes3D(handles);
 handles=updateTAC(handles);
-
-% Update handles structure
-guidata(hObject, handles);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -636,3 +636,129 @@ fixes this.
 **Status: FIXED, pending confirmation.** Not present in v1.020, which called
 `quatrotate` and needed the Aerospace Toolbox. Introduced by whoever replaced
 it; not by the restructuring.
+
+---
+
+## 15. "Change centre" has no check that a planning grid exists
+
+**Where:** `ChangeCenterPlanningGridButton_Callback` in `electrodes_gui.m`
+
+Eight buttons move or turn the selected planning grid, and all eight start
+
+```matlab
+if isempty(handles.project.targets)
+    warning('Targets is empty');
+    return;
+end
+```
+
+The ninth, "change centre", which moves the grid to the cursor, does not. It
+goes straight to `handles.project.targets{a}`, so pressing it in a project
+with no planning arrays fails with an indexing error instead of the warning
+the other eight give.
+
+Found while the ten planning-grid callbacks were merged. The eight now share
+one helper, which keeps their check; "change centre" keeps its lack of one,
+with a comment pointing here.
+
+**Decision needed:** add the same check? It is the same kind of fault as
+item 7, where the answer was "a warning seems better".
+
+**Status:** preserved. Present in v1.020, not introduced by the
+restructuring.
+
+---
+
+## 16. `tangentialGrid` returns without its output when the point is far from the surface
+
+**Where:** `src/localization/tangentialGrid.m`
+
+A planning grid is laid tangent to the smooth cortical envelope, using the
+envelope's vertices within 10 mm of the requested centre. When there are
+fewer than four:
+
+```matlab
+if length(surfPoints)<4
+    warning('Coordinate to far from surface. Not enought points to calculate tangential surface. Choose another point');
+    return;
+end
+```
+
+`hemisphere` has been assigned by then, `pTan` has not. Every caller asks
+for both, so MATLAB follows the warning with
+
+```
+Output argument "pTan" (and possibly others) not assigned a value
+```
+
+and the callback stops with a stack trace. The warning the user was meant
+to read is followed by what looks like a crash.
+
+It is reachable from "new grid" and "change centre", both of which take the
+cursor as the centre: put the cursor more than 10 mm from the envelope - in
+deep tissue, say - and press either.
+
+The fix is not the one-liner it was for item 7. Assigning `pTan = []` alone
+would make things worse: the callers go on to `target.x = pTan(:,1)`, which on
+an empty array quietly succeeds and empties the grid. So the callers would
+also need to check for an empty result and leave the grid where it was.
+
+**Decision needed:** make the warning the whole story - `tangentialGrid`
+returns an empty result, and callers keep the grid unchanged when they get
+one?
+
+**Status:** preserved. Present in v1.020, not introduced by the
+restructuring.
+
+---
+
+## 17. The 3D view checks one planning array and draws another
+
+**Where:** `updateElectrodes3D` in `electrodes_gui.m`, where the selected
+planning contact is drawn in black
+
+```matlab
+for j=plotList
+    ...                                   % draw every planning array
+end
+
+% plot selected target in black
+a=selectedPlanningArray(handles);
+l=selectedPlanningTarget(handles);
+
+if ~isempty(handles.project.targets{j}.projection)     % checks array j
+    ... scatter3(... handles.project.targets{a}.projection{1}.x(l), ...   % draws array a
+```
+
+The test looks at `j` - whatever the loop above happened to finish on, the
+last planning array drawn - and the drawing uses `a`, the selected one. When
+they differ in whether they have a projection, it fails:
+
+```
+Index exceeds the number of array elements. Index must not exceed 0.
+Error in electrodes_gui>updateElectrodes3D
+```
+
+It turned up during the GUI check of the planning-grid work. On
+`examples/exampleNativeSpace.iel`, pressing **Sup** fails every time: the
+button moves the grid, which clears its old projection (a projection of the
+old position no longer applies), and then the redraw tests the other
+planning array - which still has one - and reaches for the selected grid's
+now-empty projection. The move itself is never stored, because the error
+comes before `guidata`.
+
+The same happens in v1.020: its Sup button also cleared the projection and
+then redrew. Nothing in the restructuring touches `updateElectrodes3D`.
+
+It is reachable from any of the nine buttons that move a planning grid,
+whenever the project holds a second planning array, the moved one is not the
+last, and the last one has a projection.
+
+The fix is one character: `targets{j}` becomes `targets{a}` in that test. It
+is almost certainly a copy of the loop's own test, which uses `j` correctly.
+
+**Decision needed:** fix it? The intent is not in doubt - the code that
+follows only makes sense for `a` - but it changes what the toolbox does, so
+it gets its own commit and a yes first.
+
+**Status:** open. Present in v1.020, not introduced by the restructuring.
