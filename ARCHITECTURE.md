@@ -1,100 +1,157 @@
 # iElectrodes 2 — repository architecture
 
-This document describes the folder layout introduced during the v2 restructuring,
-why each decision was made, and what the remaining steps are.
+This document describes how the repository is organised after the backend
+separation, why, and what comes next. It follows the architecture in
+Alejandro's "Modernize iElectrodes GUI" sessions, adapted so that **frontend
+and backend are the two visible top-level code folders**.
 
-It follows the architecture discussed in Alejandro's "Modernize iElectrodes GUI"
-session, adapted so that **frontend and backend are the two visible top-level
-code folders**.
+The separation of backend from GUI is finished: no scientific algorithm is
+left in `electrodes_gui.m`, and the main workflow runs from a script without
+a window. The next phase is the App Designer frontend.
+
+## Getting started
+
+Add the repository to the MATLAB path with its subfolders — *Home → Set Path →
+Add with Subfolders…*, then *Save*. Do not have another copy of iElectrodes on
+the path at the same time: files with the same names shadow each other
+silently. `which electrodes_gui` shows which copy MATLAB will run.
+
+```matlab
+electrodes_gui                  % the GUI, as before
+
+cd tests
+run_all_tests quiet             % every test, one line each, then a summary
+
+cd ../examples
+exampleHeadlessWorkflow         % the whole workflow from a script, no window
+```
+
+No test opens a figure. The example project, `examples/exampleNativeSpace.iel`,
+is the input to most tests — do not save over it.
 
 ## Layout
 
 ```
 iElectrodes/
-├── electrodes_gui.m / .fig   legacy GUIDE shell (entry point, to be replaced by app/)
+├── electrodes_gui.m / .fig   the GUIDE interface - now GUI only
 │
-├── app/            ══ FRONTEND ══  everything that exists because there is a GUI
-│   ├── dialogs/      standalone dialog windows (addremovelist, elecImportDlg,
-│   │                 movelist, electrode-numbering uitable)
-│   ├── rendering/    drawing helpers (electrode lines, cylinders, mesh display,
-│   │                 3-D point picking)
-│   └── config/       GUI-side configuration (colours, GUI state defaults,
-│                     update check)
+├── app/            ══ FRONTEND ══  exists because there is a GUI
+│   ├── config/       display defaults, colours, GUI state defaults, update check
+│   ├── dialogs/      the small dialog windows
+│   └── rendering/    drawing helpers
 │
-├── src/            ══ BACKEND ══  no figures, no handles, callable head-less
-│   ├── project/      project & electrode data model, default processing options
-│   ├── io/           MRI / CT / mask loading, NIfTI-SPM conversion, image mixing,
-│   │                 FreeSurfer + EDF + text-label readers
-│   ├── localization/ GridFit, k-means clustering, energy functions, optimisation
-│   │                 constraints, grid/strip/depth definition, contact numbering,
-│   │                 adjacency matrices
-│   ├── projection/   brain-shift compensation: projection to mesh/SCE, smooth
-│   │                 cortical envelope construction, hull correction, depth
-│   │                 displacement field
-│   ├── labeling/     anatomical labelling — anatomicLabel.m (MNI probabilistic
-│   │                 atlas) and anatomicLabelFS.m (FreeSurfer, native space)
-│   ├── geometry/     pure mathematics: distances, rotations, quaternions, angle
-│   │                 conversions, ray/triangle intersection, volumes, areas,
-│   │                 sphere fitting, coordinate transforms
-│   └── export/       text exports and FieldTrip neighbour structures
+├── src/            ══ BACKEND ══  no figures, no handles, callable from a script
+│   ├── project/      the project model: new / open / load / save, the
+│   │                 project / work / ui split, array add and remove,
+│   │                 default processing options
+│   ├── io/           reading images, parcellations, surfaces, electrode files;
+│   │                 grouping imported contacts into arrays
+│   ├── localization/ thresholding, voxel weights, clustering, GridFit and its
+│   │                 options, building arrays from a fit, indexing
+│   ├── projection/   brain-shift compensation: which arrays, which surface,
+│   │                 the correction itself, the smooth cortical envelope
+│   ├── labeling/     anatomical labelling in native and MNI space, contact
+│   │                 naming, parcellation and annotation colours
+│   ├── geometry/     trajectories, frame angles, planning-grid placement,
+│   │                 coordinate transforms and the rest of the mathematics
+│   └── export/       BIDS, EEGLAB, FieldTrip and iElectrodes exports
 │
-├── assets/         atlases, look-up tables, MNI meshes, application icon
-├── third_party/    bundled external toolboxes: SPM12, iso2mesh, NIfTI tools,
-│                   refinepatch (mex). Not iElectrodes code.
-├── examples/       sample .iel projects (native and MNI space)
-├── legacy/         stale .old backups kept for reference
-├── tests/          (empty) characterisation tests — next phase
-└── docs/           (empty) further documentation
+├── tests/          characterisation and property tests, and run_all_tests
+├── examples/       the example projects, and exampleHeadlessWorkflow.m
+├── docs/           OPEN_QUESTIONS, STATE_FIELD_MAPPING, FUNCTION_INVENTORY
+├── assets/         atlases, look-up tables, MNI meshes, icons
+├── third_party/    SPM12, iso2mesh, NIfTI tools, refinepatch - not iElectrodes code
+├── extras/         stand-alone scripts and a CT template (see OPEN_QUESTIONS 4)
+└── legacy/         .old backups kept for reference
 ```
 
-## Why plain folders instead of MATLAB `+packages`
+## The state: project, work, ui
 
-The reference architecture proposes `src/+ielectrodes/+localization/gridFit.m`,
-called as `ielectrodes.localization.gridFit(...)`.
+The GUIDE `handles` structure used to hold everything - patient data,
+in-progress results and graphics handles - in one flat list of 166 fields.
+It is now split three ways, following the reference plan:
 
-That is the right end state, but it cannot be a first step: MATLAB resolves
-package members **only** through fully-qualified names or function-scoped
-`import` statements. Converting now would require rewriting every call site —
-`electrodes_gui.m` alone has 149 functions and ~2 500 `handles` references, plus
-the cross-calls between the backend functions themselves. A single mistake
-produces an "undefined function" error at run time, not at compile time.
+| | holds | examples | in the `.iel` file |
+|---|---|---|---|
+| `handles.project` | patient data and accepted results | images and their geometry, electrodes, planning targets, surfaces, parcellation | yes |
+| `handles.work` | work in progress, settings, shared resources | selected voxels and weights, unfinished contacts, undo copies, CT intensity limits, the Localize panel's settings, processing options, MNI templates | only the fields that always were |
+| `handles.ui` | presentation | graphics handles, redraw flags, colour caches, display options | only the colour caches the file has always carried |
 
-The folder **names** here are already the future package names. Converting one
-area later is therefore:
+`docs/STATE_FIELD_MAPPING.md` lists every field and where it went.
 
-1. rename `localization` → `+localization`
-2. update the call sites of that area only
-3. run the characterisation tests for that workflow
+**The `.iel` file is unchanged.** It is still a MATLAB v7.3 file holding one
+flat variable `s`, exactly as v1.020 writes it, so projects move freely
+between the two versions. `saveProject` flattens the three structures, and
+`checkProjectStructure` writes a fixed list of fields and drops the rest - so
+new state kept in `work` never reaches the file. `tests/test_sessionState.m`
+checks that.
 
-This matches Phase 3 of the reference plan — *move one workflow at a time out of
-`electrodes_gui.m`* — instead of doing all of them in a single risky commit.
+## What a callback does now
 
-## Path setup
+A button callback reads its inputs - from a dialog, or from the controls via
+`readLocalizationSettings` into `work` - calls a function in `src/`, stores
+the result in `project` or `work`, and redraws. The reference plan's example:
 
-`electrodes_gui_OpeningFcn` adds `src/`, `app/`, `assets/` and `third_party/`
-recursively with `genpath`, using `fullfile()` so the same code runs on Windows,
-macOS and Linux. If a `priv/` folder still exists it is also added, so the
-toolbox cannot break half-way through the migration.
+```matlab
+function LocalizeButtonPushed(app, event)
+    options = app.readLocalizationOptions();
+    result  = ielectrodes.localization.gridFit(app.Project.CT, options);
+    app.Project.setElectrodes(result);
+    app.refreshElectrodeViews();
+end
+```
 
-## Next steps
+`Fitpushbutton_Callback` now has that shape, in GUIDE form.
+`docs/FUNCTION_INVENTORY.md` classifies all 162 functions of
+`electrodes_gui.m`; four small operations on `work` are still in it and are
+listed there as the first jobs of the next phase.
 
-The reference session named the concrete next task: an **architectural inventory
-of the 149 functions in `electrodes_gui.m`**, classifying each as UI, plotting,
-workflow, state, I/O or scientific algorithm.
+## How it was done
 
-Alejandro's review added the specific targets, all of which currently live mixed
-into the GUI file and its `handles` struct:
+One workflow at a time, each in its own commit, every change
+behaviour-preserving. Each extraction came with a characterisation test that
+keeps the original code verbatim and requires the new function to give the
+same answer, usually on the real example project. Where extracting a piece of
+code revealed a fault, the fault was recorded in `docs/OPEN_QUESTIONS.md`
+rather than fixed on the way; the few that were fixed were fixed in commits of
+their own, and the entry says whether Alejandro has confirmed it.
 
-| # | Item | Target |
-|---|------|--------|
-| 1 | Patient data is handled in the same place as graphical data | own backend model, `src/project/` |
-| 2 | MRI / CT / mask handling | `src/io/` |
-| 3 | Atlas loading | `src/io/` + `src/labeling/` |
-| 4 | Labelling to native space (priority) and to MNI space | `src/labeling/`, separated |
-| 5 | Input / output ports | `src/io/` + `src/export/` |
+Checks that go beyond "same as before":
 
-The `handles` struct is the root of items 1–5: its 166 fields mix UI component
-handles (`sliderX`, `axes1`, `editArrayName`, …) with patient/scientific data
-(`T1`, `TAC`, `electrodes`, `targets`, `wmparc`, `vertices_SCE_L`, `MNIprob`,
-`currentSpace`, …). Separating those two groups into an explicit project model
-is Phase 4 of the reference plan and the prerequisite for everything else.
+- `test_headlessWorkflow` re-localizes one of the example project's depth
+  electrodes from its CT with no window open: open, threshold, select, weigh,
+  cluster, fit, label, export, save and reopen. GridFit lands 0.29 mm from the
+  stored contacts on average.
+- Pairs of functions that should be inverses are tested as inverses: the two
+  trajectory directions, and the frame angles.
+- Geometry is tested against what it must satisfy: a planning grid keeps its
+  spacing when moved, a rotation keeps contact distances, a trajectory's
+  contacts are collinear.
+
+## Why plain folders instead of MATLAB packages
+
+The reference plan proposes `src/+ielectrodes/+localization/gridFit.m`, called
+as `ielectrodes.localization.gridFit(...)`. That is the right end state, but
+not a first step: MATLAB finds package members only through their full names,
+so converting means rewriting every call site at once, and a missed one is an
+"undefined function" error at run time rather than when the file is loaded.
+
+The folder names are already the future package names, so converting one area
+later is: rename `localization` to `+localization`, update that area's call
+sites, run its tests. `docs/OPEN_QUESTIONS.md` item 21 is one reason to do it
+eventually.
+
+## Where things stand against the reference plan
+
+| phase | | |
+|---|---|---|
+| 1 | stabilise v1 | partly - v1.020 is kept as a reference copy and its faults are recorded; no release tag yet, and no reference datasets beyond the two example projects |
+| 2 | characterisation tests | done - `tests/`, run with `run_all_tests` |
+| 3 | headless computational API | done - `src/`, proven by `exampleHeadlessWorkflow` |
+| 4 | explicit project model | done - `project` / `work` / `ui`; no `schemaVersion` yet, because it would change the file (a decision) |
+| 5 | vertical GUI prototype in App Designer | next |
+| 6 | gradual release | later |
+
+The decisions needed before phase 5 - which MATLAB release to target, whether
+the Localize settings are saved, whether `currentSpace` is split, GitHub and
+licensing - are in `docs/OPEN_QUESTIONS.md`, with the evidence for each.
