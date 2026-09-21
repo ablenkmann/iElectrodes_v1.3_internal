@@ -5128,11 +5128,12 @@ delta=handles.project.targets{l}.delta;
 %     framePosition='Anterior';
 % end
 % % ----
-handles.project.targets{l}.frameDown = handles.project.targets{l}.z(handles.project.targets{l}.nElectrodes) < 0; 
-framePosition=handles.project.targets{l}.framePosition;
-frameDown=handles.project.targets{l}.frameDown;
-
-[alpha,beta]=delta2alpha_beta(delta(1),delta(2),delta(3),framePosition,frameDown);
+% the frame angles of this direction, and whether the frame points down
+% (src/geometry/)
+target = handles.project.targets{l};
+[alpha, beta, frameDown] = trajectoryFrameAngles(delta, target.z(target.nElectrodes), ...
+                                                 target.framePosition);
+handles.project.targets{l}.frameDown = frameDown;
 
 handles.project.targets{l}.beta=beta;
 handles.project.targets{l}.alpha=alpha;
@@ -5234,19 +5235,12 @@ alpha = str2double( get(handles.AlphaAngleEdit,'String'));
 beta = str2double( get(handles.BetaAngleEdit,'String'));
 
 handles.project.targets{l}.alpha=alpha;
-handles.project.targets{l}.alpha=beta;
+handles.project.targets{l}.alpha=beta;   % sic: should be .beta - see OPEN_QUESTIONS item 24
 
-framePosition=handles.project.targets{l}.framePosition;
-frameDown=handles.project.targets{l}.frameDown;
-
-[dx,dy,dz]=alpha_beta2delta(alpha,beta,framePosition,frameDown);
-
-delta=[dx dy dz];
-
-dist=fs_dist+(n-2)*sl_dist; %length from first to last
-
-% estimate xo
-xo=xi+dist*delta;
+% estimate xo, from the frame angles (src/geometry/)
+xo = frameTrajectoryEndPoint(xi, alpha, beta, ...
+        handles.project.targets{l}.framePosition, handles.project.targets{l}.frameDown, ...
+        n, fs_dist, sl_dist);
 
 handles.project.targets{l}.targetOut.x=xo(1);
 handles.project.targets{l}.targetOut.y=xo(2);

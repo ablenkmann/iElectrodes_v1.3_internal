@@ -952,3 +952,29 @@ so the fix would be to test that instead of the plot object.
 **Decision needed:** fix it? The same kind of fault as item 7.
 
 **Status:** preserved. Present in v1.020.
+
+---
+
+## 24. The frame angles write beta into alpha
+
+**Where:** `AlphaBetaChange` in `electrodes_gui.m`, which runs when the user
+types the stereotactic frame angles of a planned depth electrode
+
+```matlab
+handles.project.targets{l}.alpha=alpha;
+handles.project.targets{l}.alpha=beta;    % .alpha again - meant .beta
+```
+
+The second line writes beta into `.alpha`, and `.beta` is never set here.
+
+It does no harm as things stand, because the function ends by calling
+`updateTarget`, which recomputes both angles from the electrode's direction
+and stores them correctly - so the wrong value lives only for a moment. It
+would start to matter if that call were ever removed or moved.
+
+Found while the frame geometry was taken out of the GUI; the line is kept,
+marked with a comment.
+
+**Decision needed:** fix it - one word - or leave it, since it has no effect?
+
+**Status:** preserved. Present in v1.020.
