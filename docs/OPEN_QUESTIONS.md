@@ -154,6 +154,35 @@ final choice made after asking a few active users what they actually run.
 **Decision needed:** which MATLAB releases must v2 support? This affects
 whether App Designer features introduced in recent releases can be used.
 
+**Alejandro's answer so far:** "I'm guessing that 2024 or 2025, but I'm not
+sure. It depends on the implications of this decision."
+
+**The implications, as far as this work can see them:**
+
+- *The minimum cannot be newer than the release v2 is developed and tested
+  on.* Newer releases run code written for older ones, not the reverse.
+  Development and testing currently happen on **R2023b**. A minimum of
+  R2024b or R2025a would mean shipping something that cannot be run on the
+  machine it was built on. So either the minimum is R2023b or earlier, or
+  development moves to a newer release before the App Designer work starts.
+- *App Designer is where the choice becomes binding.* An app saved in a
+  newer release is not guaranteed to open in an older release's App
+  Designer, so the release the v2 GUI is built in effectively becomes the
+  minimum for anyone who wants to edit it.
+- *The existing code is not what constrains it.* `electrodes_gui.m` carries
+  twelve `verLessThan` checks - eleven for R2014b (8.4.0), one for R2018b
+  (9.5). Under any minimum from R2019a on, all twelve are dead branches and
+  can be deleted.
+
+The simplest consistent rule: **the minimum is the release the v2 GUI is
+built in.** That turns the open question into a smaller one - whether to
+upgrade from R2023b before starting the frontend - and the reference
+discussion's suggestion of asking a few active users what they run still
+applies.
+
+**Status:** open, but narrowed. Needed before the frontend work starts, not
+before.
+
 ---
 
 ## 7. `getThresholdedVoxels` crashes instead of warning when nothing is selected
