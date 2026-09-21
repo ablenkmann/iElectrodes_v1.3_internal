@@ -4167,66 +4167,63 @@ guidata(hObject, handles);
 
 function handles=processProjections(handles)
 
-if get(handles.projectSCEcheckbox,'Value') % calculate projection
-    
-    for i=1:length(handles.project.electrodes)
-        isgrid(i)=strcmp({handles.project.electrodes{i}.Type},'grid') || strcmp({handles.project.electrodes{i}.Type},'strip');
-    end
-    if ~any(isgrid)
-        warning('It is not posible to project electrodes to SCE. No grids localized yet. Please localize grids first.');
-        set(handles.projectSCEcheckbox,'Value',0);
-        return;
-    else
-        
-        % Deal with previous projections
-        projDone=[];
-        for i=1:length(handles.project.electrodes)
-            %projDone(i)=isfield(handles.project.electrodes{i},'projection');
-            projDone(i)=~isempty(handles.project.electrodes{i}.projection);
+if ~get(handles.projectSCEcheckbox,'Value')   % the box is off: nothing to do
+    return
+end
 
-        end
-        
-        if sum(projDone)>0 %some projections were done before
-            % Do you want to recalculate all?
-            choice = questdlg('Do you want to recalculate all projections?', ...
-                '', 'Yes, all','No, only the new one(s)','No, only the new one(s)');
-            % Handle response
-            switch choice
-                case 'Yes, all'
-                    projDone=projDone-projDone; % put all to cero and recalculate
-                case 'No, only the new one(s)'
-                    % do nothing
-                case '' % close the dialog box
-                    set(handles.projectSCEcheckbox,'Value',0);
-                    return;
-            end
-        end
-        
-        
-        % Do the projections
-        if sum(~projDone)>0
-            if strcmp(handles.project.currentSpace,'MNI') % MNI space
-                handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,handles.work.v_MNI_SCE,handles.work.f_MNI_SCE, handles.work.options, projDone);
-                
-            else  % Native space
-                if ~isempty(handles.project.vertices_SCE_L)
-                    [vertices,faces]=mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
-                    handles.project.electrodes=electrodes2hullCorrection(handles.project.electrodes,vertices,faces,handles.work.options,projDone);
-                else
-                    warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
-                    set(handles.projectSCEcheckbox,'Value',0);
-                end
-            end
+arrays = handles.project.electrodes;
+[projectable, projDone] = arrayProjectionState(arrays);
 
-            % anatomical labeling (electrodes and projections)
-            if strcmp(handles.project.currentSpace,'MNI'); % options are 'Native' 'MNI'       
-                handles=labels2MNIspace(handles);
-            else
-                handles=labels2NativeSpace(handles);
-            end
-        end
+if ~any(projectable)
+    warning('It is not posible to project electrodes to SCE. No grids localized yet. Please localize grids first.');
+    set(handles.projectSCEcheckbox,'Value',0);
+    return;
+end
+
+% Deal with previous projections
+if any(projDone) %some projections were done before
+    % Do you want to recalculate all?
+    choice = questdlg('Do you want to recalculate all projections?', ...
+        '', 'Yes, all','No, only the new one(s)','No, only the new one(s)');
+    % Handle response
+    switch choice
+        case 'Yes, all'
+            projDone = false(size(projDone)); % put all to cero and recalculate
+        case 'No, only the new one(s)'
+            % do nothing
+        case '' % close the dialog box
+            set(handles.projectSCEcheckbox,'Value',0);
+            return;
     end
 end
+
+% Do the projections
+if all(projDone)
+    return
+end
+
+[vertices, faces] = sceSurfaceForSpace(handles.project.currentSpace, ...
+                                       handles.project, handles.work);
+
+if isempty(vertices) && ~strcmp(handles.project.currentSpace,'MNI')
+    % Native space, and this patient has no smooth cortical envelope yet.
+    % The MNI branch has never had this check - its surface is a template
+    % that ships with the toolbox - and it is left without one.
+    warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
+    set(handles.projectSCEcheckbox,'Value',0);
+else
+    handles.project.electrodes = electrodes2hullCorrection(arrays, vertices, faces, ...
+                                                           handles.work.options, projDone);
+end
+
+% anatomical labeling (electrodes and projections)
+% Reached even when the warning above fired, as it always has been.
+if strcmp(handles.project.currentSpace,'MNI') % options are 'Native' 'MNI'
+    handles=labels2MNIspace(handles);
+else
+    handles=labels2NativeSpace(handles);
+end
+
 
 
 
