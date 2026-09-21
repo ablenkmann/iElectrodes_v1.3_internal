@@ -770,45 +770,40 @@ it gets its own commit and a yes first.
 **Where:** the threshold sliders, the denoise slider, the cluster-count box
 and the rows / columns boxes of the Localize panel
 
-The plan was to move these values out of the controls and into `work`, so
-that the controls become views of the state rather than the state itself.
-Looking closely first changed the picture.
+**Correction first.** This entry used to say the settings could not be moved
+into `work` because "`saveProject` writes every field of `work` into the
+`.iel`", so the move would change the file. That was wrong.
+`checkProjectStructure` writes a fixed list of known fields and drops
+everything else - which is also why `work.options` has never been in a
+project file. Moving the settings into `work` never threatened the file.
+`tests/test_sessionState.m` now checks exactly that.
 
-**The science is already out.** Each value is read once, at the moment it is
-used, and handed as a plain number to a function in `src/`:
+**What was done.** The reference plan says these values "must become explicit
+work data; the controls should display or edit them". The edit boxes have no
+callbacks of their own, so the GUI now reads all six controls into
+`work.localization` at the moment they are used - updating the voxel view,
+pressing Clus, pressing Index - and the calculation takes them from there:
 
-| control | read in | passed to |
+| setting | control | used by |
 |---|---|---|
-| `sliderThrMin`, `sliderThrMax` | the thresholded-voxel view | `thresholdCTVoxels` |
-| `denoiseSlider` | the same place | `thresholdCTVoxels` |
-| `clusNElecEdit` | the Clus button | `clusterContacts` |
-| `rowsEdit`, `colsEdit` | the Index button | `indexGridElectrodes` |
+| `thresholdLow`, `thresholdHigh` | the two threshold sliders | `thresholdCTVoxels` |
+| `denoiseKernel` | the denoise slider | `thresholdCTVoxels` |
+| `nClusters` | the box beside Clus | `clusterContacts` |
+| `rows`, `columns` | the boxes beside Index | `indexGridElectrodes` |
 
-None of those functions sees a control. What is left is only where the
-*current* value is kept - and moving that is not a neutral change:
+The same values are read with the same conversions, so nothing behaves
+differently. `readLocalizationSettings` in `electrodes_gui.m` is the only
+place that reads them off the controls; it is the GUIDE-era version of the
+`app.readLocalizationOptions()` the reference plan sketches for App
+Designer.
 
-- **It changes the file.** `saveProject` writes every field of `work` into the
-  `.iel`, so moving the settings into `work` adds a field to every saved
-  project. The file has been kept exactly as v1.020 writes it so far.
-- **It raises a behaviour question nobody has settled.** Should opening a
-  project restore the threshold and cluster count it was localized with?
-  Today it does not: Load CT resets the thresholds to 0.9 and 1, and Open
-  leaves the sliders where they were.
-- **The frontend decides the rest.** In App Designer these values would be
-  bound to the app's own components. Where they are stored should be
-  designed together with that, not before it.
+**Decision still needed, at the start of the frontend work:** should these
+settings be saved - with the project, or with each result they produced?
+GridFit already records its configuration in every array it fits
+(`methodParameters`), but nothing records the threshold that produced the
+voxels it was fitted to. Saving them would mean adding fields to the file.
 
-A related point in favour of storing them: GridFit already records its
-configuration with every array it fits (`methodParameters`), but nothing
-records the threshold that produced the voxels it was fitted to.
-
-**Decision needed, at the start of the frontend work:** should localization
-settings be part of the project - saved, and restored on open - or stay as
-session state that is not saved?
-
-**Status:** not moved, deliberately. No behaviour depends on it until the
-frontend exists.
-
+**Status:** moved into `work`, not saved. The saving question is open.
 ---
 
 ## 19. `checkElectrodeStructure` empties `x` instead of creating `distances`
@@ -901,3 +896,59 @@ package.
 
 **Status:** open. Introduced by the restructuring, which gave the function
 this name.
+
+---
+
+## 22. `PathName` means two different things
+
+**Where:** `handles.work.FileName` / `PathName`, used by the file dialogs and
+written into every `.iel`
+
+`PathName` is both "the folder the project file is in" and "the folder the
+last file dialog was in". Twenty of the GUI's file dialogs - opening the
+project, loading a CT, exporting electrodes to BIDS or FieldTrip, loading
+surfaces, and more - set it to wherever the user just browsed, and 22 open
+there, the save-project dialog among them. So after exporting a `.tsv` to the Desktop,
+`PathName` points to the Desktop, the next save dialog opens there, and that
+is the `PathName` written into the `.iel`.
+
+The reference plan proposes separating the two: the current project's file
+name on one side, the last folder browsed on the other.
+
+That is a change in behaviour - where dialogs open, and what the file
+records - so it is not made here.
+
+**Decision needed:** separate them? If so, which one should the `.iel` keep?
+
+**Status:** open. Present in v1.020.
+
+---
+
+## 23. The voxel view keeps a deleted plot when no voxel passes the threshold
+
+**Where:** `updatePlot` and `getThresholdedVoxels` in `electrodes_gui.m`
+
+`updatePlot` clears the voxel view (`cla`) and draws the thresholded voxels
+as a new scatter, stored in `handles.ui.sct` - but only if there are voxels
+to draw:
+
+```matlab
+if ~isempty(crd)
+    handles.ui.sct = scatter3(handles.axes1, ...);
+end
+```
+
+When the thresholds leave no voxel, `ui.sct` still holds the previous scatter,
+which `cla` has just deleted. `getThresholdedVoxels` then tests
+`isempty(handles.ui.sct)` - false for a deleted object - and reads its
+`BrushData`, which MATLAB refuses for a deleted object. So pressing Clus or
+Fit after thresholding everything away would fail with "Invalid or deleted
+object" instead of the "no points selected" warning.
+
+Found by reading, while the voxel coordinates were moved into `work`; not
+reproduced. `work.candidateVoxels` is set to the empty result in that case,
+so the fix would be to test that instead of the plot object.
+
+**Decision needed:** fix it? The same kind of fault as item 7.
+
+**Status:** preserved. Present in v1.020.

@@ -2597,11 +2597,13 @@ else
     
     % Which voxels are bright enough to be contacts, and where they are.
     % The selection itself lives in src/localization/, so it can be run and
-    % checked without a figure; what stays here is reading the settings off
-    % the controls.
-    opt.lowThreshold  = get(handles.sliderThrMin,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
-    opt.highThreshold = get(handles.sliderThrMax,'Value') * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
-    opt.denoiseKernel = round(get(handles.denoiseSlider, 'value'));
+    % checked without a figure. The settings are read off the controls into
+    % work first, and taken from there.
+    handles  = readLocalizationSettings(handles);
+    settings = handles.work.localization;
+    opt.lowThreshold  = settings.thresholdLow  * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
+    opt.highThreshold = settings.thresholdHigh * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
+    opt.denoiseKernel = settings.denoiseKernel;
     opt.maxCount      = handles.ui.options.scatter3D_elem_limit;
 
     % Remove already localized voxels
@@ -2614,6 +2616,10 @@ else
 
     [crd,vTAC] = thresholdCTVoxels(handles.project.TAC, handles.project.mask, ...
                                    handles.project.S2, opt);
+
+    % the voxels on offer for selection, kept as data: the plot below shows
+    % them, and getThresholdedVoxels takes the chosen ones from here
+    handles.work.candidateVoxels = crd;
 
     % skip if there are no points to plot
     if ~isempty(crd)
@@ -3096,7 +3102,8 @@ if isempty(brushCrd)
     return;
 end
 
-nClus=str2double( get(handles.clusNElecEdit,'String'));
+handles = readLocalizationSettings(handles);
+nClus   = handles.work.localization.nClusters;
 
 [GS,clusters,weight,quality] = clusterContacts(brushCrd,weight,nClus);
 
@@ -3268,6 +3275,28 @@ handles = addElectrode2structure(handles,electrodes,[]);
 guidata(hObject, handles);
 
 
+function handles = readLocalizationSettings(handles)
+% The scientific settings of the Localize panel, read off its controls into
+% handles.work.localization at the moment they are about to be used.
+%
+% The controls are where the user types them; work is where the calculation
+% takes them from, so what was used is on record in work rather than only in
+% the controls. The same values are read, with the same conversions, as the
+% code that read the controls directly did.
+%
+% They are not written to the .iel: CHECKPROJECTSTRUCTURE writes a fixed set
+% of fields, and work.localization is not one of them. Whether the settings
+% should be saved with the project is docs/OPEN_QUESTIONS.md item 18.
+settings.thresholdLow  = get(handles.sliderThrMin,'Value');               % fraction of the CT range
+settings.thresholdHigh = get(handles.sliderThrMax,'Value');               % fraction of the CT range
+settings.denoiseKernel = round(get(handles.denoiseSlider, 'value'));      % voxels; 1 = off
+settings.nClusters     = str2double(get(handles.clusNElecEdit,'String')); % contacts to cluster into
+settings.rows          = str2double(get(handles.rowsEdit,'string'));      % grid rows, for Index
+settings.columns       = str2double(get(handles.colsEdit,'string'));      % grid columns, for Index
+handles.work.localization = settings;
+
+
+%--------------------------------------------------------------------
 function [brushCrd,weight]=getThresholdedVoxels(handles)
 % get coordinates and weight of the thresholded voxels in the 3D
 % view. Method called by cluser and fit algorithms
@@ -3303,10 +3332,17 @@ else
         if isempty(brushedIdx)
             warning ('There are no points selected to be clustered');
             return;
+        elseif numel(brushedIdx) ~= size(handles.work.candidateVoxels, 1)
+            % cannot happen while the plot and work.candidateVoxels are made
+            % together in updatePlot; if they ever disagree, refuse rather
+            % than take the wrong voxels
+            warning ('The selection does not match the voxels shown. Select the voxels again.');
+            return;
         else
-            brushCrd(:,1) = handles.ui.sct.XData(brushedIdx);
-            brushCrd(:,2) = handles.ui.sct.YData(brushedIdx);
-            brushCrd(:,3) = handles.ui.sct.ZData(brushedIdx);
+            % which points were chosen comes from the plot - that is the
+            % user's input - but where they are comes from work, not from
+            % the plotted object
+            brushCrd = handles.work.candidateVoxels(brushedIdx, :);
         end
     end
 end
@@ -3570,8 +3606,9 @@ if isempty(handles.work.GS)
     if get(handles.DepthButton,'value')
         [electrodesOut,Ix]=indexDepthElectrodes(pos,'depth');
     elseif get(handles.GridButton,'value')
-        rows=str2double(get(handles.rowsEdit,'string'));
-        columns=str2double(get(handles.colsEdit,'string'));
+        handles = readLocalizationSettings(handles);
+        rows    = handles.work.localization.rows;
+        columns = handles.work.localization.columns;
         [electrodesOut,Ix]=indexGridElectrodes(pos,rows,columns,'grid',handles.work.options);
     end
        
@@ -3595,8 +3632,9 @@ else
     if get(handles.DepthButton,'value')
         [electrodes,Ix]=indexDepthElectrodes(handles.work.GS,'depth');
     elseif get(handles.GridButton,'value')
-        rows=str2double(get(handles.rowsEdit,'string'));
-        columns=str2double(get(handles.colsEdit,'string'));
+        handles = readLocalizationSettings(handles);
+        rows    = handles.work.localization.rows;
+        columns = handles.work.localization.columns;
         [electrodes,Ix]=indexGridElectrodes(handles.work.GS,rows,columns,'grid',handles.work.options);
     end
     
