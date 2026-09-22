@@ -30,7 +30,7 @@ function state = newProject(state, T1)
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also OPENPROJECT, SAVEPROJECT, CHECKPROJECTSTRUCTURE.
+%   See also READIELFILE, WRITEIELFILE, CHECKPROJECTSTRUCTURE.
 
 state = checkProjectStructure([], state);
 state = liftToProject(state);   % patient data     -> state.project

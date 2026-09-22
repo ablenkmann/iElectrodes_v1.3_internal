@@ -880,7 +880,7 @@ restructuring.
 
 ## 21. `openProject` has the same name as a MATLAB function
 
-**Where:** `src/project/openProject.m`
+**Where:** `src/project/openProject.m` (now `readIelFile.m`)
 
 MATLAB has had its own `openProject`, for MATLAB Projects (`.prj` files),
 since R2019a. With iElectrodes on the path, ours takes precedence, so
@@ -894,11 +894,12 @@ where the full name is `ielectrodes.openProject`.
 **Decision needed, when the packaging is decided:** rename it, or rely on the
 package.
 
-**Status:** decided, not yet done. After the separation, Alejandro proposed
-a layer between frontend and backend, and it is a package: `src/+ielec/`
-(`docs/API_LAYER.md`). The public name is therefore `ielec.openProject`, which
-does not clash. The plain `openProject` is retired once nothing calls it, and
-this item closes then.
+**Status: CLOSED.** After the separation, Alejandro proposed a layer between
+frontend and backend, and it is a package: `src/+ielec/`
+(`docs/API_LAYER.md`). The name `openProject` now belongs to the layer, as
+`ielec.openProject`, which does not clash. The plain backend function was
+renamed to what it does, `readIelFile`, and `saveProject` to `writeIelFile`
+with it.
 
 ---
 

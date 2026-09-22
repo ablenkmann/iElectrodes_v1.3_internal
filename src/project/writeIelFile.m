@@ -1,10 +1,10 @@
-function saveProject(fullPath, project, work, ui)
-%SAVEPROJECT  Write a project to a .iel file.
+function writeIelFile(fullPath, project, work, ui)
+%WRITEIELFILE  Write a project to a .iel file.
 %
-%   saveProject(fullPath, project, work) writes the project to FULLPATH in
+%   writeIelFile(fullPath, project, work) writes the project to FULLPATH in
 %   the .iel format.
 %
-%   saveProject(fullPath, project, work, ui) takes the colour caches the
+%   writeIelFile(fullPath, project, work, ui) takes the colour caches the
 %   file carries from UI, as the GUI does. Leave UI out - as a script does -
 %   and the annotation colours are computed from the project with
 %   ANNOTATIONCOLOURS, the function the GUI itself uses when annotations are
@@ -33,11 +33,11 @@ function saveProject(fullPath, project, work, ui)
 %   before this was a function.
 %
 %   Example
-%       saveProject(fullfile(pwd,'patient.iel'), prj.project, prj.work, prj.ui);
+%       writeIelFile(fullfile(pwd,'patient.iel'), prj.project, prj.work, prj.ui);
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also LOADPROJECT, OPENPROJECT, NEWPROJECT, FLATTENPROJECT,
+%   See also LOADPROJECT, READIELFILE, NEWPROJECT, FLATTENPROJECT,
 %   CHECKPROJECTSTRUCTURE, ANNOTATIONCOLOURS.
 
 state.project = project;

@@ -1,11 +1,11 @@
-function s = openProject(fullPath)
-%OPENPROJECT  Read the structure stored in a .iel file.
+function s = readIelFile(fullPath)
+%READIELFILE  Read the structure stored in a .iel file.
 %
-%   s = openProject(fullPath) returns the flat structure the file holds. Run
+%   s = readIelFile(fullPath) returns the flat structure the file holds. Run
 %   it through CHECKPROJECTSTRUCTURE to get a project, and through
 %   LIFTTOPROJECT, LIFTTOWORK and LIFTTOUI to get the three groups:
 %
-%       s     = openProject(file);
+%       s     = readIelFile(file);
 %       state = checkProjectStructure(s);
 %       state = liftToUi(liftToWork(liftToProject(state)));
 %
@@ -21,10 +21,10 @@ function s = openProject(fullPath)
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also SAVEPROJECT, NEWPROJECT, CHECKPROJECTSTRUCTURE.
+%   See also WRITEIELFILE, NEWPROJECT, CHECKPROJECTSTRUCTURE.
 
 if ~isfile(fullPath)
-    error('openProject:noSuchFile', 'No such file: %s', fullPath);
+    error('readIelFile:noSuchFile', 'No such file: %s', fullPath);
 end
 
 try
@@ -33,14 +33,14 @@ catch err
     % not a MATLAB file at all - load fails before there is anything to look
     % at, so the file is reported here rather than by a stack several frames
     % deeper
-    error('openProject:notAProject', ...
+    error('readIelFile:notAProject', ...
         ['%s cannot be read as a project. A .iel file is a MATLAB file ' ...
          'holding a single variable named s.\n         MATLAB said: %s'], ...
         fullPath, err.message);
 end
 
 if ~isfield(loaded, 's')
-    error('openProject:notAProject', ...
+    error('readIelFile:notAProject', ...
         ['%s does not hold a project. A .iel file contains a single ' ...
          'variable named s; this one contains: %s'], ...
         fullPath, strjoin(fieldnames(loaded)', ', '));

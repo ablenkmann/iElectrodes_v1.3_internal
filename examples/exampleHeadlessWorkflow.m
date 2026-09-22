@@ -40,7 +40,7 @@ function result = exampleHeadlessWorkflow(outputFolder)
 %
 %   See also LOADPROJECT, THRESHOLDCTVOXELS, VOXELWEIGHTS, CLUSTERCONTACTS,
 %   GRIDFITOPTIONS, GRIDFIT, ELECTRODEFROMGRIDFIT, LABELELECTRODESNATIVE,
-%   WRITEBIDSELECTRODES, SAVEPROJECT.
+%   WRITEBIDSELECTRODES, WRITEIELFILE.
 
 %% ------------------------------------------------------------ setup
 repoRoot = fileparts(fileparts(mfilename('fullpath')));
@@ -176,7 +176,7 @@ step(9, 'export in BIDS format', sprintf('%d contacts to %s', tsvLines - 1, tsvF
 
 %% ----------------------------------------------------- 10. save and reopen
 ielOut = fullfile(outputFolder, 'headless.iel');
-saveProject(ielOut, project, work);
+writeIelFile(ielOut, project, work);
 [reopened, ~] = loadProject(ielOut);
 
 back = reopened.electrodes{end};

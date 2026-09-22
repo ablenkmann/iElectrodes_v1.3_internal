@@ -2,7 +2,7 @@ function ok = test_scriptEntryPoints()
 %TEST_SCRIPTENTRYPOINTS  Check what a script needed that only the GUI had.
 %
 %   ok = test_scriptEntryPoints() checks LOADPROJECT, GRIDFITOPTIONS and
-%   VOXELWEIGHTS, and SAVEPROJECT called without the GUI's ui structure.
+%   VOXELWEIGHTS, and WRITEIELFILE called without the GUI's ui structure.
 %   All four were found while writing examples/exampleHeadlessWorkflow.m:
 %   without the first three a script had to copy code out of the Open
 %   button, the Fit button and getThresholdedVoxels, and saving from a script
@@ -54,18 +54,18 @@ try
 catch err
     threw = err.identifier;
 end
-nFail = nFail + check(strcmp(threw, 'openProject:noSuchFile'), ...
+nFail = nFail + check(strcmp(threw, 'readIelFile:noSuchFile'), ...
     'a missing file is refused by name', threw);
 
-%% ------------------------------------------ saveProject, without the GUI
-fprintf('\n--- saveProject without ui, as a script calls it -------------\n');
+%% ------------------------------------------ writeIelFile, without the GUI
+fprintf('\n--- writeIelFile without ui, as a script calls it ------------\n');
 
 savedFile = [tempname '.iel'];
 removeSaved = onCleanup(@() deleteIfThere(savedFile));
 
 threw = '';
 try
-    saveProject(savedFile, project, work);   % no ui: what a script does
+    writeIelFile(savedFile, project, work);   % no ui: what a script does
 catch err
     threw = err.message;
 end
@@ -89,7 +89,7 @@ bare = project;
 bare.AnnotLabel_R = [];  bare.AnnotLabel_L = [];
 threw = '';
 try
-    saveProject(savedFile, bare, work);
+    writeIelFile(savedFile, bare, work);
 catch err
     threw = err.message;
 end

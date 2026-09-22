@@ -85,7 +85,7 @@ It is now split three ways, following the reference plan:
 
 **The `.iel` file is unchanged.** It is still a MATLAB v7.3 file holding one
 flat variable `s`, exactly as v1.020 writes it, so projects move freely
-between the two versions. `saveProject` flattens the three structures, and
+between the two versions. `writeIelFile` flattens the three structures, and
 `checkProjectStructure` writes a fixed list of fields and drops the rest - so
 new state kept in `work` never reaches the file. `tests/test_sessionState.m`
 checks that.

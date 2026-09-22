@@ -89,11 +89,14 @@ Two things follow from that:
 
 - Inside the package, calls to the backend are unqualified (`loading_images_SPM(...)`),
   and calls to other ielec functions are qualified (`ielec.loadCT(...)`).
-- An ielec function does not call a backend function with the same name. Where
-  there is one (`newProject`, `loadProject`, `openProject`), the layer does
-  the steps itself. The unpackaged versions are retired once nothing calls
-  them any more. This also settles `docs/OPEN_QUESTIONS.md` item 21: the
-  public name is `ielec.openProject`, which does not clash with MATLAB's.
+- An ielec function does not call a backend function with the same name:
+  inside a package that is easy to misread, and MATLAB's rules for it are
+  easy to get wrong. So the backend's names describe what the function does
+  to the file: `readIelFile` and `writeIelFile`, not `openProject` and
+  `saveProject`. Those names belong to the layer - `ielec.openProject`,
+  which also does not clash with MATLAB's own `openProject`.
+  (`newProject` and `loadProject` are the two exceptions left. Nothing in the
+  layer calls them, and they are retired once nothing else does.)
 
 **7. Each function comes with a test.** `tests/test_ielec<Name>.m` compares the
 new function with the code it replaces, kept verbatim inside the test, and
@@ -147,7 +150,7 @@ Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.openProject`, `ielec.saveProject` | Open and Save; `loadProject` / `saveProject` |
+| `ielec.openProject`, `ielec.saveProject` | Open and Save: `readIelFile`, `writeIelFile`, `loadProject` |
 | `ielec.loadCT` | the Load CT button: CT and brain mask onto the MRI |
 | `ielec.thresholdCT` | `thresholdCTVoxels` and the candidate voxels in work |
 | `ielec.selectVoxels` | the selection and `voxelWeights` |

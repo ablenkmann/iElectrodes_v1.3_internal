@@ -559,7 +559,7 @@ else
         % Written before the new name is recorded, so that s.FileName and
         % s.PathName carry what the project already held - as they did when
         % this was one long callback.
-        saveProject([PathName, FileName], handles.project, handles.work, handles.ui);
+        writeIelFile([PathName, FileName], handles.project, handles.work, handles.ui);
 
         handles.work.FileName=FileName;
         handles.work.PathName=PathName;
@@ -607,7 +607,7 @@ end
 [FileName,PathName]=uigetfile('*.iel', 'Load iElectrodes file', handles.work.PathName);
 
 if FileName ~=0   
-    s = openProject([PathName, FileName]);
+    s = readIelFile([PathName, FileName]);
     disp (['Loaded project from ' PathName, FileName])
        
     % load defaults, including plot updates

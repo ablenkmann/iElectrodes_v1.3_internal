@@ -73,8 +73,8 @@ Carries out one user action: asks through a dialog or reads the controls, calls 
 |---|---:|---:|---|
 | `Newuipushtool_ClickedCallback` | 387 | 51 | `loading_images_SPM`, `mesh2AnatSpace`, `newProject` |
 | `LoadCTtool_ClickedCallback` | 471 | 33 | `loadVolumeOntoMRI` |
-| `Savepushtool_ClickedCallback` | 543 | 22 | `saveProject` |
-| `Openpushtool_ClickedCallback` | 578 | 77 | `checkProjectStructure`, `liftToProject`, `liftToUi`, `liftToWork`, `mesh2AnatSpace`, `openProject` |
+| `Savepushtool_ClickedCallback` | 543 | 22 | `writeIelFile` |
+| `Openpushtool_ClickedCallback` | 578 | 77 | `checkProjectStructure`, `liftToProject`, `liftToUi`, `liftToWork`, `mesh2AnatSpace`, `readIelFile` |
 | `SaveElectrodespushtool_ClickedCallback` | 698 | 96 | `electrodeCoordinates`, `writeBIDScoordinateSystem`, `writeBIDSelectrodes`, `writeEEGLABcoordinates`, `writeElectrodeStructure`, `writeFieldTripElectrodes` |
 | `LoadElectrodespushtool_ClickedCallback` | 822 | 83 | `electrodeArrayFromContacts`, `groupContactsByArray`, `readEEGLABelectrodes`, `readElectrodeStructure`, `readFieldTripElectrodes` |
 | `Reportuipushtool_ClickedCallback` | 934 | 19 | `aLabels2txt_new` |

@@ -20,13 +20,13 @@ function [project, work] = loadProject(fullPath)
 %   The GUI's display caches (annotation colours and the like) are left out;
 %   nothing outside the GUI uses them.
 %
-%   The file itself is not changed. SAVEPROJECT writes a project back.
+%   The file itself is not changed. WRITEIELFILE writes a project back.
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also SAVEPROJECT, OPENPROJECT, NEWPROJECT, CHECKPROJECTSTRUCTURE.
+%   See also WRITEIELFILE, READIELFILE, NEWPROJECT, CHECKPROJECTSTRUCTURE.
 
-s = openProject(fullPath);
+s = readIelFile(fullPath);
 
 state = checkProjectStructure(s, struct());
 state = liftToProject(state);   % patient data     -> state.project

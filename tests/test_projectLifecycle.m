@@ -1,5 +1,5 @@
 function ok = test_projectLifecycle()
-%TEST_PROJECTLIFECYCLE  Check newProject, saveProject and openProject.
+%TEST_PROJECTLIFECYCLE  Check newProject, writeIelFile and readIelFile.
 %
 %   ok = test_projectLifecycle() exercises the three functions the New, Save
 %   and Open buttons now call. No figure is opened, and no file dialog: that
@@ -21,7 +21,7 @@ function ok = test_projectLifecycle()
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also NEWPROJECT, SAVEPROJECT, OPENPROJECT.
+%   See also NEWPROJECT, WRITEIELFILE, READIELFILE.
 
 repoRoot = fileparts(fileparts(mfilename('fullpath')));
 for f = {'src','app','assets','third_party'}
@@ -78,8 +78,8 @@ end
 nFail = nFail + check(isempty(leftFlat), 'nothing is left at the top level', ...
     strjoin(leftFlat, ' '));
 
-%% ------------------------------------------- saveProject then openProject
-fprintf('\n--- saveProject and openProject ------------------------------\n');
+%% ------------------------------------------- writeIelFile then readIelFile
+fprintf('\n--- writeIelFile and readIelFile -----------------------------\n');
 
 % enough of a project for checkProjectStructure to keep the colour caches:
 % they are only kept when the data they were derived from is there too
@@ -102,11 +102,11 @@ state.ui.wmparcColors = rand(2,2,2,3);
 tmpFile = fullfile(tempdir, 'ielectrodes_lifecycle.iel');
 if isfile(tmpFile), delete(tmpFile); end
 
-saveProject(tmpFile, state.project, state.work, state.ui);
+writeIelFile(tmpFile, state.project, state.work, state.ui);
 nFail = nFail + check(isfile(tmpFile), 'the file is written', ...
     sprintf('%.1f kB', dirBytes(tmpFile)/1e3));
 
-s = openProject(tmpFile);
+s = readIelFile(tmpFile);
 nFail = nFail + check(isstruct(s), 'and read back', '');
 
 nFail = nFail + check(isequaln(s.T1, T1), 'the MRI survives', '');
@@ -138,16 +138,16 @@ nFail = nFail + check(isequaln(reopened.ui.AnnotColor_R, state.ui.AnnotColor_R),
 
 delete(tmpFile);
 
-%% ---------------------------------------------------- openProject refuses
-fprintf('\n--- openProject on something that is not a project -----------\n');
+%% ---------------------------------------------------- readIelFile refuses
+fprintf('\n--- readIelFile on something that is not a project -----------\n');
 
-nFail = nFail + check(threw(@() openProject(fullfile(tempdir,'no_such_file.iel')), ...
-    'openProject:noSuchFile'), 'a missing file is named as such', '');
+nFail = nFail + check(threw(@() readIelFile(fullfile(tempdir,'no_such_file.iel')), ...
+    'readIelFile:noSuchFile'), 'a missing file is named as such', '');
 
 notAProject = fullfile(tempdir, 'ielectrodes_notaproject.mat');
 somethingElse = 42;                                        %#ok<NASGU>
 save(notAProject, 'somethingElse');
-nFail = nFail + check(threw(@() openProject(notAProject), 'openProject:notAProject'), ...
+nFail = nFail + check(threw(@() readIelFile(notAProject), 'readIelFile:notAProject'), ...
     'a file without s is refused, not silently loaded', '');
 delete(notAProject);
 
@@ -155,7 +155,7 @@ notMatlab = fullfile(tempdir, 'ielectrodes_notmatlab.iel');
 fid = fopen(notMatlab, 'w');
 fprintf(fid, 'this is a text file, not a MAT-file\n');
 fclose(fid);
-nFail = nFail + check(threw(@() openProject(notMatlab), 'openProject:notAProject'), ...
+nFail = nFail + check(threw(@() readIelFile(notMatlab), 'readIelFile:notAProject'), ...
     'a file that is not MATLAB at all is refused too', '');
 delete(notMatlab);
 

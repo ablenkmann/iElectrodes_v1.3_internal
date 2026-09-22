@@ -4,7 +4,7 @@ function ok = test_sessionState()
 %   ok = test_sessionState() puts the two fields the GUI now keeps in work -
 %   the Localize panel's settings (work.localization) and the voxels on
 %   offer for selection (work.candidateVoxels) - into a real project, saves
-%   it with SAVEPROJECT, and checks that the file comes out with exactly the
+%   it with WRITEIELFILE, and checks that the file comes out with exactly the
 %   fields it has without them. No figure is opened.
 %
 %   The reason it holds: CHECKPROJECTSTRUCTURE writes a fixed set of fields
@@ -17,7 +17,7 @@ function ok = test_sessionState()
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also SAVEPROJECT, CHECKPROJECTSTRUCTURE.
+%   See also WRITEIELFILE, CHECKPROJECTSTRUCTURE.
 
 repoRoot = fileparts(fileparts(mfilename('fullpath')));
 for f = {'src','app','assets','third_party'}
@@ -34,13 +34,13 @@ sessionFile = [tempname '.iel'];
 cleanup = onCleanup(@() cellfun(@deleteIfThere, {plainFile, sessionFile}));
 
 fprintf('\n--- saving with and without the new fields ------------------\n');
-saveProject(plainFile, project, work);
+writeIelFile(plainFile, project, work);
 
 withSession = work;
 withSession.localization = struct('thresholdLow',0.5,'thresholdHigh',1,'denoiseKernel',1, ...
                                   'nClusters',64,'rows',8,'columns',8);
 withSession.candidateVoxels = rand(100, 3);
-saveProject(sessionFile, project, withSession);
+writeIelFile(sessionFile, project, withSession);
 
 plain   = load(plainFile,   '-mat');
 session = load(sessionFile, '-mat');
