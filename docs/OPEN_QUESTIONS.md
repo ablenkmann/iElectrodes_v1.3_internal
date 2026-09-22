@@ -894,8 +894,11 @@ where the full name is `ielectrodes.openProject`.
 **Decision needed, when the packaging is decided:** rename it, or rely on the
 package.
 
-**Status:** open. Introduced by the restructuring, which gave the function
-this name.
+**Status:** decided, not yet done. After the separation, Alejandro proposed
+a layer between frontend and backend, and it is a package: `src/+ielec/`
+(`docs/API_LAYER.md`). The public name is therefore `ielec.openProject`, which
+does not clash. The plain `openProject` is retired once nothing calls it, and
+this item closes then.
 
 ---
 

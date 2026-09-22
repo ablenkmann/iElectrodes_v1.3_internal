@@ -418,22 +418,23 @@ end
 if T1file ~=0
         
 %    [T1,S2,T1file]=loading_images(PathName,T1file);
-    [T1]=loading_images_SPM(PathName,T1file,4,handles.work.options.image_voxdim); %interpolation = 4
-    disp (['Loaded MRI from ' PathName, T1file])
-
     handles=defaultGuiVariables(handles);
-    handles=newProject(handles,T1);   % empty project around the new MRI
+
+    % read the MRI and start an empty project around it
+    cfg = [];
+    cfg.mri = [PathName, T1file];
+    [handles.project, handles.work] = ielec.newProject([], handles.work, cfg);
+    handles.ui = emptyColourCaches(handles.ui);
+    disp (['Loaded MRI from ' PathName, T1file])
  
     %fiugre name
     set(handles.figure1,'name',['iElectrodes - ' PathName T1file]);
     
     handles.work.PathName=PathName;
-
-    handles.work.maxValue=[];
     
     handles=updateMix_TAC_MR(handles);    
      
-    [xM,yM,zM]=size(T1.img);
+    [xM,yM,zM]=size(handles.project.T1.img);
     set(handles.sliderX,'Min',1,'Max',xM,'SliderStep',[ 1/(xM-1) 10/(xM-1)],'Value',xM/2);
     set(handles.sliderY,'Min',1,'Max',yM,'SliderStep',[ 1/(yM-1) 10/(yM-1)],'Value',yM/2);
     set(handles.sliderZ,'Min',1,'Max',zM,'SliderStep',[ 1/(zM-1) 10/(zM-1)],'Value',zM/2);

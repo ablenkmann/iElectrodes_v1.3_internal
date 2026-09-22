@@ -7,7 +7,9 @@ and backend are the two visible top-level code folders**.
 
 The separation of backend from GUI is finished: no scientific algorithm is
 left in `electrodes_gui.m`, and the main workflow runs from a script without
-a window. The next phase is the App Designer frontend.
+a window. The next phase is a layer between the two - `src/+ielec/`, the
+only part of the backend the frontend calls (`docs/API_LAYER.md`) - built
+together with the App Designer frontend.
 
 ## Getting started
 
@@ -41,6 +43,8 @@ iElectrodes/
 │   └── rendering/    drawing helpers
 │
 ├── src/            ══ BACKEND ══  no figures, no handles, callable from a script
+│   ├── +ielec/       the layer: the functions the frontend calls, all as
+│   │                 [project, work] = ielec.fn(project, work, cfg)
 │   ├── project/      the project model: new / open / load / save, the
 │   │                 project / work / ui split, array add and remove,
 │   │                 default processing options
@@ -58,7 +62,7 @@ iElectrodes/
 │
 ├── tests/          characterisation and property tests, and run_all_tests
 ├── examples/       the example projects, and exampleHeadlessWorkflow.m
-├── docs/           OPEN_QUESTIONS, STATE_FIELD_MAPPING, FUNCTION_INVENTORY
+├── docs/           API_LAYER, OPEN_QUESTIONS, STATE_FIELD_MAPPING, FUNCTION_INVENTORY
 ├── assets/         atlases, look-up tables, MNI meshes, icons
 ├── third_party/    SPM12, iso2mesh, NIfTI tools, refinepatch - not iElectrodes code
 ├── extras/         stand-alone scripts and a CT template (see OPEN_QUESTIONS 4)
@@ -101,7 +105,10 @@ function LocalizeButtonPushed(app, event)
 end
 ```
 
-`Fitpushbutton_Callback` now has that shape, in GUIDE form.
+`Fitpushbutton_Callback` now has that shape, in GUIDE form. With the ielec
+layer the shape gets stricter: the callback builds a `cfg`, calls one `ielec`
+function and keeps the project and work it returns. The New button is the
+first to work that way.
 `docs/FUNCTION_INVENTORY.md` classifies all 162 functions of
 `electrodes_gui.m`; four small operations on `work` are still in it and are
 listed there as the first jobs of the next phase.
@@ -149,7 +156,7 @@ eventually.
 | 2 | characterisation tests | done - `tests/`, run with `run_all_tests` |
 | 3 | headless computational API | done - `src/`, proven by `exampleHeadlessWorkflow` |
 | 4 | explicit project model | done - `project` / `work` / `ui`; no `schemaVersion` yet, because it would change the file (a decision) |
-| 5 | vertical GUI prototype in App Designer | next |
+| 5 | vertical GUI prototype in App Designer | next, together with the ielec layer (`docs/API_LAYER.md`) |
 | 6 | gradual release | later |
 
 The decisions needed before phase 5 - which MATLAB release to target, whether
