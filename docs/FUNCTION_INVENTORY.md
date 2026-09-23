@@ -5,7 +5,9 @@ plan for iElectrodes 2 named this as the next concrete step: *"an architectural
 inventory of the existing GUI functions: classify each as UI, plotting,
 workflow, state, I/O, or scientific algorithm."*
 
-It describes the file as of the end of the backend separation.
+It describes the file as of the end of the backend separation. Since then the
+buttons have started moving onto the ielec layer (`docs/API_LAYER.md`, "What
+exists"); their rows below still show what they called before.
 
 ## The result
 

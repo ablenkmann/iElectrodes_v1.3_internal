@@ -52,11 +52,21 @@ A function that only *reports* something, and changes nothing, returns what it
 reports as a third output and leaves project and work as they were:
 `[project, work, report] = ielec.fn(project, work, cfg)`.
 
+One exception, for the colour caches: the colours of the parcellation and the
+surfaces, which the `.iel` file carries for iElectrodes 1.020. They are
+display data, derived from the project, and large - computing the
+parcellation's takes seconds. So the functions that read and write the file
+hand them over and take them back as an extra argument, after the three:
+`[project, work, caches] = ielec.openProject(...)` and
+`ielec.saveProject(project, work, cfg, caches)`. Leave `caches` out when
+saving and they are computed.
+
 **2. `ui` never enters.** An ielec function does not receive `ui`, does not
 return it, and does not know it exists. It opens no window, no dialog and no
 figure, never calls `guidata`, and never reads a control. What the frontend
 shows is the frontend's business: after a call it redraws, and it updates its
-own display state, such as the colour caches (`app/config/emptyColourCaches.m`).
+own display state. The colour caches are the example: the frontend keeps
+them in `ui`, and the layer only hands them over (rule 1).
 
 **3. All options go in `cfg`.** No positional options. Every function starts
 with `checkCfg`, which:
@@ -145,12 +155,14 @@ not in the functions yet.
 | function | replaces | used by |
 |---|---|---|
 | `ielec.newProject` | the reading and reset in the New button | the New button |
+| `ielec.openProject` | `readIelFile` and the project/work split in the Open button | the Open button |
+| `ielec.saveProject` | `writeIelFile` with the GUI's colour caches | the Save button |
+| `ielec.colourCaches` | computing the colour caches for a new project | the New button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.openProject`, `ielec.saveProject` | Open and Save: `readIelFile`, `writeIelFile`, `loadProject` |
 | `ielec.loadCT` | the Load CT button: CT and brain mask onto the MRI |
 | `ielec.thresholdCT` | `thresholdCTVoxels` and the candidate voxels in work |
 | `ielec.selectVoxels` | the selection and `voxelWeights` |

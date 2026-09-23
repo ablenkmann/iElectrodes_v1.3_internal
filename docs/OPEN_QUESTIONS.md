@@ -982,3 +982,46 @@ marked with a comment.
 **Decision needed:** fix it - one word - or leave it, since it has no effect?
 
 **Status:** preserved. Present in v1.020.
+
+---
+
+## 25. A file with an empty parcellation keeps the previous project's
+
+**Where:** `checkProjectStructure`, as the Open button used it
+
+When a file holds `s.wmparc = []`, `checkProjectStructure` takes this branch:
+
+```matlab
+if  ~isfield(s,'wmparc')
+    iel.wmparc=[];  iel.wmparcS=[];  iel.wmparcColors=[];
+elseif isempty(s.wmparc)
+    iel.wmparcColors=[];          % wmparc and wmparcS are not set
+else
+    ...
+```
+
+and leaves `wmparc` and `wmparcS` unset. The Open button ran it over the
+running GUI's `handles`, so whatever those fields held before stayed: open a
+patient with a parcellation, then such a file, and the second patient carries
+the first patient's parcellation. Its colours are cleared, so it is not
+drawn, but native-space labelling reads `wmparc`, so the second patient's
+contacts would be labelled from the first patient's anatomy.
+
+**How likely.** Not from files iElectrodes writes now: saving a project
+without a parcellation goes through the same function, which drops the empty
+field, so the file has no `wmparc` at all and the first branch is taken. It
+needs a file that stores an empty `wmparc` - from an older version, or written
+by another tool. Whether older versions wrote such files is not known here.
+
+Found while moving Open onto the ielec layer. `ielec.openProject` builds the
+project from the file alone, not on top of the previous one, so it cannot
+happen there, and the Open button now uses it. For every file iElectrodes
+writes, the result is the same as before; only for such a file does it
+differ. `tests/test_ielecProjectFiles.m` makes one by hand and shows both.
+
+The `elseif` branch itself is still in `checkProjectStructure`.
+
+**Decision needed:** whether the branch should set `wmparc` and `wmparcS` to
+`[]` as well, one line each, so that nothing else can hit it.
+
+**Status: cannot happen in the Open button any more.** Present in v1.020.

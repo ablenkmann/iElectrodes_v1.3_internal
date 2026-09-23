@@ -424,7 +424,8 @@ if T1file ~=0
     cfg = [];
     cfg.mri = [PathName, T1file];
     [handles.project, handles.work] = ielec.newProject([], handles.work, cfg);
-    handles.ui = emptyColourCaches(handles.ui);
+    [~, ~, caches] = ielec.colourCaches(handles.project, handles.work, []);
+    handles = takeColourCaches(handles, caches);
     disp (['Loaded MRI from ' PathName, T1file])
  
     %fiugre name
@@ -556,13 +557,10 @@ else
         [FileName,PathName] = uiputfile('*.iel','Save filename',[handles.work.PathName handles.work.FileName]);
     end
     if FileName ~=0
-        % Written before the new name is recorded, so that s.FileName and
-        % s.PathName carry what the project already held - as they did when
-        % this was one long callback.
-        writeIelFile([PathName, FileName], handles.project, handles.work, handles.ui);
-
-        handles.work.FileName=FileName;
-        handles.work.PathName=PathName;
+        cfg = [];
+        cfg.file = [PathName, FileName];
+        [handles.project, handles.work] = ...
+            ielec.saveProject(handles.project, handles.work, cfg, colourCachesOf(handles));
         disp (['Saved project in ' handles.work.PathName, handles.work.FileName])
         
         %fiugre name
@@ -607,19 +605,16 @@ end
 [FileName,PathName]=uigetfile('*.iel', 'Load iElectrodes file', handles.work.PathName);
 
 if FileName ~=0   
-    s = readIelFile([PathName, FileName]);
+    cfg = [];
+    cfg.file = [PathName, FileName];
+    [project, work, caches] = ielec.openProject([], handles.work, cfg);
     disp (['Loaded project from ' PathName, FileName])
        
     % load defaults, including plot updates
     handles=defaultGuiVariables(handles);
-    % load .iel structure
-    handles=checkProjectStructure(s,handles);
-    handles=liftToProject(handles);   % patient data     -> handles.project
-    handles=liftToWork(handles);      % work in progress -> handles.work
-    handles=liftToUi(handles);        % colour caches    -> handles.ui
-
-    handles.work.FileName=FileName;
-    handles.work.PathName=PathName;
+    handles.project = project;
+    handles.work    = work;
+    handles = takeColourCaches(handles, caches);
     
     if ~isempty(handles.project.electrodes)
         handles = setSelectedArray(handles, 1);
@@ -6123,3 +6118,25 @@ function handles = setSelectedPlanningTarget(handles, n)
 %SETSELECTEDPLANNINGTARGET  Select a target and show it in the interface.
 handles.work.selection.planningTarget = n;
 set(handles.elecPlanningNumberText, 'String', num2str(n));
+
+
+% =====================================================================
+%                          colour caches
+% =====================================================================
+
+function handles = takeColourCaches(handles, caches)
+%TAKECOLOURCACHES  Put the colours derived from the project into ui.
+%   The parcellation and surface colours are display state, so the ielec
+%   layer does not keep them: it hands them over, and takes them back when
+%   a project is saved (COLOURCACHESOF).
+names = fieldnames(caches);
+for k = 1:numel(names)
+    handles.ui.(names{k}) = caches.(names{k});
+end
+
+function caches = colourCachesOf(handles)
+%COLOURCACHESOF  The colour caches in ui, for the layer to save with the project.
+names = uiFieldNames();
+for k = 1:numel(names)
+    caches.(names{k}) = handles.ui.(names{k});
+end
