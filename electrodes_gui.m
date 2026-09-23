@@ -497,28 +497,19 @@ if TACfile~=0
     % variables that are never defined, so it could not have run even then.
     % Removed with Alejandro's agreement; see docs/OPEN_QUESTIONS.md item 9.
 
-    % load with high resolution interpolation
-    [handles.project.TAC]= ...
-        loadVolumeOntoMRI(PathName,TACfile,handles.project.T1,4); %interpolation = 4
-    disp (['Loaded CT from ' PathName, TACfile])
-
-    %load mask file    
-    [maskfile,PathName]=uigetfile('*.nii', 'Load mask file',PathName);
+    %load mask file. The mask decides which voxels the thresholding may
+    %select, so the CT is only useful with it: both are read together, and
+    %nothing is loaded if this dialog is cancelled - see OPEN_QUESTIONS 26.
+    [maskfile,maskPath]=uigetfile('*.nii', 'Load mask file',PathName);
     
     if maskfile~=0
-        [inskullMask]= ...
-            loadVolumeOntoMRI(PathName,maskfile,handles.project.T1,1); %interpolation = 1
-        disp (['Loaded Mask from ' PathName, maskfile])
-        
-        handles.project.mask=inskullMask; %loading the img and the vol
-%        handles.project.mask=mask; % mask (logical matrix)
-        handles.project.S2=handles.project.TAC.vol.mat(1:3,:); 
-%        handles.project.S2=S2;     % new transfomation matrix
-        maxValue=max(handles.project.TAC.img(:));
-        minValue=min(handles.project.TAC.img(:));
-        
-        handles.work.maxValue=maxValue;
-        handles.work.minValue=minValue;
+        cfg = [];
+        cfg.ct   = [PathName, TACfile];
+        cfg.mask = [maskPath, maskfile];
+        [handles.project, handles.work] = ielec.loadCT(handles.project, handles.work, cfg);
+        disp (['Loaded CT from ' PathName, TACfile])
+        disp (['Loaded Mask from ' maskPath, maskfile])
+        PathName = maskPath;
         
         % arbitrary thresholds to start
         set(handles.sliderThrMin,'Value',0.9);

@@ -158,12 +158,12 @@ not in the functions yet.
 | `ielec.openProject` | `readIelFile` and the project/work split in the Open button | the Open button |
 | `ielec.saveProject` | `writeIelFile` with the GUI's colour caches | the Save button |
 | `ielec.colourCaches` | computing the colour caches for a new project | the New button |
+| `ielec.loadCT` | the CT and the mask in the Load CT button | the Load CT button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.loadCT` | the Load CT button: CT and brain mask onto the MRI |
 | `ielec.thresholdCT` | `thresholdCTVoxels` and the candidate voxels in work |
 | `ielec.selectVoxels` | the selection and `voxelWeights` |
 | `ielec.cluster` | the Clus button |

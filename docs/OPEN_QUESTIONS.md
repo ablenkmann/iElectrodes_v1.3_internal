@@ -1025,3 +1025,32 @@ The `elseif` branch itself is still in `checkProjectStructure`.
 `[]` as well, one line each, so that nothing else can hit it.
 
 **Status: cannot happen in the Open button any more.** Present in v1.020.
+
+---
+
+## 26. Cancelling the mask dialog left half a CT in the project
+
+**Where:** `LoadCTtool_ClickedCallback` in `electrodes_gui.m`
+
+The Load CT button asked for the CT, read it into `project.TAC`, and then
+asked for the brain mask. Everything that makes the CT usable - the mask,
+`project.S2` from the CT, the intensity limits the threshold sliders work
+from, and the redraw - was inside the `if maskfile~=0` branch. Cancelling
+the mask dialog therefore left the project with a CT and none of it, and the
+callback still saved that state. The views kept showing the MRI, while the
+project held a CT that nothing could threshold: `thresholdCTVoxels` needs
+`mask.img`.
+
+It matters little in practice, because loading the CT again fixes it, but
+saving in between would write the half-loaded project to the file.
+
+Found while moving the button onto the layer. `ielec.loadCT` takes the CT
+and the mask together - both are required - so the button now asks for both
+first and loads nothing if either dialog is cancelled. The CT is read after
+the mask has been chosen, not before, which is also the faster order for
+the user.
+
+**Decision needed:** none, unless you want cancelling the mask to keep the
+CT. Then the mask would have to become optional everywhere that reads it.
+
+**Status: FIXED in the Load CT button.** Present in v1.020.
