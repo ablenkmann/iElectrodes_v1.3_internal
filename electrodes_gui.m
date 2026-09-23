@@ -2588,25 +2588,20 @@ else
     % work first, and taken from there.
     handles  = readLocalizationSettings(handles);
     settings = handles.work.localization;
-    opt.lowThreshold  = settings.thresholdLow  * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
-    opt.highThreshold = settings.thresholdHigh * (handles.work.maxValue-handles.work.minValue) + handles.work.minValue;
-    opt.denoiseKernel = settings.denoiseKernel;
-    opt.maxCount      = handles.ui.options.scatter3D_elem_limit;
+    range    = handles.work.maxValue - handles.work.minValue;
 
-    % Remove already localized voxels
-    opt.excludeCoordinates = [];
-    if get(handles.LocalizedCheckbox,'value')
-        for j=1:length(handles.project.electrodes)
-            opt.excludeCoordinates=[opt.excludeCoordinates; handles.project.electrodes{j}.brushCrd];
-        end
-    end
+    cfg = [];
+    cfg.lowThreshold      = settings.thresholdLow  * range + handles.work.minValue;
+    cfg.highThreshold     = settings.thresholdHigh * range + handles.work.minValue;
+    cfg.denoiseKernel     = settings.denoiseKernel;
+    cfg.maxCount          = handles.ui.options.scatter3D_elem_limit;
+    cfg.excludeLocalized  = logical(get(handles.LocalizedCheckbox,'value'));
+    [handles.project, handles.work] = ielec.thresholdCT(handles.project, handles.work, cfg);
 
-    [crd,vTAC] = thresholdCTVoxels(handles.project.TAC, handles.project.mask, ...
-                                   handles.project.S2, opt);
-
-    % the voxels on offer for selection, kept as data: the plot below shows
-    % them, and getThresholdedVoxels takes the chosen ones from here
-    handles.work.candidateVoxels = crd;
+    % the voxels on offer for selection are work data: the plot below shows
+    % them, and the selection is made by their position in this list
+    crd  = handles.work.candidateVoxels;
+    vTAC = handles.work.candidateValues;
 
     % skip if there are no points to plot
     if ~isempty(crd)
@@ -2616,8 +2611,8 @@ else
     axis(handles.axes1, 'image')
     %----------
     
-    set(handles.text1,'String', round(opt.highThreshold));
-    set(handles.text2,'String', round(opt.lowThreshold));
+    set(handles.text1,'String', round(cfg.highThreshold));
+    set(handles.text2,'String', round(cfg.lowThreshold));
     
     
     % update cross in axes1 (3D Threshold)
@@ -3081,18 +3076,22 @@ function ClusterButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% get coordinates and weights
-[brushCrd,weight]=getThresholdedVoxels(handles);
+% which voxels the user selected in the 3-D view
+brushedIdx = brushedVoxelIndices(handles);
 
-if isempty(brushCrd)
+if isempty(brushedIdx)
     disp('You must select some voxels first');
     return;
 end
 
+[handles.project, handles.work] = ...
+    ielec.selectVoxels(handles.project, handles.work, struct('indices', brushedIdx));
+
 handles = readLocalizationSettings(handles);
 nClus   = handles.work.localization.nClusters;
 
-[GS,clusters,weight,quality] = clusterContacts(brushCrd,weight,nClus);
+[handles.project, handles.work, quality] = ...
+    ielec.cluster(handles.project, handles.work, struct('nClusters', nClus));
 
 % report how regular the spacing came out. The numbers are computed in
 % clusterContacts; the wording belongs here.
@@ -3107,18 +3106,7 @@ if quality.suspect
     disp('If that doesn''t work, use GridFit algorithm instead.');
 end
 
-        
-% save old GS
-handles.work.oldGS=handles.work.GS;
-handles.work.oldbrushCrd=handles.work.brushCrd;
-handles.work.oldbrushWeight=handles.work.brushWeight;
-handles.work.oldclusters=handles.work.clusters;
 
-%add electrodes coordinates to previous
-handles.work.GS=[handles.work.GS; GS];
-handles.work.brushCrd=[handles.work.brushCrd; brushCrd];
-handles.work.clusters=[handles.work.clusters; (clusters+length(unique(handles.work.clusters)))];
-handles.work.brushWeight=[handles.work.brushWeight; weight];
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.ui.updatePlots.GS=1;
@@ -3285,58 +3273,62 @@ handles.work.localization = settings;
 
 %--------------------------------------------------------------------
 function [brushCrd,weight]=getThresholdedVoxels(handles)
-% get coordinates and weight of the thresholded voxels in the 3D
-% view. Method called by cluser and fit algorithms
-%
-% Both outputs are assigned up front so that the three "nothing selected"
-% branches below can warn and return. Without that, the warning was followed
-% by "Output argument brushCrd not assigned", and pressing Clus or Fit with
-% no selection looked like a crash. Both callers already test isempty.
+% The voxels the user selected in the 3-D view, and how bright each one is.
+% Still used by the Fit button; the Clus button goes through
+% ielec.selectVoxels, which keeps the selection in work.
 
 brushCrd = [];
 weight   = [];
 
-% do to incompatible access to brushed data in different matlab versions
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-    hBrushPoints = findall(handles.axes1,'tag','Brushing');
-    if isempty(hBrushPoints)
-        warning ('There are no points selected to be clustered');
-        return;
-    else
-        brushedData = get(hBrushPoints, {'Xdata','Ydata','Zdata'});
-        brushCrd= [brushedData{1}' brushedData{2}' brushedData{3}'];
-        removeCrd=isnan(brushedData{1});
-        brushCrd(removeCrd,:)=[];
-    end
-else
-    % execute code for R2014b or later
-    if isempty(handles.ui.sct)
-        warning ('There are no points selected to be clustered');
-        return;
-    else
-        brushedIdx = logical(handles.ui.sct.BrushData);  % logical array of scatter brushed points
-        if isempty(brushedIdx)
-            warning ('There are no points selected to be clustered');
-            return;
-        elseif numel(brushedIdx) ~= size(handles.work.candidateVoxels, 1)
-            % cannot happen while the plot and work.candidateVoxels are made
-            % together in updatePlot; if they ever disagree, refuse rather
-            % than take the wrong voxels
-            warning ('The selection does not match the voxels shown. Select the voxels again.');
-            return;
-        else
-            % which points were chosen comes from the plot - that is the
-            % user's input - but where they are comes from work, not from
-            % the plotted object
-            brushCrd = handles.work.candidateVoxels(brushedIdx, :);
-        end
-    end
+brushedIdx = brushedVoxelIndices(handles);
+if isempty(brushedIdx)
+    return;
 end
+
+% which points were chosen comes from the plot - that is the user's input -
+% but where they are comes from work, not from the plotted object
+brushCrd = handles.work.candidateVoxels(brushedIdx, :);
 
 % how bright each selected voxel is on the CT - the weight clustering and
 % GridFit give it. Computed in src/localization/.
 weight = voxelWeights(handles.project.TAC, handles.project.S2, brushCrd);
+
+%--------------------------------------------------------------------
+function brushedIdx = brushedVoxelIndices(handles)
+% Which of the voxels on offer the user brushed in the 3-D view, as a
+% logical array over handles.work.candidateVoxels. Empty when none are
+% selected, after a warning saying so.
+%
+% Reading the brush is the one thing only the figure can do, so it stays
+% here; everything after it works from work.candidateVoxels.
+%
+% The branch for MATLAB R2014a and earlier is gone: it read the coordinates
+% out of the brushed line instead of the selection, which cannot give
+% positions in the list, and the oldest release v2 supports is far newer
+% (docs/OPEN_QUESTIONS.md item 6).
+
+brushedIdx = [];
+
+if isempty(handles.ui.sct)
+    warning ('There are no points selected to be clustered');
+    return;
+end
+
+brushed = logical(handles.ui.sct.BrushData);   % one flag per plotted point
+if isempty(brushed) || ~any(brushed)
+    warning ('There are no points selected to be clustered');
+    return;
+end
+
+if numel(brushed) ~= size(handles.work.candidateVoxels, 1)
+    % cannot happen while the plot and work.candidateVoxels are made
+    % together in updatePlot; if they ever disagree, refuse rather than
+    % take the wrong voxels
+    warning ('The selection does not match the voxels shown. Select the voxels again.');
+    return;
+end
+
+brushedIdx = brushed;
 
 %--------------------------------------------------------------------
 %%%%%%%%%%%%%%%        Manually add coordinates             %%%%%%%%%%%%%%%

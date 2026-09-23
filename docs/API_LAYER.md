@@ -82,6 +82,13 @@ Defaults that are scientific settings come from `work.options`, which is
 `default_ielectrodes_options`. A `cfg` field overrides them for one call, and
 never changes `work.options`.
 
+**3b. A cfg may carry a selection, not data.** `cfg` is for settings, and
+what goes in it is recorded in the history, so it stays small: a threshold,
+a file name, how many contacts. The one thing that is neither is which items
+the user picked - `ielec.selectVoxels` takes `cfg.indices`. Those are
+positions in a list the layer already holds, not the data itself, and the
+history records how many were picked rather than the list.
+
 **4. Files by full path.** A file is named in one `cfg` field, with its full
 path: `cfg.mri = 'C:\data\p01\T1.nii'`. It is not split into a folder and a
 name. Where the file dialog last pointed is the frontend's business.
@@ -159,14 +166,14 @@ not in the functions yet.
 | `ielec.saveProject` | `writeIelFile` with the GUI's colour caches | the Save button |
 | `ielec.colourCaches` | computing the colour caches for a new project | the New button |
 | `ielec.loadCT` | the CT and the mask in the Load CT button | the Load CT button |
+| `ielec.thresholdCT` | the threshold block of `updatePlot` | the Localize panel |
+| `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
+| `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.thresholdCT` | `thresholdCTVoxels` and the candidate voxels in work |
-| `ielec.selectVoxels` | the selection and `voxelWeights` |
-| `ielec.cluster` | the Clus button |
 | `ielec.gridFit` | the Fit button: `gridFitOptions` and `electrodeFromGridFit` |
 | `ielec.addArray`, `ielec.removeArray` | array handling |
 | `ielec.label` | anatomical labelling |

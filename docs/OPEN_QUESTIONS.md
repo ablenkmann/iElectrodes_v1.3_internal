@@ -183,6 +183,13 @@ applies.
 **Status:** open, but narrowed. Needed before the frontend work starts, not
 before.
 
+**First consequence, September 2026.** Moving the Clus button onto the layer
+needed the brushed *positions* in the list of voxels, not the coordinates of
+the brushed points. The branch for R2014a and earlier read the coordinates,
+which cannot give positions, so it was dropped rather than rewritten for a
+release v2 will not support. The other eleven `verLessThan` branches are
+still there.
+
 ---
 
 ## 7. `getThresholdedVoxels` crashes instead of warning when nothing is selected
