@@ -8,7 +8,7 @@ function [project, work] = label(project, work, cfg)
 %
 %   Options (cfg):
 %     cfg.space   'Native' or 'MNI'. Default: project.currentSpace, which is
-%                 the space the stored coordinates are in.
+%                 the space the stored coordinates are in (RESOLVESPACE).
 %
 %   Native space reads project.wmparc and the labelling settings in
 %   work.options - the radius around a contact, whether to report the most
@@ -33,13 +33,9 @@ function [project, work] = label(project, work, cfg)
 %
 %   See also LABELELECTRODESNATIVE, LABELELECTRODESMNI, IELEC.ACCEPTARRAY.
 
-defaults.space = fieldOr(project, 'currentSpace', 'Native');
+defaults.space = '';
 cfg = checkCfg(cfg, defaults, {}, 'label');
-
-if ~ischar(cfg.space) || ~ismember(cfg.space, {'Native', 'MNI'})
-    error('ielec:badOption', ...
-        'ielec.label: cfg.space must be ''Native'' or ''MNI''.');
-end
+cfg.space = resolveSpace(cfg.space, project, 'label');
 
 prj = project;
 if strcmp(cfg.space, 'MNI')

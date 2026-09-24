@@ -75,6 +75,13 @@ shows is the frontend's business: after a call it redraws, and it updates its
 own display state. The colour caches are the example: the frontend keeps
 them in `ui`, and the layer only hands them over (rule 1).
 
+A question the user has to answer is a dialog, so it belongs to the frontend
+too - but the frontend has to know that there is something to ask about.
+`ielec.projectionState` is how: it reports what the projection would do, the
+frontend asks what it wants to ask, and then it calls `ielec.projectArrays`
+with the answer in `cfg`. A reporting call and a doing call, rather than a
+callback into the frontend, which would put `ui` back into the layer.
+
 **3. All options go in `cfg`.** No positional options. Every function starts
 with `checkCfg`, which:
 
@@ -181,13 +188,14 @@ not in the functions yet.
 | `ielec.fitArray` | the Fit button's GridFit call and the array it builds | the Fit button |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
+| `ielec.projectionState` | what `processProjections` asked before deciding | the SCE checkbox |
+| `ielec.projectArrays` | the brain-shift correction in `processProjections` | the SCE checkbox, and adding an array |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
 | `ielec.removeArray` | the Remove button |
-| `ielec.projectArrays` | `processProjections`: brain-shift compensation |
 | `ielec.export` | the export formats |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.

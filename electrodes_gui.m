@@ -4104,24 +4104,27 @@ if ~get(handles.projectSCEcheckbox,'Value')   % the box is off: nothing to do
     return
 end
 
-arrays = handles.project.electrodes;
-[projectable, projDone] = arrayProjectionState(arrays);
+% What the layer knows about the projection; the questions are ours.
+[handles.project, handles.work, state] = ...
+    ielec.projectionState(handles.project, handles.work, []);
 
-if ~any(projectable)
+if ~state.anyProjectable
     warning('It is not posible to project electrodes to SCE. No grids localized yet. Please localize grids first.');
     set(handles.projectSCEcheckbox,'Value',0);
     return;
 end
 
 % Deal with previous projections
-if any(projDone) %some projections were done before
+cfg = [];
+cfg.recalculateAll = false;
+if any(state.alreadyDone) %some projections were done before
     % Do you want to recalculate all?
     choice = questdlg('Do you want to recalculate all projections?', ...
         '', 'Yes, all','No, only the new one(s)','No, only the new one(s)');
     % Handle response
     switch choice
         case 'Yes, all'
-            projDone = false(size(projDone)); % put all to cero and recalculate
+            cfg.recalculateAll = true; % put all to cero and recalculate
         case 'No, only the new one(s)'
             % do nothing
         case '' % close the dialog box
@@ -4131,22 +4134,19 @@ if any(projDone) %some projections were done before
 end
 
 % Do the projections
-if all(projDone)
+if state.allDone && ~cfg.recalculateAll
     return
 end
 
-[vertices, faces] = sceSurfaceForSpace(handles.project.currentSpace, ...
-                                       handles.project, handles.work);
-
-if isempty(vertices) && ~strcmp(handles.project.currentSpace,'MNI')
+if ~state.surfaceAvailable && ~strcmp(handles.project.currentSpace,'MNI')
     % Native space, and this patient has no smooth cortical envelope yet.
     % The MNI branch has never had this check - its surface is a template
     % that ships with the toolbox - and it is left without one.
     warning('First you need to load or generate a smooth cortical envelope. Use the toolbar button for that purpose')
     set(handles.projectSCEcheckbox,'Value',0);
 else
-    handles.project.electrodes = electrodes2hullCorrection(arrays, vertices, faces, ...
-                                                           handles.work.options, projDone);
+    [handles.project, handles.work] = ...
+        ielec.projectArrays(handles.project, handles.work, cfg);
 end
 
 % anatomical labeling (electrodes and projections)
