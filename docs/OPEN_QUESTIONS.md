@@ -1061,3 +1061,37 @@ the user.
 CT. Then the mask would have to become optional everywhere that reads it.
 
 **Status: FIXED in the Load CT button.** Present in v1.020.
+
+---
+
+## 27. Remove leaves the previous array's name in the name box
+
+**Where:** `RemoveArrayPushbutton_Callback` and
+`removePlanningArrayButton_Callback` in `electrodes_gui.m`
+
+Removing an array moves the selection to the array before it - or to the one
+that followed it when the first was removed - and the 3D view, the slices and
+the sliders all follow. The name box does not: `editArrayName` still shows
+the name of the array that was just removed, until something else writes it.
+
+Everything else that changes the selected array sets it. The two navigation
+buttons do it in one line each (`set(handles.editArrayName,'String',
+handles.project.electrodes{l-1}.Name)`), and so do adding an array, opening a
+project and clicking a contact. Only the two Remove buttons do not, in both
+lists, and `setSelectedArray` does not write any control - it writes
+`work.selection`.
+
+So the box shows a name that belongs to no array. Typing in it then renames
+the array that is now selected, which is the array whose name is not on
+screen.
+
+Found while moving the button onto the layer; it is display state, so the
+layer has nothing to do with it - which is also why it is a good candidate
+for the App Designer frontend, where the name field can be bound to the
+selected array instead of written by hand in twelve places.
+
+**Decision needed:** none, if the frontend is going to hold the selection in
+one place. One line in each of the two callbacks fixes it in the GUIDE GUI
+meanwhile.
+
+**Status: open.** Present in v1.020.
