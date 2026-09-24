@@ -48,9 +48,11 @@ a function changes only one of them. That way the caller never has to look up
 what a function takes or returns. A function that starts something new, such
 as `ielec.newProject`, is given `[]` for what it replaces.
 
-A function that only *reports* something, and changes nothing, returns what it
-reports as a third output and leaves project and work as they were:
-`[project, work, report] = ielec.fn(project, work, cfg)`.
+A third output carries what is neither project nor work. A function that only
+*reports* something leaves both as they were and returns what it found:
+`[project, work, report] = ielec.fn(project, work, cfg)`. A function whose
+result is a proposal - `ielec.fitArray` returns the array it fitted, which
+nothing has accepted yet - returns it the same way.
 
 One exception, for the colour caches: the colours of the parcellation and the
 surfaces, which the `.iel` file carries for iElectrodes 1.020. They are
@@ -106,6 +108,8 @@ Two things follow from that:
 
 - Inside the package, calls to the backend are unqualified (`loading_images_SPM(...)`),
   and calls to other ielec functions are qualified (`ielec.loadCT(...)`).
+- An ielec function is named after what it does for the user, and never
+  after the backend function it calls: `ielec.fitArray` calls `gridFit`.
 - An ielec function does not call a backend function with the same name:
   inside a package that is easy to misread, and MATLAB's rules for it are
   easy to get wrong. So the backend's names describe what the function does
@@ -169,12 +173,12 @@ not in the functions yet.
 | `ielec.thresholdCT` | the threshold block of `updatePlot` | the Localize panel |
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
+| `ielec.fitArray` | the Fit button's GridFit call and the array it builds | the Fit button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.gridFit` | the Fit button: `gridFitOptions` and `electrodeFromGridFit` |
 | `ielec.addArray`, `ielec.removeArray` | array handling |
 | `ielec.label` | anatomical labelling |
 | `ielec.export` | the export formats |

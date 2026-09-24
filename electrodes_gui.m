@@ -3122,13 +3122,16 @@ function Fitpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% get coordinates and weights
-[brushCrd,weight]=getThresholdedVoxels(handles);
+% which voxels the user selected in the 3-D view
+brushedIdx = brushedVoxelIndices(handles);
 
-if isempty(brushCrd)
+if isempty(brushedIdx)
     disp('You must select some voxels first');
     return;
 end
+
+[handles.project, handles.work] = ...
+    ielec.selectVoxels(handles.project, handles.work, struct('indices', brushedIdx));
 
 fixM1_BF = [];   % only a depth electrode asks for it
 
@@ -3194,24 +3197,14 @@ end
 %coordinates
 if ~isempty(handles.work.GS)
     handles.work.uitable_elecNum = [];
-    
-    % save old GS
-    handles.work.oldGS=handles.work.GS;
-    handles.work.oldbrushCrd=handles.work.brushCrd;
-    handles.work.oldbrushWeight=handles.work.brushWeight;
-    handles.work.oldclusters=handles.work.clusters;
 
-    %use GS coordinates as Nailed 
+    %use GS coordinates as Nailed. The table asks which contact each of them
+    %is; ielec.fitArray takes the coordinates from work.GS and empties it.
     guidata(hObject, handles);     % % Update content in handles structure
     electrodeNailNaumber_uitable (hObject, handles,rows*cols); %use graphical interface. This will change content in handles.
     handles = guidata(hObject); % retrive updated data
     
     nailNumbers = handles.work.uitable_elecNum;
-    nailCoords  = handles.work.GS;
-    
-    handles.work.GS = [];
-    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
-    handles.ui.updatePlots.GS=1;
     
 %     if strcmp(options.constrain_type,'volume_distance') & length(options.NailElectrodeNumber)>1
 %         warning('using more than 1 nailed coordinate with volume_distance constrain might not converge. Changing constrain to distance.')
@@ -3220,27 +3213,31 @@ if ~isempty(handles.work.GS)
         
 else
     nailNumbers = [];
-    nailCoords  = [];
 end
 
-% GridFit's configuration for this array: the defaults for its type, its
-% spacing, the nailed contacts and the attraction to the CT. Assembled in
-% src/localization/.
-options = gridFitOptions(handles.work.options, type, rows, cols, fixM1, fixM1_BF, ...
-                         overlap, nailNumbers, nailCoords);
+cfg = [];
+cfg.type               = type;
+cfg.rows               = rows;
+cfg.columns            = cols;
+cfg.spacing            = fixM1;
+cfg.firstSecondSpacing = fixM1_BF;
+cfg.overlap            = overlap;
+cfg.useNailedContacts  = ~isempty(handles.work.GS);
+cfg.nailNumbers        = nailNumbers;
 
-% Call GridFit
 disp('/// Starting grid/depth fitting algorithm. This may take some minutes depending on the grid size.')
 disp(['Fitting a grid/depth of dimensions: ' num2str(rows) ' x ' num2str(cols) ' and inter-electrode distance : ' num2str(fixM1) ])
 tic;
 
-[pos,clusteredCrd,clusteredWeight,clusters]=gridFit(brushCrd,weight,rows,cols,options);
+[handles.project, handles.work, electrodes] = ...
+    ielec.fitArray(handles.project, handles.work, cfg);
 disp(['GridFit algorithm finished in ' num2str(toc) ' seconds']);
 
-
-% Turn the fit into an electrode array structure
-electrodes = electrodeFromGridFit(pos, clusteredCrd, clusteredWeight, clusters, ...
-                                  type, rows, cols, handles.project.currentSpace, options);
+if cfg.useNailedContacts
+    % the nailed contacts were consumed by the fit
+    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
+    handles.ui.updatePlots.GS=1;
+end
 
 
 % add new electrode to handles
@@ -3270,28 +3267,6 @@ settings.rows          = str2double(get(handles.rowsEdit,'string'));      % grid
 settings.columns       = str2double(get(handles.colsEdit,'string'));      % grid columns, for Index
 handles.work.localization = settings;
 
-
-%--------------------------------------------------------------------
-function [brushCrd,weight]=getThresholdedVoxels(handles)
-% The voxels the user selected in the 3-D view, and how bright each one is.
-% Still used by the Fit button; the Clus button goes through
-% ielec.selectVoxels, which keeps the selection in work.
-
-brushCrd = [];
-weight   = [];
-
-brushedIdx = brushedVoxelIndices(handles);
-if isempty(brushedIdx)
-    return;
-end
-
-% which points were chosen comes from the plot - that is the user's input -
-% but where they are comes from work, not from the plotted object
-brushCrd = handles.work.candidateVoxels(brushedIdx, :);
-
-% how bright each selected voxel is on the CT - the weight clustering and
-% GridFit give it. Computed in src/localization/.
-weight = voxelWeights(handles.project.TAC, handles.project.S2, brushCrd);
 
 %--------------------------------------------------------------------
 function brushedIdx = brushedVoxelIndices(handles)

@@ -1,6 +1,6 @@
 function electrodeNailNaumber_uitable (hObject, handles,nFit)
 % graphical interface to introduce the electrode number of nailed electrode
-% coordinates. changes will be stored in handles.uitable_elecNum
+% coordinates. changes will be stored in handles.work.uitable_elecNum
 
 % use in the following way
 %     guidata(hObject, handles);     % % Update content in handles structure
@@ -49,9 +49,9 @@ data = table2array(hTable.Data(:,end));    % Get data from UI table
 
 for i=1:size(data,1)
     if ischar(data{i})
-        handles.uitable_elecNum(i) = str2double(data{i});    % Store the UI table data
+        handles.work.uitable_elecNum(i) = str2double(data{i});    % Store the UI table data
     else
-        handles.uitable_elecNum(i) = nan;    % Store the UI table data - selection not used
+        handles.work.uitable_elecNum(i) = nan;    % Store the UI table data - selection not used
     end
 end
 
