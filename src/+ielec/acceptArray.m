@@ -34,7 +34,7 @@ function [project, work, index] = acceptArray(project, work, cfg, array)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also ADDARRAY, IELEC.FITARRAY, IELEC.LABEL, IELEC.REMOVEARRAY.
+%   See also ADDARRAY, IELEC.FITARRAY, IELEC.LABEL, IELEC.DELETEARRAY.
 
 defaults.index = [];
 cfg = checkCfg(cfg, defaults, {}, 'acceptArray');

@@ -4481,7 +4481,8 @@ if ~isempty(handles.project.electrodes)
     if strcmp(choice,'No')
        return;
     end
-    [handles.project.electrodes, a] = removeArray(handles.project.electrodes, l);
+    [handles.project, handles.work, a] = ...
+        ielec.deleteArray(handles.project, handles.work, struct('index', l));
     handles = setSelectedArray(handles, a);
 
     if a == 0 % nothing left
@@ -5656,7 +5657,8 @@ if ~isempty(handles.project.targets)
     if strcmp(choice,'No')
        return;
     end
-    [handles.project.targets, a] = removeArray(handles.project.targets, l);
+    [handles.project, handles.work, a] = ielec.deleteArray(handles.project, handles.work, ...
+        struct('index', l, 'group', 'targets'));
     handles = setSelectedPlanningArray(handles, a);
 
     if a == 0 % nothing left

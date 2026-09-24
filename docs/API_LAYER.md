@@ -128,6 +128,9 @@ Two things follow from that:
   to the file: `readIelFile` and `writeIelFile`, not `openProject` and
   `saveProject`. Those names belong to the layer - `ielec.openProject`,
   which also does not clash with MATLAB's own `openProject`.
+  Where the backend's name is the right one for it - `addArray`,
+  `removeArray`, which say what they do to a list - the name stays there and
+  the layer takes a different one: `ielec.acceptArray`, `ielec.deleteArray`.
   (`newProject` and `loadProject` are the two exceptions left. Nothing in the
   layer calls them, and they are retired once nothing else does.)
 
@@ -190,12 +193,12 @@ not in the functions yet.
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
 | `ielec.projectionState` | what `processProjections` asked before deciding | the SCE checkbox |
 | `ielec.projectArrays` | the brain-shift correction in `processProjections` | the SCE checkbox, and adding an array |
+| `ielec.deleteArray` | the removing in both Remove buttons | the Remove buttons |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.removeArray` | the Remove button |
 | `ielec.export` | the export formats |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
