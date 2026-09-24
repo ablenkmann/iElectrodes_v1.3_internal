@@ -54,6 +54,11 @@ A third output carries what is neither project nor work. A function that only
 result is a proposal - `ielec.fitArray` returns the array it fitted, which
 nothing has accepted yet - returns it the same way.
 
+Data that is neither a setting nor part of project or work goes after the
+three, as an extra argument: `ielec.acceptArray(project, work, cfg, array)`
+takes the array to add that way, and the colour caches below travel the same
+road. It keeps `cfg` small enough to record.
+
 One exception, for the colour caches: the colours of the parcellation and the
 surfaces, which the `.iel` file carries for iElectrodes 1.020. They are
 display data, derived from the project, and large - computing the
@@ -174,13 +179,15 @@ not in the functions yet.
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
 | `ielec.fitArray` | the Fit button's GridFit call and the array it builds | the Fit button |
+| `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
+| `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.addArray`, `ielec.removeArray` | array handling |
-| `ielec.label` | anatomical labelling |
+| `ielec.removeArray` | the Remove button |
+| `ielec.projectArrays` | `processProjections`: brain-shift compensation |
 | `ielec.export` | the export formats |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.

@@ -1056,39 +1056,16 @@ guidata(hObject, handles);
 % --------------------------------------------------------------------
 %%%%%%%%%%%%%%%           Labels to MNI space               %%%%%%%%%%%%%%%
 function handles=labels2MNIspace(handles)
-% Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
-% be called from a script or a test without opening a figure.
-%
-% labelElectrodesMNI takes a project struct. The patient data now lives in
-% handles.project, but the MNI atlas is a shared resource loaded once at
-% start-up by defaultGuiVariables, so it lives in handles.work and is passed
-% in alongside. Only the two fields the labelling writes are merged
-% back, which keeps handles.project the single authoritative copy.
-prj              = handles.project;
-prj.MNI_S_matrix = handles.work.MNI_S_matrix;
-prj.MNIlabels    = handles.work.MNIlabels;
-prj.MNIprob      = handles.work.MNIprob;
-
-prj = labelElectrodesMNI(prj);
-
-handles.project.electrodes = prj.electrodes;
-handles.project.targets    = prj.targets;
+% Thin GUI wrapper around ielec.label: two lines, kept because eight
+% callbacks say "label in MNI space" and read better for it.
+[handles.project, handles.work] = ...
+    ielec.label(handles.project, handles.work, struct('space','MNI'));
 
 %%%%%%%%%%%%%%%           Labels to Native space            %%%%%%%%%%%%%%%
 function handles=labels2NativeSpace(handles)
-% Thin GUI wrapper. The labelling itself lives in src/labeling/ so that it can
-% be called from a script or a test without opening a figure.
-%
-% Same boundary as labels2MNIspace above: handles.project carries the patient
-% data including the wmparc parcellation, while the labelling options are
-% session settings that still live flat on handles.
-prj         = handles.project;
-prj.options = handles.work.options;
-
-prj = labelElectrodesNative(prj);
-
-handles.project.electrodes = prj.electrodes;
-handles.project.targets    = prj.targets;
+% Thin GUI wrapper around ielec.label, as labels2MNIspace above.
+[handles.project, handles.work] = ...
+    ielec.label(handles.project, handles.work, struct('space','Native'));
 
 
 % --------------------------------------------------------------------
@@ -3622,8 +3599,11 @@ function handles = addElectrode2structure(handles,electrodes,array)
 % if arrray is empty, make a new electrode cell at the endl
 % Otherwise, replce electrode
 
-% append when ARRAY is empty, overwrite that index otherwise
-[handles.project.electrodes, l] = addArray(handles.project.electrodes, electrodes, array);
+% append when ARRAY is empty, overwrite that index otherwise. Adding a new
+% array also finishes the localization it came from, so the contacts in
+% progress are cleared - the layer does both.
+[handles.project, handles.work, l] = ...
+    ielec.acceptArray(handles.project, handles.work, struct('index', array), electrodes);
 
 % process projections if needed
 handles=processProjections(handles);
@@ -3635,18 +3615,7 @@ else
     handles=labels2NativeSpace(handles);
 end
     
-if isempty(array) % add array to structure
-    %save to old coordinates
-    handles.work.oldGS=handles.work.GS;
-    handles.work.oldbrushCrd=handles.work.brushCrd;
-    handles.work.oldbrushWeight=handles.work.brushWeight;
-    handles.work.oldclusters=handles.work.clusters;
-   
-    % clear actual ones
-    handles.work.GS=[];
-    handles.work.brushCrd=[];
-    handles.work.brushWeight=[];
-    handles.work.clusters=[];
+if isempty(array) % a new array: the contacts in progress are gone
     set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 end
 
