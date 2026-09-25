@@ -139,9 +139,22 @@ new function with the code it replaces, kept verbatim inside the test, and
 checks the rules above: the signature, no window, an unknown option is refused.
 It is the same method as during the separation.
 
-**8. The frontend calls only ielec.** Once the layer is complete, a test will
-check that `app/` and the frontend call no backend function directly, so the
-layer cannot be bypassed without anyone noticing.
+**8. The frontend calls only ielec - and ielview.**
+`tests/test_frontendUsesLayer.m` checks it, so the layer cannot be bypassed
+without anyone noticing. Three things the frontend may call:
+
+- `ielec.*`, for anything that touches the project;
+- `ielview.*`, the drawing layer: `src/+ielview/`, functions that turn the
+  data into something to display or turn a click into a coordinate. They keep
+  no state and decide nothing scientific, and no backend function calls them.
+  `ielview.mixImages` blends the MRI and the CT into the picture a view shows;
+  `ielview.voxelFromPlaneClick` turns a click in a 2-D view into a voxel;
+- the shared geometry: `AnatSpace2Mesh`, `mesh2AnatSpace` and `eucDistMat`.
+  These are two-line coordinate and distance functions that the backend itself
+  uses - `thresholdCTVoxels`, `gridFit`, `clusterContacts` and others - so they
+  cannot become the frontend's. They are library functions, called the way
+  `norm` is called, and the test lists them by name so that the exception
+  stays three functions long.
 
 ## Recording each step
 
@@ -203,3 +216,16 @@ Next, in the order of the App Designer prototype's workflow:
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
 It will then be the tutorial for scripting iElectrodes.
+
+`tests/test_frontendUsesLayer.m` measures the distance to rule 8: it lists
+every backend function `electrodes_gui.m` still calls, grouped by the ielec
+function that is going to take the group over, and fails when one appears
+that is not on the list - or when one is no longer called and the list has
+not been shortened. Running it is the shortest answer to "what is left".
+
+That question the list used to carry - what to do with the five functions the
+frontend calls in order to draw - is settled. The two nothing else calls,
+`mixImages` and `voxelFromPlaneClick`, moved into `src/+ielview/`, the drawing
+layer; the three the backend itself uses stayed where they are and are named
+in rule 8 as the exception. `src/+ielview/Contents.m` says what belongs
+there.

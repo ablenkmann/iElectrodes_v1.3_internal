@@ -2848,7 +2848,7 @@ if ~isempty(handles.project.T1)
         
     if isempty(handles.project.TAC)
         %only MRI
-       handles.ui.imgW=mixImages(T1,[],mixValue,opt);
+       handles.ui.imgW=ielview.mixImages(T1,[],mixValue,opt);
     else
         %MRI and CT mixture
         TAC=single(handles.project.TAC.img);
@@ -2857,7 +2857,7 @@ if ~isempty(handles.project.T1)
 %         TAC=TAC-min(TAC(:));
 %         TAC=TAC * ( (2^15-1) / max(TAC(:)));
 
-        handles.ui.imgW=mixImages(T1,TAC,mixValue,opt);
+        handles.ui.imgW=ielview.mixImages(T1,TAC,mixValue,opt);
 
     end
     handles.ui.updatePlots.views2D=[1 1 1];
@@ -4747,7 +4747,7 @@ inPlane = setdiff(1:3, plane);
 set(planeSlider{inPlane(1)}, 'Value', d1);
 set(planeSlider{inPlane(2)}, 'Value', d2);
 
-voxel = voxelFromPlaneClick(plane, get(planeSlider{plane},'Value'), [d1 d2]);
+voxel = ielview.voxelFromPlaneClick(plane, get(planeSlider{plane},'Value'), [d1 d2]);
 
 % set target coordinates
 % define anatomical coords

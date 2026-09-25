@@ -16,7 +16,7 @@ function ok = test_voxelFromPlaneClick()
 %
 %   iElectrodes 2 restructuring - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also VOXELFROMPLANECLICK.
+%   See also IELVIEW.VOXELFROMPLANECLICK.
 
 repoRoot = fileparts(fileparts(mfilename('fullpath')));
 for f = {'src','app','assets','third_party'}
@@ -32,34 +32,34 @@ d2 = 64;
 fprintf('\n--- the three views ------------------------------------------\n');
 
 % X view: the click gives y and z, x comes from the slider
-nFail = nFail + check(isequal(voxelFromPlaneClick(1, sliderValue, [d1 d2]), ...
+nFail = nFail + check(isequal(ielview.voxelFromPlaneClick(1, sliderValue, [d1 d2]), ...
     [sliderValue d1 d2]), 'X view -> [slider d1 d2]', '');
 
 % Y view: the click gives x and z
-nFail = nFail + check(isequal(voxelFromPlaneClick(2, sliderValue, [d1 d2]), ...
+nFail = nFail + check(isequal(ielview.voxelFromPlaneClick(2, sliderValue, [d1 d2]), ...
     [d1 sliderValue d2]), 'Y view -> [d1 slider d2]', '');
 
 % Z view: the click gives x and y
-nFail = nFail + check(isequal(voxelFromPlaneClick(3, sliderValue, [d1 d2]), ...
+nFail = nFail + check(isequal(ielview.voxelFromPlaneClick(3, sliderValue, [d1 d2]), ...
     [d1 d2 sliderValue]), 'Z view -> [d1 d2 slider]', '');
 
 fprintf('\n--- properties that must hold for every view -----------------\n');
 bad = 0;
 for plane = 1:3
-    v = voxelFromPlaneClick(plane, sliderValue, [d1 d2]);
+    v = ielview.voxelFromPlaneClick(plane, sliderValue, [d1 d2]);
     if v(plane) ~= sliderValue, bad = bad + 1; end
     if ~isequal(sort(v), sort([sliderValue d1 d2])), bad = bad + 1; end
 end
 nFail = nFail + check(bad == 0, ...
     'the through-plane axis takes the slider, the others the click', '');
 
-nFail = nFail + check(isequal(size(voxelFromPlaneClick(1, 0, [0 0])), [1 3]), ...
+nFail = nFail + check(isequal(size(ielview.voxelFromPlaneClick(1, 0, [0 0])), [1 3]), ...
     'the result is a 1x3 row', '');
 
 fprintf('\n--- what it refuses ------------------------------------------\n');
-nFail = nFail + check(threw(@() voxelFromPlaneClick(4, 1, [1 2]), ...
+nFail = nFail + check(threw(@() ielview.voxelFromPlaneClick(4, 1, [1 2]), ...
     'voxelFromPlaneClick:badPlane'), 'a plane that is not 1, 2 or 3', '');
-nFail = nFail + check(threw(@() voxelFromPlaneClick(1, 1, [1 2 3]), ...
+nFail = nFail + check(threw(@() ielview.voxelFromPlaneClick(1, 1, [1 2 3]), ...
     'voxelFromPlaneClick:badValues'), 'three in-plane values instead of two', '');
 
 fprintf('\n');

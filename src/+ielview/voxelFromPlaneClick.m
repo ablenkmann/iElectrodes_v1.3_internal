@@ -1,7 +1,8 @@
 function voxel = voxelFromPlaneClick(plane, throughPlane, inPlaneValues)
-%VOXELFROMPLANECLICK  Turn a click in one 2-D view into a 3-D voxel position.
+%IELVIEW.VOXELFROMPLANECLICK  Turn a click in one 2-D view into a 3-D voxel position.
 %
-%   voxel = voxelFromPlaneClick(plane, throughPlane, inPlaneValues) returns
+%   voxel = ielview.voxelFromPlaneClick(plane, throughPlane, inPlaneValues)
+%   returns
 %   the [x y z] voxel coordinate a click stands for.
 %
 %     plane           which view was clicked: 1 for the X view, 2 for the Y

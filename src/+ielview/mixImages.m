@@ -1,4 +1,12 @@
 function  imgW=mixImages(T1im,CTim,mixValue,opt)
+%IELVIEW.MIXIMAGES  Blend the MRI and the CT into the picture a view shows.
+%
+%   imgW = ielview.mixImages(T1im, CTim, mixValue, opt)
+%
+%   Part of the ielview drawing layer: what it produces is pixels, for a view
+%   to display. Nothing scientific is decided here and no state is kept, so
+%   the frontend calls it directly - see docs/API_LAYER.md rule 8.
+%
 % Mix the content of CT and T1, according to mixValue
 % using the colors for each image present in colorT1 and colorCT
 % observation window is povided by opt.win
