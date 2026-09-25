@@ -1095,3 +1095,40 @@ one place. One line in each of the two callbacks fixes it in the GUIDE GUI
 meanwhile.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 28. The planning report walks the targets as a struct array
+
+**Where:** `aLabelsTargets2txt_new` in `src/export/`, called by
+`ReportPlanninguipushtool_ClickedCallback`
+
+The report of the planning targets loops
+
+```matlab
+for n = 1:length(targets)
+    if targets(n).frameDown
+```
+
+which reads TARGETS as a struct array. The project keeps them in a cell array
+of structures - `project.targets{n}` - everywhere else: the GUI reads
+`handles.project.targets{a}.x(1)`, `addArray` and `removeArray` treat both
+lists the same way, and `checkElectrodeStructure` returns a cell. So
+`targets(n)` is a 1x1 cell and the line fails with "Dot indexing is not
+supported for variables of this type", before anything is written.
+
+The button therefore cannot have worked on any project whose targets went
+through `checkElectrodeStructure`. The electrode report beside it,
+`aLabels2txt_new`, indexes `electrodes{n}` correctly, which is what the same
+code looks like when it is right.
+
+Found by `tests/test_ielecExport.m`, which writes every format both ways: the
+button's own code and `ielec.export` fail identically here, so the test
+requires them to be refused the same way rather than to produce the same file.
+
+**Decision needed:** whether the targets were a struct array in some older
+version - in which case a project saved then still opens - or the loop was
+simply never run against a cell. The fix is `targets{n}` throughout the
+function, four lines, and its own commit with a test that writes a report.
+
+**Status: open.** Present in v1.020.

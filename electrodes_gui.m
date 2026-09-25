@@ -701,34 +701,24 @@ end
     'ListSize', [300 150]);
 
 
-% fetch coordinates 
+% write the file. Each case picks a file and says what it did; the layer
+% writes it - which coordinates a format wants is its business, not ours.
 if valid
-    electrodes=handles.project.electrodes;
 
-    % Which coordinates the chosen format wants. Option 1 writes the
-    % electrodes structure itself and needs none, so it gets empty lists.
-    if any(selection == [2 4 6])
-        crd = electrodeCoordinates(electrodes, 'contacts');
-    elseif any(selection == [3 5 7])
-        crd = electrodeCoordinates(electrodes, 'projection');
+    % which coordinates the chosen option asks for
+    if any(selection == [3 5 7])
+        coordinates = 'projection';
     else
-        crd = electrodeCoordinates({});
+        coordinates = 'contacts';
     end
 
-    x = crd.x;  y = crd.y;  z = crd.z;
-    cl         = crd.label;
-    type       = crd.type;
-    projMethod = crd.projectionMethod;
-    anatLabel  = crd.anatomicalLabel;
-
-    % write coordinates to file. Each case picks a file and says what it
-    % did; the writers in src/export/ produce the file itself.
     switch selection
         case 1 % iElectrodes structure
             [FileName,PathName] = uiputfile('*.mat','Save electrodes structure', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeElectrodeStructure([handles.work.PathName, FileName], electrodes);
+                handles = exportFile(handles, 'structure', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved electrode structure in ' handles.work.PathName, FileName])
             end
 
@@ -741,7 +731,7 @@ if valid
             [FileName,PathName] = uiputfile('*.txt',['Save ' what ' coordinates in EEGLAB format'], handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeEEGLABcoordinates([PathName FileName], crd);
+                handles = exportFile(handles, 'eeglab', coordinates, [PathName FileName]);
                 disp([' ' what ' coordinates saved in ' PathName FileName ] )
                 disp (' load to EEGLAB with the command:')
                 disp (' EEG.chanlocs=readlocs( [ path file] , ''filetype'', ''custom'',''format'',{''labels'',''-Y'',''X'',''Z''}) ')
@@ -749,15 +739,15 @@ if valid
 
         case {4, 5} % FIELDTRIP - contacts (4) or projections (5)
             if selection==4
-                what = 'electrode';       projected = 'No';
+                what = 'electrode';
             else
-                what = 'SCE-projected';   projected = 'Yes';
+                what = 'SCE-projected';
             end
             [FileName,PathName] = uiputfile('*.mat',['Save ' what ' coordinates in FIELDTRIP structure'], handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeFieldTripElectrodes([handles.work.PathName, FileName], crd, ...
-                    electrodes, handles.project.currentSpace, projected);
+                handles = exportFile(handles, 'fieldtrip', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved ' what ' coordinates in FIELTRIP structure in ' handles.work.PathName, FileName])
             end
 
@@ -765,17 +755,16 @@ if valid
             [FileName,PathName] = uiputfile('*.tsv','Save electrode coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeBIDSelectrodes([handles.work.PathName, FileName], crd);
+                handles = exportFile(handles, 'bids', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved electrodes using BIDS format  in ' handles.work.PathName, FileName]);
             end
 
             [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeBIDScoordinateSystem([handles.work.PathName, FileName], ...
-                    handles.project.TAC.vol.fname, ...                         % point to CT file
-                    'none', ...                                                % projection?
-                    'Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014 ');
+                handles = exportFile(handles, 'bidsCoordinateSystem', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
             end
 
@@ -783,18 +772,16 @@ if valid
             [FileName,PathName] = uiputfile('*.tsv','Save electrode SCE-projected coordinates in BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeBIDSelectrodes([handles.work.PathName, FileName], crd);
+                handles = exportFile(handles, 'bids', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved electrode SCE-projected coordinates using BIDS format  in ' handles.work.PathName, FileName]);
             end
 
             [FileName,PathName] = uiputfile('*.json','Save coordinates system in json BIDS format', handles.work.PathName);
             if FileName~=0
                 handles.work.PathName=PathName;
-                writeBIDScoordinateSystem([handles.work.PathName, FileName], ...
-                    handles.project.TAC.vol.fname, ...                         % point to CT file
-                    projMethod{1}, ...                                         % projection?
-                    ['Blenkmann et al., 2017. https://doi.org/10.3389/fninf.2017.00014; ' ...
-                     'Blenkmann et al., 2023. https://doi.org/10.1101/2023.05.08.539503']);
+                handles = exportFile(handles, 'bidsCoordinateSystem', coordinates, ...
+                    [handles.work.PathName, FileName]);
                 disp (['Saved coordinates system in json BIDS format  in ' handles.work.PathName, FileName]);
             end
 
@@ -804,6 +791,15 @@ end
 
 % Update handles structure
 guidata(hObject, handles);
+
+function handles = exportFile(handles, format, coordinates, file)
+% One export, through the layer. The dialogs above choose the format and the
+% file; everything the format needs from the project is the layer's business.
+cfg = [];
+cfg.file        = file;
+cfg.format      = format;
+cfg.coordinates = coordinates;
+[handles.project, handles.work] = ielec.export(handles.project, handles.work, cfg);
 
 %%%%%%%%%%%            Load electrode structure               %%%%%%%%%%%%%
 function LoadElectrodespushtool_ClickedCallback(hObject, eventdata, handles)
@@ -940,7 +936,8 @@ if valid & ~isempty(handles.project.electrodes)
       
     [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.work.PathName);
     if FileName~=0
-        aLabels2txt_new(handles.project.electrodes,[PathName FileName],optionsList{selection});
+        if selection == 2, coordinates = 'projection'; else, coordinates = 'contacts'; end
+        handles = exportFile(handles, 'labels', coordinates, [PathName FileName]);
         disp (['Report saved in ' PathName, FileName])
 
     end
@@ -1431,7 +1428,7 @@ end
 if ~isempty(handles.project.targets)
     [FileName,PathName] = uiputfile('.txt','.txt ouput file',handles.work.PathName);
     if FileName~=0
-        aLabelsTargets2txt_new(handles.project.targets,[PathName FileName]);
+        handles = exportFile(handles, 'targetLabels', 'contacts', [PathName FileName]);
         disp (['Saved targets report in ' handles.work.PathName, FileName])
 
     end

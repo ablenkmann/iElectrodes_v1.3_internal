@@ -207,12 +207,15 @@ not in the functions yet.
 | `ielec.projectionState` | what `processProjections` asked before deciding | the SCE checkbox |
 | `ielec.projectArrays` | the brain-shift correction in `processProjections` | the SCE checkbox, and adding an array |
 | `ielec.deleteArray` | the removing in both Remove buttons | the Remove buttons |
+| `ielec.export` | the writers in every branch of the two export buttons | the export and report buttons |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.export` | the export formats |
+| `ielec.importArrays`, `ielec.importLabels` | reading the other formats back |
+| the surfaces and the parcellation | loading them, and their colours |
+| the planning panel | the workflow that is still almost entirely its own |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
 It will then be the tutorial for scripting iElectrodes.
