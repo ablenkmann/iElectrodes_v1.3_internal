@@ -819,73 +819,48 @@ end
     'EEGLAB dataset- electrodes (.set)', 'FIELDTRIP - elec structure (.mat)'},...
     'ListSize', [300 150]);
 
-% all methods should end with a elecNew cell of electrodes
+% the file, then what the layer says is in it, then the questions only we
+% can ask, and the import itself
 if valid
-    switch selection
-        case 1 % load  coordinates iElectrodes electrodes structure
-        [FileName,PathName] = uigetfile('*.mat','Load electrodes structure', handles.work.PathName);
+    formats = {'structure', 'eeglab',  'fieldtrip'};
+    filters = {'*.mat',     '*.set',   '*.mat'};
+    titles  = {'Load electrodes structure', 'Load EEGLAB dataset', ...
+               'Load FIELDTRIP elec structure'};
 
-        if FileName~=0
-            handles.work.PathName=PathName;
-            try
-                elecNew = readElectrodeStructure([handles.work.PathName, FileName]);
-            catch err
-                warning(err.message);
-                return;
-            end
-        else
-            return;
-        end
-    
-        case 2 % load EEGLAB coordinates electrodes
-        [FileName,PathName] = uigetfile('*.set','Load EEGLAB dataset', handles.work.PathName);
-
-        if FileName~=0
-            handles.work.PathName=PathName;
-            try
-                [labels,pos] = readEEGLABelectrodes([handles.work.PathName, FileName]);
-            catch err
-                warning(err.message);
-                return;
-            end
-        else
-            return;
-        end
-   
-    case 3 % load FIELDTRIP coordinates electrodes
-        [FileName,PathName] = uigetfile('*.mat','Load FIELDTRIP elec structure', handles.work.PathName);
-
-        if FileName~=0
-            handles.work.PathName=PathName;
-            try
-                [labels,pos] = readFieldTripElectrodes([handles.work.PathName, FileName]);
-            catch err
-                warning(err.message);
-                return;
-            end
-        else
-            return;
-        end
+    [FileName,PathName] = uigetfile(filters{selection}, titles{selection}, handles.work.PathName);
+    if FileName==0
+        return;
     end
-    
-    if find (selection==[2 3]) % EEGLAB or MATLAB (or txt file future)
-        % make elec structure out of labels{Nx1} and pos[Nx3]
-        % ask for the different types of arrays, index and label
-        % automatically
-        [labelsArray, ic] = groupContactsByArray(labels); % ic==i: the contacts of array labelsArray{i}
-        A=length(labelsArray); 
-        button=questdlg([ [num2str(A) ' arrays were found: '] labelsArray 'Continue?'],'','Yes','No','Yes');
+    handles.work.PathName=PathName;
+
+    cfg = [];
+    cfg.file   = [handles.work.PathName, FileName];
+    cfg.format = formats{selection};
+
+    try
+        [~, ~, contents] = ielec.arrayFileContents(handles.project, handles.work, cfg);
+    catch err
+        warning(err.message);
+        return;
+    end
+
+    if contents.needsChoices % EEGLAB or FIELDTRIP: a flat list of contacts
+        % the file does not say what kind of array each one is; ask, and
+        % hand the answers to the import
+        A = numel(contents.arrays);
+        button=questdlg([ [num2str(A) ' arrays were found: '] contents.arrays 'Continue?'],'','Yes','No','Yes');
         if strcmp(button,'No')
             return
         end
         for i=1:A
-            [type,rows,columns]=elecImportDlg(labelsArray{i},sum(ic==i));
-            elecNew{i} = electrodeArrayFromContacts(labelsArray{i}, labels(ic==i), ...
-                                                    pos(ic==i,:), type, rows, columns);
+            [type,rows,columns]=elecImportDlg(contents.arrays{i}, contents.contacts(i));
+            cfg.arrays(i).type    = type;
+            cfg.arrays(i).rows    = rows;
+            cfg.arrays(i).columns = columns;
         end
     end
-     
-    handles.project.electrodes=[handles.project.electrodes elecNew]; %append new elecs to old ones
+
+    [handles.project, handles.work] = ielec.importArrays(handles.project, handles.work, cfg);
     
     handles = setSelectedArray(handles, 1);
     handles = setSelectedContact(handles, 1);
