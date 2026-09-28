@@ -1132,3 +1132,42 @@ simply never run against a cell. The fix is `targets{n}` throughout the
 function, four lines, and its own commit with a test that writes a report.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 29. `buildSCE` does not give the same envelope twice
+
+**Where:** `buildSCE` in `src/projection/`, through `vol2surf` and iso2mesh's
+CGAL surface extractor
+
+Building the smooth cortical envelope from the same surface, twice, in one
+MATLAB session, gives two different meshes. The extractor prints its own seed
+- `RNG seed 1648335518`, the same both times - and still returns a different
+number of points: 2348 one time and 2310 the next, for a surface that had not
+changed. The later steps are deterministic, so the difference comes from the
+CGAL mesher, which is randomised internally.
+
+What follows from it:
+
+- two people who build an envelope from the same FreeSurfer surface get
+  different envelopes, and so, after the brain-shift correction, slightly
+  different contact coordinates. The difference is a fraction of a
+  millimetre, well under the localization's own uncertainty, but it is there;
+- a project cannot be rebuilt bit for bit from its inputs. Once the `.iel`
+  file records the history of the calls that made it, the history will
+  describe how the envelope was built without being enough to reproduce it;
+- a test cannot compare two envelopes vertex by vertex.
+  `tests/test_ielecSurfaces.m` compares them as surfaces instead - same
+  bounding box and centre to a tenth of a millimetre, vertex count within
+  five percent - which is what "the same envelope" can mean here.
+
+Found while moving the surfaces onto the layer: the test passed on its own
+and failed inside `run_all_tests`, which is what a randomised step looks like.
+
+**Decision needed:** whether this matters for the paper's reproducibility
+claims. If it does, the fix is to seed the extractor - iso2mesh passes its
+options through, so it may be a matter of one setting - or to record the
+envelope in the file as the authoritative one, which the `.iel` format
+already does.
+
+**Status: open.** Present in v1.020.

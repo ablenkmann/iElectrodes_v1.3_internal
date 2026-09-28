@@ -68,6 +68,12 @@ hand them over and take them back as an extra argument, after the three:
 `ielec.saveProject(project, work, cfg, caches)`. Leave `caches` out when
 saving and they are computed.
 
+A function that *makes* such a cache while it changes the project returns it
+as the third output instead: `ielec.loadAnatomy` gives back the parcellation's
+colours and `ielec.loadAnnotations` the surfaces'. Both ways keep the cache
+out of `project` and out of the layer's memory; the difference is only which
+side produced it.
+
 **2. `ui` never enters.** An ielec function does not receive `ui`, does not
 return it, and does not know it exists. It opens no window, no dialog and no
 figure, never calls `guidata`, and never reads a control. What the frontend
@@ -138,6 +144,11 @@ Two things follow from that:
 new function with the code it replaces, kept verbatim inside the test, and
 checks the rules above: the signature, no window, an unknown option is refused.
 It is the same method as during the separation.
+
+One test may cover a group of functions that belong to the same button -
+`test_ielecProjections.m` and `test_ielecSurfaces.m` each cover the
+functions of one - as long as every function in it is compared with the
+code it replaced.
 
 **8. The frontend calls only ielec - and ielview.**
 `tests/test_frontendUsesLayer.m` checks it, so the layer cannot be bypassed
@@ -212,12 +223,14 @@ not in the functions yet.
 | `ielec.importArrays` | the reading and the building in the import button | the import button |
 | `ielec.importLabels` | the reading inside `getLabelsFromFile` | the two label-list buttons |
 | `ielec.loadAnatomy` | the two calls in the parcellation button | the Load FS labels button |
+| `ielec.loadSurfaces` | reading, centring and thinning a pair of surfaces | the pial and the SCE buttons |
+| `ielec.buildEnvelope` | the Build branch of the SCE button | the SCE button |
+| `ielec.loadAnnotations` | reading the annotations, and clearing them | the pial button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| the surfaces | loading them, building the envelope, their annotations |
 | the planning panel | the workflow that is still almost entirely its own |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.

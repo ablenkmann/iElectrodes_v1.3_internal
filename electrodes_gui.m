@@ -1071,9 +1071,11 @@ if isequal(lFile,0)
 end
 lFile=[PathName lFile]; %concat file name
 
-[vR,fR,vL,fL] = readSurfacePair(rFile, lFile);
-disp (['Loaded surfaces from ' rFile ' (right hem) and '  lFile ' (left hem)' ])
-
+cfg = [];
+cfg.right  = rFile;
+cfg.left   = lFile;
+cfg.target = 'pial';
+cfg.centre = false;
 
 choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
     '', 'Yes','No','Cancel','Yes');
@@ -1081,8 +1083,7 @@ choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
 switch choice
     case 'Yes'
         % translate pial surfaces to MRI center
-        [vR,vL] = centreSurfaces(size(handles.project.T1.img), handles.project.S2, vR, vL);
-        disp (['Surfaces centered'])
+        cfg.centre = true;
 
     case 'No'
         % do nothing
@@ -1090,6 +1091,16 @@ switch choice
         return;
     case ''
         return;
+end
+
+% the pial surfaces are kept whole: the annotation below has one label per
+% vertex, so a thinned surface would have vertices with no label
+[handles.project, handles.work] = ...
+    ielec.loadSurfaces(handles.project, handles.work, cfg);
+
+disp (['Loaded surfaces from ' rFile ' (right hem) and '  lFile ' (left hem)' ])
+if cfg.centre
+    disp (['Surfaces centered'])
 end
 
 %reduce to 15k vertices for nice resolution and speed plots
@@ -1114,11 +1125,6 @@ end
 %     handles.project.facesL=fL;
 % end
 % No reduction to be able to usse annotation information
-
-handles.project.verticesR=vR;
-handles.project.verticesL=vL;
-handles.project.facesR=fR;
-handles.project.facesL=fL;
 
 % dealin with annotation files after surfaces are done
 choice = questdlg('Do you want to load annotation files?', ...
@@ -1145,28 +1151,24 @@ switch choice
         end
         AnnotFile_L=[PathName AnnotFile_L]; %concat file name
 
-        [vert_R,AnnotLabel_R,AnnotColortable_R]=read_annotation(AnnotFile_R);
-        [vert_L,AnnotLabel_L,AnnotColortable_L]=read_annotation(AnnotFile_L);
+        annotCfg = [];
+        annotCfg.right = AnnotFile_R;
+        annotCfg.left  = AnnotFile_L;
+        [handles.project, handles.work, colours] = ...
+            ielec.loadAnnotations(handles.project, handles.work, annotCfg);
         disp (['Loaded annotation files from ' AnnotFile_R ' (right hem) and ' AnnotFile_L ' (left hem)'])
-        
-        AnnotColor_R = annotationColours(AnnotLabel_R, AnnotColortable_R);
-        AnnotColor_L = annotationColours(AnnotLabel_L, AnnotColortable_L);
-        
-        handles.project.AnnotLabel_R=AnnotLabel_R; %label for each node
-        handles.project.AnnotLabel_L=AnnotLabel_L; %label for each node
-        handles.project.AnnotColortable_R=AnnotColortable_R; %colortable info
-        handles.project.AnnotColortable_L=AnnotColortable_L; %colortable info
-        handles.ui.AnnotColor_R=AnnotColor_R; %actual color used for each node
-        handles.ui.AnnotColor_L=AnnotColor_L; %actual color used for each node
+
+        handles.ui.AnnotColor_R=colours.right; %actual color used for each node
+        handles.ui.AnnotColor_L=colours.left; %actual color used for each node
         
     case 'No'
         
-        handles.project.AnnotLabel_R=[]; %label for each node
-        handles.project.AnnotLabel_L=[]; %label for each node
-        handles.project.AnnotColortable_R=[]; %colortable info
-        handles.project.AnnotColortable_L=[]; %colortable info
-        handles.ui.AnnotColor_R=ones(length(handles.project.verticesR),3)*.5; %actual color used for each node = grey; %actual color used for each node
-        handles.ui.AnnotColor_L=ones(length(handles.project.verticesL),3)*.5; %actual color used for each node
+        % no annotation: the labels are cleared and every node is grey
+        [handles.project, handles.work, colours] = ...
+            ielec.loadAnnotations(handles.project, handles.work, []);
+
+        handles.ui.AnnotColor_R=colours.right;
+        handles.ui.AnnotColor_L=colours.left;
         
     case 'Cancel'
         return;
@@ -1247,18 +1249,21 @@ switch type
             
             if ~isequal(lFile,0)
                 
-                [vR,fR,vL,fL] = readSurfacePair([PathName rFile], [PathName lFile]);
-                
-                disp (['Loaded surfaces from ' PathName, rFile ' and ' PathName, lFile ])
-                
+                cfg = [];
+                cfg.right    = [PathName rFile];
+                cfg.left     = [PathName lFile];
+                cfg.target   = 'envelope';
+                cfg.centre   = false;
+                cfg.resample = 15000;  % nice resolution and speed plots
+
                 choice = questdlg('Do you want to center the surfaces? (Recommended)', ...
                     '', 'Yes','No','Cancel','Yes');
                 % Handle response
                 switch choice
                     case 'Yes'
                         % translate pial surfaces to MRI center
-                        [vR,vL] = centreSurfaces(size(handles.project.T1.img), handles.project.S2, vR, vL);
-                        
+                        cfg.centre = true;
+
                     case 'No'
                         % do nothing
                     case 'Cancel'
@@ -1266,14 +1271,11 @@ switch type
                     case ''
                         return;
                 end
-                
-                %reduce to 15k vertices for nice resolution and speed plots
-                [vR,fR,vL,fL] = resampleSurfacePair(vR,fR,vL,fL,15000);
 
-                handles.project.vertices_SCE_R=vR;
-                handles.project.faces_SCE_R=fR;
-                handles.project.vertices_SCE_L=vL;
-                handles.project.faces_SCE_L=fL;
+                [handles.project, handles.work] = ...
+                    ielec.loadSurfaces(handles.project, handles.work, cfg);
+
+                disp (['Loaded surfaces from ' PathName, rFile ' and ' PathName, lFile ])
                 
             else
                 return; % no file
@@ -1284,17 +1286,10 @@ switch type
         
     case 'Build'
         
-        % compute SCE
-        [vL,fL] = buildSCE(handles.project.verticesL,handles.project.facesL,handles.work.options);
-        [vR,fR] = buildSCE(handles.project.verticesR,handles.project.facesR,handles.work.options);
-        
-        %reduce to 15k vertices for nice resolution and speed plots
-        [vR,fR,vL,fL] = resampleSurfacePair(vR,fR,vL,fL,15000);
-
-        handles.project.vertices_SCE_R=vR;
-        handles.project.faces_SCE_R=fR;
-        handles.project.vertices_SCE_L=vL;
-        handles.project.faces_SCE_L=fL;
+        % compute SCE, and reduce to 15k vertices for nice resolution and
+        % speed plots
+        [handles.project, handles.work] = ielec.buildEnvelope(handles.project, ...
+            handles.work, struct('resample', 15000));
         
 end
 
