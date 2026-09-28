@@ -36,9 +36,9 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % Each group is what one coming ielec function takes over. Nothing here is a
 % defect: it is the backend the GUI still reaches past the layer.
 waiting = {
-  'the surfaces and the parcellation - loading them and their colours', {
+  'the surfaces - loading them, building the envelope, their annotations', {
     'buildSCE', 'centreSurfaces', 'readSurfacePair', 'resampleSurfacePair', ...
-    'read_annotation', 'annotationColours', 'loadParcellation', 'parcellationColours'}
+    'read_annotation', 'annotationColours'}
   'the planning panel - the one workflow not on the layer at all', {
     'newPlanningGrid', 'placePlanningGrid', 'depthTrajectory', 'trajectoryEndPoint', ...
     'trajectoryFrameAngles', 'frameTrajectoryEndPoint', 'loadPlanningTargets', ...
@@ -106,7 +106,7 @@ ielviewCalls = namesCalledIn(code, 'ielview');
 fprintf('\n--- and through the layers -----------------------------------\n');
 fprintf('  %d ielec functions:   %s\n', numel(ielecCalls), strjoin(ielecCalls, ', '));
 fprintf('  %d ielview functions: %s\n', numel(ielviewCalls), strjoin(ielviewCalls, ', '));
-nFail = nFail + check(numel(ielecCalls) >= 18, ...
+nFail = nFail + check(numel(ielecCalls) >= 19, ...
     'the frontend goes through the layer for the main workflow', '');
 nFail = nFail + check(isequal(sort(ielviewCalls), {'mixImages', 'voxelFromPlaneClick'}), ...
     'and through ielview for what it draws', '');

@@ -211,12 +211,13 @@ not in the functions yet.
 | `ielec.arrayFileContents` | the reading the import button did before asking | the import button |
 | `ielec.importArrays` | the reading and the building in the import button | the import button |
 | `ielec.importLabels` | the reading inside `getLabelsFromFile` | the two label-list buttons |
+| `ielec.loadAnatomy` | the two calls in the parcellation button | the Load FS labels button |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| the surfaces and the parcellation | loading them, and their colours |
+| the surfaces | loading them, building the envelope, their annotations |
 | the planning panel | the workflow that is still almost entirely its own |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.

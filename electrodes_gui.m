@@ -944,12 +944,11 @@ end
 if ~isequal(wmparcFile,0)
     handles.work.PathName=PathName;
 
-    [handles.project.wmparc, handles.project.wmparcS] = ...
-        loadParcellation(PathName, wmparcFile, handles.project.T1);
+    cfg = [];
+    cfg.file = [PathName wmparcFile];
+    [handles.project, handles.work, handles.ui.wmparcColors] = ...
+        ielec.loadAnatomy(handles.project, handles.work, cfg);
 
-    handles.ui.wmparcColors = ...
-        parcellationColours(handles.project.wmparc.img, handles.work.options.atlasLUTFile);
-    
     
 %    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);
     disp (['Loaded FS labels from ' PathName, wmparcFile])
