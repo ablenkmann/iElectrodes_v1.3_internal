@@ -210,12 +210,12 @@ not in the functions yet.
 | `ielec.export` | the writers in every branch of the two export buttons | the export and report buttons |
 | `ielec.arrayFileContents` | the reading the import button did before asking | the import button |
 | `ielec.importArrays` | the reading and the building in the import button | the import button |
+| `ielec.importLabels` | the reading inside `getLabelsFromFile` | the two label-list buttons |
 
 Next, in the order of the App Designer prototype's workflow:
 
 | function | replaces |
 |---|---|
-| `ielec.importLabels` | reading contact labels from a text file |
 | the surfaces and the parcellation | loading them, and their colours |
 | the planning panel | the workflow that is still almost entirely its own |
 

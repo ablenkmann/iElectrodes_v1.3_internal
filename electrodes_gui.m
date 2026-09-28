@@ -3958,7 +3958,8 @@ elecBaseName=get(handles.labelEdit, 'String');
 
 %get labels from file
 if isempty(handles.project.elecListLabels)
-    temp=getLabelsFromFile(handles.work.PathName);
+    handles = loadLabelList(handles);
+    temp = handles.project.elecListLabels;
     
 %     temp={
 %         'a1' 'b1' 'c1' 'd1' 'e1' 'f1' 'g1' 'h1'...
@@ -3982,11 +3983,10 @@ else
     % Handle response
     switch choice
         case 'Yes'
-            temp=getLabelsFromFile(handles.work.PathName);
-            if isempty(temp)
+            handles = loadLabelList(handles);
+            if isempty(handles.project.elecListLabels)
                 return;
             end
-            handles.project.elecListLabels=temp;            
         case 'No'
             % do nothing
         case 'Cancel'
@@ -4033,6 +4033,29 @@ handles=updateTAC(handles);
 
 % Update handles structure
 guidata(hObject, handles);
+
+function handles = loadLabelList(handles)
+% Ask for a file of contact labels and let the layer read it. The five
+% formats are the five filters of this dialog; which one the user picked is
+% what filterindex says, and the layer is told by name.
+formats = {'txt', 'matlab', 'eeglab', 'fieldtripHeader', 'edf'};
+
+[labelsFile,PathName,filterindex]=uigetfile({
+    '*.txt', 'Text files (Tab delimited) (*.txt)'; ...         % 1
+    '*.mat', 'MATLAB files (labels Cell array) (*.mat)'; ...   % 2
+    '*.set', 'EEGLAB set files (*.set)';...                    % 3
+    '*.mat', 'Fieltrip hdr files (*.mat)';...                  % 4
+    '*.edf', 'edf files (*.edf)'},...                          % 5
+    'Load labels from file',handles.work.PathName);
+
+if ~ischar(labelsFile) || filterindex > numel(formats)
+    return   % cancelled, or a filter that names no format
+end
+
+cfg = [];
+cfg.file   = [PathName labelsFile];
+cfg.format = formats{filterindex};
+[handles.project, handles.work] = ielec.importLabels(handles.project, handles.work, cfg);
 
 %--------------------------------------------------------------------
 %%%%%%%%%%%%%%%    Project electrodes to SCE  %%%%%%%%%%%%%%%
