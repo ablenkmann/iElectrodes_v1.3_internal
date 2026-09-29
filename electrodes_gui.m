@@ -3587,40 +3587,17 @@ a=selectedArray(handles);
 electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
     warning('rows ~= columns');
-    
-else
-    newOrder=1:electrodes.nElectrodes;
-    newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
-    newOrder=permute(rot90(newOrder,-1),[2 1]);
-    electrodes=reorderElectrodes(electrodes,newOrder(:));
 
-%     LabelsInd=1:electrodes.nElectrodes;
-%     LabelsMat=permute(reshape(LabelsInd,electrodes.columns,electrodes.rows),[2 1]);
-%     LabelsMat=permute(rot90(LabelsMat,-1),[2 1]);
-%     
-%     %rotate electrodes
-%     electrodes.x=electrodes.x(LabelsMat(:));
-%     electrodes.y=electrodes.y(LabelsMat(:));
-%     electrodes.z=electrodes.z(LabelsMat(:));
-%     
-%     %rotate anatomical labels
-%     electrodes.aLabels=electrodes.aLabels(LabelsMat(:));
-%     electrodes.anatInd=electrodes.anatInd(LabelsMat(:),:);
-% 
-%     %rotate clusters
-%     tmp=zeros(size(electrodes.clusters));
-%     for i=LabelsInd
-%         tmp(electrodes.clusters==i)=LabelsMat(i);
-%     end
-%     electrodes.clusters=tmp;
-%     
-%     % no need to change adjMat
-    
-    handles.project.electrodes{a}=electrodes;    
+else
+    cfg = [];
+    cfg.index  = a;
+    cfg.change = 'rotateLeft';
+    [handles.project, handles.work] = ...
+        ielec.reorderArray(handles.project, handles.work, cfg);
 
     handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
-    
+
 end
 
 % Update handles structure
@@ -3642,35 +3619,12 @@ electrodes=handles.project.electrodes{a};
 if electrodes.rows ~= electrodes.columns
     warning('rows ~= columns');
 else
-    
-    newOrder=1:electrodes.nElectrodes;
-    newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
-    newOrder=permute(rot90(newOrder),[2 1]);
-    electrodes=reorderElectrodes(electrodes,newOrder(:));
 
-%     LabelsInd=1:electrodes.nElectrodes;
-%     LabelsMat=permute(reshape(LabelsInd,electrodes.columns,electrodes.rows),[2 1]);
-%     LabelsMat=permute(rot90(LabelsMat),[2 1]);
-%     
-%     %rotate coordinates
-%     electrodes.x=electrodes.x(LabelsMat(:));
-%     electrodes.y=electrodes.y(LabelsMat(:));
-%     electrodes.z=electrodes.z(LabelsMat(:));
-%     
-%     %rotate anatomical labels
-%     electrodes.aLabels=electrodes.aLabels(LabelsMat(:));
-%     electrodes.anatInd=electrodes.anatInd(LabelsMat(:),:);
-%     
-%     %rotate clusters
-%     tmp=zeros(size(electrodes.clusters));
-%     for i=LabelsInd
-%         tmp(electrodes.clusters==i)=LabelsMat(i);
-%     end
-%     electrodes.clusters=tmp;
-%     
-%     % no need to change adjMat
-    
-    handles.project.electrodes{a}=electrodes;    
+    cfg = [];
+    cfg.index  = a;
+    cfg.change = 'rotateRight';
+    [handles.project, handles.work] = ...
+        ielec.reorderArray(handles.project, handles.work, cfg);
 
     handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
@@ -3692,36 +3646,11 @@ end
 
 a=selectedArray(handles);
 
-electrodes=handles.project.electrodes{a};
-
-newOrder=1:electrodes.nElectrodes;
-newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
-newOrder=permute(fliplr(newOrder),[2 1]);
-electrodes=reorderElectrodes(electrodes,newOrder(:));
-
-% LabelsInd=1:electrodes.nElectrodes;
-% LabelsMat=permute(reshape(LabelsInd,electrodes.columns,electrodes.rows),[2 1]);
-% LabelsMat=permute(fliplr(LabelsMat),[2 1]);
-% 
-% %flip coordinates
-% electrodes.x=electrodes.x(LabelsMat(:));
-% electrodes.y=electrodes.y(LabelsMat(:));
-% electrodes.z=electrodes.z(LabelsMat(:));
-% 
-% %flip anatomical labels
-% electrodes.aLabels=electrodes.aLabels(LabelsMat(:));
-% electrodes.anatInd=electrodes.anatInd(LabelsMat(:),:);
-% 
-% %flip clusters
-% tmp=zeros(size(electrodes.clusters));
-% for i=LabelsInd
-%     tmp(electrodes.clusters==i)=LabelsMat(i);
-% end
-% electrodes.clusters=tmp;
-% 
-% % no need to change adjMat
-% 
-handles.project.electrodes{a}=electrodes;
+cfg = [];
+cfg.index  = a;
+cfg.change = 'flipLeftRight';
+[handles.project, handles.work] = ...
+    ielec.reorderArray(handles.project, handles.work, cfg);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3741,37 +3670,11 @@ end
 
 a=selectedArray(handles);
 
-electrodes=handles.project.electrodes{a};
-
-newOrder=1:electrodes.nElectrodes;
-newOrder=permute(reshape(newOrder,electrodes.columns,electrodes.rows),[2 1]);
-newOrder=permute(flipud(newOrder),[2 1]);
-electrodes=reorderElectrodes(electrodes,newOrder(:));
-
-% LabelsInd=1:electrodes.nElectrodes;
-% LabelsMat=permute(reshape(LabelsInd,electrodes.columns,electrodes.rows),[2 1]);
-% LabelsMat=permute(flipud(LabelsMat),[2 1]);
-% 
-% %flip coordinates
-% electrodes.x=electrodes.x(LabelsMat(:));
-% electrodes.y=electrodes.y(LabelsMat(:));
-% electrodes.z=electrodes.z(LabelsMat(:));
-% 
-% %flip anatomical labels
-% electrodes.aLabels=electrodes.aLabels(LabelsMat(:));
-% electrodes.anatInd=electrodes.anatInd(LabelsMat(:),:);
-% 
-%     
-% %flip clusters
-% tmp=zeros(size(electrodes.clusters));
-% for i=LabelsInd
-%     tmp(electrodes.clusters==i)=LabelsMat(i);
-% end
-% electrodes.clusters=tmp;
-% 
-% % no need to change adjMat
-% 
-handles.project.electrodes{a}=electrodes;
+cfg = [];
+cfg.index  = a;
+cfg.change = 'flipUpDown';
+[handles.project, handles.work] = ...
+    ielec.reorderArray(handles.project, handles.work, cfg);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3793,30 +3696,12 @@ if a==0
     warning('Electrodes is empty. First cluster some electrodes');
     return;
 end
-electrodes=handles.project.electrodes{a};
-
-newOrder=fliplr(1:electrodes.nElectrodes);
-electrodes=reorderElectrodes(electrodes,newOrder(:));
-
-% electrodes.x=flipud(electrodes.x);
-% electrodes.y=flipud(electrodes.y);
-% electrodes.z=flipud(electrodes.z);
-% 
-% LabelsInd=1:electrodes.nElectrodes;
-% LabelsMat=flipud(LabelsInd);
-% 
-% %flip anatomical labels
-% electrodes.aLabels=electrodes.aLabels(LabelsMat(:));
-% electrodes.anatInd=electrodes.anatInd(LabelsMat(:),:);
-% 
-% %flip clusters
-% tmp=zeros(size(electrodes.clusters));
-% for i=LabelsInd
-%     tmp(electrodes.clusters==i)=LabelsMat(i);
-% end
-% electrodes.clusters=tmp;
-
-handles.project.electrodes{a}=electrodes;
+% one line of contacts, and only its direction can be wrong
+cfg = [];
+cfg.index  = a;
+cfg.change = 'reverse';
+[handles.project, handles.work] = ...
+    ielec.reorderArray(handles.project, handles.work, cfg);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3847,9 +3732,14 @@ electrodes=handles.project.electrodes{a};
 if all(strcmp(chLabelsOut, electrodes.ch_label)) %all channels the same
     return;
 end
-electrodes=reorderElectrodes(electrodes,newOrder(:));
- 
-handles.project.electrodes{a}=electrodes;
+
+% the window dragged the list into a new order; the layer is given that
+cfg = [];
+cfg.index  = a;
+cfg.change = 'order';
+cfg.order  = newOrder(:);
+[handles.project, handles.work] = ...
+    ielec.reorderArray(handles.project, handles.work, cfg);
 
 handles.ui.updatePlots.electrodes=1;
 handles.ui.updatePlots.labels=1;

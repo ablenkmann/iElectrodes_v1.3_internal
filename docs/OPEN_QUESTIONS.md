@@ -1216,3 +1216,53 @@ defensible, but then the array should say so rather than look unprojected.
 `space` and `method` describe where the array came from and did not change.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 31. `reorderElectrodes` moves the cluster numbers the opposite way from the coordinates
+
+**Where:** `reorderElectrodes` in `src/localization/`, called by the six
+buttons under the grid - now through `ielec.reorderArray`
+
+`reorderElectrodes(electrodes, newOrder)` is given a new order and moves
+everything about the array with it. The coordinates are read through it:
+
+    electrodes.x = electrodes.x(newOrder);
+
+so the contact that sits at position `j` afterwards is the one that was at
+`newOrder(j)`. The anatomical labels and the projections are read the same
+way. The cluster numbers are not - they are written through it:
+
+    tmp(electrodes.clusters == i) = newOrder(i);
+
+so the CT voxels that belonged to contact `i` are given the number
+`newOrder(i)`. To follow the coordinates they would have to be given the
+position that `i` moved to, which is the inverse: the `j` for which
+`newOrder(j) == i`.
+
+For three of the six buttons this makes no difference, because their orders
+are their own opposites: mirroring the columns twice, or the rows twice, or
+reversing a line twice, is no change at all, and for such a permutation the
+map and its inverse are the same. The other three are where it shows. Turning
+left and turning right are opposites of each other, not of themselves, so
+after a single quarter turn the contacts are numbered correctly and the voxels
+behind them belong to the wrong contacts; four turns put it right again, since
+four turns are no turn either way. The manual button takes whatever order the
+user dragged the list into, which is its own opposite only by chance.
+
+What the clusters are used for is drawing the voxels of the selected contact
+and the Undo of a localization, so the effect is a display and an undo that
+disagree with the array after a quarter turn or a hand-made order, not a wrong
+coordinate in an export.
+
+`ielec.reorderArray` keeps the behaviour exactly: it calls
+`reorderElectrodes` with the same order the button computed, and
+`tests/test_ielecReorder.m` compares against the button's own lines, so the
+current behaviour is pinned rather than quietly changed.
+
+**Decision needed:** whether the cluster numbers should be inverted. The fix
+is one line in `reorderElectrodes` - `tmp(clusters == newOrder(j)) = j` - but
+it changes what the quarter-turn buttons do to a project, so it belongs in a
+commit of its own with a test that says which way is right.
+
+**Status: open.** Present in v1.020.
