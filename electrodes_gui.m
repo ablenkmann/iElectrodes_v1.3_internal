@@ -953,29 +953,6 @@ if ~isequal(wmparcFile,0)
 %    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);
     disp (['Loaded FS labels from ' PathName, wmparcFile])
     
-%     %anatomical labeling of all electrodes
-%     if ~isempty(handles.project.electrodes)
-%         L=length(handles.project.electrodes);
-%         for l=1:L
-%             pos=[handles.project.electrodes{l}.x handles.project.electrodes{l}.y handles.project.electrodes{l}.z];
-%             lookAround=1; radio=1;
-%             if ~isempty(handles.project.wmparc)
-%                 handles.project.electrodes{l}.aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
-%             end
-%         end
-%     end
-%     
-%     %anatomical labeling of all planning electrodes
-%     if ~isempty(handles.project.targets)
-%         L=length(handles.project.targets);
-%         for l=1:L
-%             pos=[handles.project.targets(l).coordinates(:,1) handles.project.targets(l).coordinates(:,2) handles.project.targets(l).coordinates(:,3)];
-%             lookAround=1; radio=1;
-%             if ~isempty(handles.project.wmparc)
-%                 handles.project.targets(l).aLabels=anatomicLabelFS(pos, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,radio);
-%             end
-%         end
-%     end
     
     % Update handles structure
     guidata(hObject, handles);
@@ -1823,21 +1800,16 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Update anatomical Labels in Coordinates box
 
-lookAround=1;
-if strcmp(handles.project.currentSpace, 'MNI')    %strcmp (get(handles.MNILabelstogglebutton,'state'),'on')
-    aL=anatomicLabel(handles.ui.cursor,handles.work.MNI_S_matrix,handles.work.MNIlabels,handles.work.MNIprob);
-    set(handles.aLabelText,'String',aL);
-elseif ~isempty(handles.project.wmparc) % Native space
-    opt.radio=handles.work.options.atlasLabelingRadio;
-    opt.mode=handles.work.options.atlasLabelingMode;    % look arround mode: 'mode' most probable (default)/ 'prob'  probabilities
-    opt.minProb=handles.work.options.atlasLabelingMinProb;    % minimum probability to consider in 'prob'
+% Which atlas can answer, and what it says, is the layer's; what to write in
+% the box when none can is this window's.
+cfg = [];
+cfg.coordinate = handles.ui.cursor;
+[~, ~, whereTheCursorIs] = ielec.pointLabel(handles.project, handles.work, cfg);
 
-    aL=anatomicLabelFS(handles.ui.cursor,[],handles.work.options.atlasLUTFile,lookAround,handles.project.wmparc.img,handles.project.wmparcS,[],[],opt);
-    %aL=anatomicLabelFS(handles.ui.cursor, [],lookAround,handles.project.wmparc.img,handles.project.wmparcS,opt);
-    
-    set(handles.aLabelText,'String',aL);
-else
+if strcmp(whereTheCursorIs.source, 'none')
     set(handles.aLabelText,'String','No Native Atlas loaded');
+else
+    set(handles.aLabelText,'String',whereTheCursorIs.label);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
