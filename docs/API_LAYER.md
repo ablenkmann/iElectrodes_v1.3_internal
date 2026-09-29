@@ -213,6 +213,7 @@ not in the functions yet.
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
 | `ielec.fitArray` | the Fit button's GridFit call and the array it builds | the Fit button |
+| `ielec.indexArray` | both halves of the Index button, and the array each built | the Index button |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
 | `ielec.projectionState` | what `processProjections` asked before deciding | the SCE checkbox |

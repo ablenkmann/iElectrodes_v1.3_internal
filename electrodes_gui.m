@@ -3490,73 +3490,32 @@ function Indexpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% change actual electrode array labeling
-if isempty(handles.work.GS)
-    % retrive array number
-    l = selectedArray(handles);
-
-    electrodes = handles.project.electrodes{l};
-    
-    pos = [electrodes.x electrodes.y electrodes.z];
-    
-    % strips or depth
-    if get(handles.DepthButton,'value')
-        [electrodesOut,Ix]=indexDepthElectrodes(pos,'depth');
-    elseif get(handles.GridButton,'value')
-        handles = readLocalizationSettings(handles);
-        rows    = handles.work.localization.rows;
-        columns = handles.work.localization.columns;
-        [electrodesOut,Ix]=indexGridElectrodes(pos,rows,columns,'grid',handles.work.options);
-    end
-       
-    tempC=electrodes.clusters;
-    for i=1:length(Ix)
-        electrodesOut.clusters(tempC==Ix(i))=i;
-    end
-    
-    % include in electrodes structure
-    electrodesOut.brushCrd=electrodes.brushCrd;
-    electrodesOut.brushWeight=electrodes.brushWeight;
-    
-    electrodesOut.adjMat=makeAdjMat(electrodesOut.rows,electrodesOut.columns);
-
-    % overwrite output
-    handles = addElectrode2structure(handles,electrodesOut,l);
-    
-else
-    % index electrode array for the first time
-    % strips or depth
-    if get(handles.DepthButton,'value')
-        [electrodes,Ix]=indexDepthElectrodes(handles.work.GS,'depth');
-    elseif get(handles.GridButton,'value')
-        handles = readLocalizationSettings(handles);
-        rows    = handles.work.localization.rows;
-        columns = handles.work.localization.columns;
-        [electrodes,Ix]=indexGridElectrodes(handles.work.GS,rows,columns,'grid',handles.work.options);
-    end
-    
-    % add info from all voxels in the clusters
-    % rename clusters in the proper order
-    tempC=handles.work.clusters;
-    for i=1:size(handles.work.GS,1)
-        handles.work.clusters(tempC==Ix(i))=i;
-    end
-    
-    % include in electrodes structure
-    electrodes.clusters=handles.work.clusters;
-    electrodes.brushCrd=handles.work.brushCrd;
-    electrodes.brushWeight=handles.work.brushWeight;
-    electrodes.space = handles.project.currentSpace; % 'Native'  or 'MNI'
-    electrodes.method = 'clustering';
-    electrodes.methodParameters.indexing_projection_method = handles.work.options.indexing_projection_method;
-
-    % make adjacency Matrix
-    electrodes.adjMat=makeAdjMat(electrodes.rows,electrodes.columns);
-
-    % add new electrode to handles
-    handles = addElectrode2structure(handles,electrodes,[]);
-
+% Number the contacts of an array. Which array: the one on show when there
+% are no contacts in progress, the contacts in progress otherwise - the same
+% two cases as before, now told apart by cfg.index.
+cfg = [];
+if get(handles.DepthButton,'value')
+    cfg.shape = 'depth';
+elseif get(handles.GridButton,'value')
+    handles     = readLocalizationSettings(handles);
+    cfg.shape   = 'grid';
+    cfg.rows    = handles.work.localization.rows;
+    cfg.columns = handles.work.localization.columns;
 end
+
+if isempty(handles.work.GS)
+    cfg.index = selectedArray(handles);   % number that array again
+    thisArray = cfg.index;
+else
+    thisArray = [];                       % a new array, appended at the end
+end
+
+[handles.project, handles.work, array] = ...
+    ielec.indexArray(handles.project, handles.work, cfg);
+
+% an array that was numbered again replaces itself; a new one is appended
+handles = addElectrode2structure(handles, array, thisArray);
+
 % Update handles structure
 guidata(hObject, handles);
 

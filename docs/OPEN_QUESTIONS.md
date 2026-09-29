@@ -1157,9 +1157,12 @@ What follows from it:
   file records the history of the calls that made it, the history will
   describe how the envelope was built without being enough to reproduce it;
 - a test cannot compare two envelopes vertex by vertex.
-  `tests/test_ielecSurfaces.m` compares them as surfaces instead - same
-  bounding box and centre to a tenth of a millimetre, vertex count within
-  five percent - which is what "the same envelope" can mean here.
+  `tests/test_ielecSurfaces.m` compares them as surfaces instead - the same
+  bounding box and centre to within three voxels of the raster the envelope
+  is extracted from, vertex count within five percent - which is what "the
+  same envelope" can mean here. On that test's own stand-in the two builds
+  come out much closer than the measure allows: the boxes within 0.04 mm,
+  the centres within 0.13 mm, the counts within 1.6 percent.
 
 Found while moving the surfaces onto the layer: the test passed on its own
 and failed inside `run_all_tests`, which is what a randomised step looks like.
@@ -1169,5 +1172,47 @@ claims. If it does, the fix is to seed the extractor - iso2mesh passes its
 options through, so it may be a matter of one setting - or to record the
 envelope in the file as the authoritative one, which the `.iel` format
 already does.
+
+**Status: open.** Present in v1.020.
+
+---
+
+## 30. Numbering an array again throws away its name, its labels and its projections
+
+**Where:** the Index button of the Localize panel, for an array that is
+already in the project - `Indexpushbutton_Callback`, now
+`ielec.indexArray` with `cfg.index`
+
+The Index button has two halves. With contacts in progress it numbers them
+and adds a new array. With none in progress it numbers the array on show
+again, which is how a grid that came out in the wrong order is put right.
+
+That second half keeps four things from the old array - the cluster numbers,
+the brushed voxels, their weights, and a new adjacency matrix - and takes
+everything else from a fresh structure. So an array numbered again comes back
+with
+
+- `Name` set to `'depth'` or `'grid'`, whatever the user had called it;
+- `ch_label` back to `'1'`, `'2'`, `'3'`, ..., whatever the recording channels
+  were called;
+- `projection` empty: the brain-shift correction has to be run again;
+- `space`, `method` and `methodParameters` empty, so the array no longer says
+  which space it is in or how it was found.
+
+The coordinates and the order are right, which is what the button is for. The
+rest is lost quietly, and the array that comes back says it is in no
+particular space.
+
+`ielec.indexArray` keeps this exactly as it was: the same four fields are
+carried over, in the same order, so that this commit changes nothing for
+anyone. Once it is decided what should happen, the fix is in one place.
+
+**Decision needed:** which of the four to carry over. The name and the
+channel labels are the user's and should almost certainly survive - the
+coordinates moved between contact numbers, so the labels would have to be
+permuted rather than kept, and `reorderElectrodes` already knows how. The
+projections are stale once the numbering changes, so clearing them is
+defensible, but then the array should say so rather than look unprojected.
+`space` and `method` describe where the array came from and did not change.
 
 **Status: open.** Present in v1.020.
