@@ -3768,9 +3768,12 @@ end
 l=selectedArray(handles);
 elecBaseName=get(handles.labelEdit, 'String');
 
-% The naming itself lives in src/labeling/ so a script can do it too.
-handles.project.electrodes{l} = ...
-    nameArrayContacts(handles.project.electrodes{l}, elecBaseName);
+% the box holds the name; the numbering from it is the layer's
+cfg = [];
+cfg.index    = l;
+cfg.baseName = elecBaseName;
+[handles.project, handles.work] = ...
+    ielec.nameContacts(handles.project, handles.work, cfg);
 
 handles = setSelectedContact(handles, 1);
 set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
@@ -3861,10 +3864,14 @@ end
 
 handles.project.elecListLabels=left;
 
-% Same boundary as the Auto button: the dialogs above chose the labels,
-% the assignment itself lives in src/labeling/.
-handles.project.electrodes{l} = ...
-    applyContactLabels(handles.project.electrodes{l}, right, elecBaseName);
+% Same boundary as the Auto button: the dialogs above chose the labels, and
+% the layer is given them
+cfg = [];
+cfg.index    = l;
+cfg.baseName = elecBaseName;
+cfg.labels   = right;
+[handles.project, handles.work] = ...
+    ielec.nameContacts(handles.project, handles.work, cfg);
 
 set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 handles = setSelectedContact(handles, 1);

@@ -1266,3 +1266,29 @@ it changes what the quarter-turn buttons do to a project, so it belongs in a
 commit of its own with a test that says which way is right.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 32. A loaded label list is thrown away if the selection window is cancelled
+
+**Where:** the "Label from list" button - `LabelListPushbutton_Callback`
+
+The button asks for a file of recording channel names when the project has
+none, keeps them in `project.elecListLabels` - which the `.iel` file
+saves - and then opens the two-column window where the user picks the ones
+this array uses.
+
+Cancelling that window returns from the callback before `guidata`, so the
+labels that were just read from the file are lost with the rest of the
+callback's copy of the project. The next press asks for the file again.
+
+The same happens in the middle of the loop: picking the wrong number of
+labels prints "Select N electrodes" and reopens the window, and pressing
+Accept with nothing selected returns - again without keeping the file.
+
+Nothing is damaged; the file is simply read twice. It is written down because
+the fix belongs to the App Designer frontend rather than here: with the
+project held in one place instead of in a callback's copy, reading a file and
+choosing from it stop being one transaction.
+
+**Status: open.** Present in v1.020.

@@ -37,17 +37,17 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % defect: it is the backend the GUI still reaches past the layer.
 %
 % A function stays on the list until its last call site goes, so a name can
-% change group: makeAdjMat left the Index button with IELEC.INDEXARRAY, and
-% is still here because the planning panel makes an adjacency matrix of its
-% own.
+% change group. makeAdjMat left the Index button with IELEC.INDEXARRAY and
+% nameArrayContacts left the Label button with IELEC.NAMECONTACTS; both are
+% still here because the planning panel makes an adjacency matrix and names a
+% target's contacts of its own accord.
 waiting = {
   'the planning panel - the one workflow not on the layer at all', {
     'newPlanningGrid', 'placePlanningGrid', 'depthTrajectory', 'trajectoryEndPoint', ...
     'trajectoryFrameAngles', 'frameTrajectoryEndPoint', 'loadPlanningTargets', ...
     'savePlanningTargets', 'addArray', 'checkElectrodeStructure', ...
-    'electrodes2hullCorrection', 'makeAdjMat'}
+    'electrodes2hullCorrection', 'makeAdjMat', 'nameArrayContacts'}
   'editing an array that is already in the project', {
-    'nameArrayContacts', 'applyContactLabels', ...
     'anatomicLabel', 'anatomicLabelFS'}
   'start-up, where the three state groups are made', {
     'checkProjectStructure', 'liftToProject', 'liftToWork', 'liftToUi', ...
@@ -107,7 +107,7 @@ ielviewCalls = namesCalledIn(code, 'ielview');
 fprintf('\n--- and through the layers -----------------------------------\n');
 fprintf('  %d ielec functions:   %s\n', numel(ielecCalls), strjoin(ielecCalls, ', '));
 fprintf('  %d ielview functions: %s\n', numel(ielviewCalls), strjoin(ielviewCalls, ', '));
-nFail = nFail + check(numel(ielecCalls) >= 24, ...
+nFail = nFail + check(numel(ielecCalls) >= 25, ...
     'the frontend goes through the layer for the main workflow', '');
 nFail = nFail + check(isequal(sort(ielviewCalls), {'mixImages', 'voxelFromPlaneClick'}), ...
     'and through ielview for what it draws', '');

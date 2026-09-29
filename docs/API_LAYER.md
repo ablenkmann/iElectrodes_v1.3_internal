@@ -215,6 +215,7 @@ not in the functions yet.
 | `ielec.fitArray` | the Fit button's GridFit call and the array it builds | the Fit button |
 | `ielec.indexArray` | both halves of the Index button, and the array each built | the Index button |
 | `ielec.reorderArray` | the order each of the six reorder buttons computed | the two turns, the two mirrors, Flip labels, Manual index |
+| `ielec.nameContacts` | the naming call of both Label buttons | Label, Label from list |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
 | `ielec.projectionState` | what `processProjections` asked before deciding | the SCE checkbox |
