@@ -6,6 +6,8 @@ function [project, work] = nameContacts(project, work, cfg)
 %
 %   Options (cfg):
 %     cfg.index     which array. Required.
+%     cfg.group     'electrodes', the localized arrays, or 'targets', the
+%                   planned ones.                    Default: 'electrodes'
 %     cfg.baseName  the name of the array. With no cfg.labels it is also the
 %                   contacts' name: they become baseName1, baseName2, and so
 %                   on. Empty leaves the array's name alone when labels are
@@ -30,7 +32,8 @@ function [project, work] = nameContacts(project, work, cfg)
 %
 %   Nothing is drawn and no window is opened.
 %
-%   Errors: ielec:badOption (an index that is not a position in the project,
+%   Errors: ielec:badOption (a group that is neither, an index that is not a
+%   position in the project,
 %   a base name that is not text, labels that are not one character vector
 %   per contact) and those of the cfg check.
 %
@@ -50,14 +53,20 @@ function [project, work] = nameContacts(project, work, cfg)
 
 defaults.baseName = '';
 defaults.labels   = {};
+defaults.group    = 'electrodes';
 cfg = checkCfg(cfg, defaults, {'index'}, 'nameContacts');
 
-arrays = fieldOr(project, 'electrodes', {});
+if ~ischar(cfg.group) || ~ismember(cfg.group, {'electrodes', 'targets'})
+    error('ielec:badOption', ...
+        'ielec.nameContacts: cfg.group must be ''electrodes'' or ''targets''.');
+end
+
+arrays = fieldOr(project, cfg.group, {});
 if ~isnumeric(cfg.index) || ~isscalar(cfg.index) || mod(cfg.index, 1) ~= 0 || ...
         cfg.index < 1 || cfg.index > numel(arrays)
     error('ielec:badOption', ...
-        'ielec.nameContacts: cfg.index must be one of the %d arrays in the project.', ...
-        numel(arrays));
+        'ielec.nameContacts: cfg.index must be one of the %d %s in the project.', ...
+        numel(arrays), cfg.group);
 end
 array = arrays{cfg.index};
 
@@ -85,9 +94,9 @@ if ~isempty(cfg.labels)
         if isstring(labels{k}), labels{k} = char(labels{k}); end
     end
 
-    project.electrodes{cfg.index} = applyContactLabels(array, labels, cfg.baseName);
+    project.(cfg.group){cfg.index} = applyContactLabels(array, labels, cfg.baseName);
 else
-    project.electrodes{cfg.index} = nameArrayContacts(array, cfg.baseName);
+    project.(cfg.group){cfg.index} = nameArrayContacts(array, cfg.baseName);
 end
 end
 

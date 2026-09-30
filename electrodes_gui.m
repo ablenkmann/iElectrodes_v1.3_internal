@@ -5188,18 +5188,18 @@ if isempty(handles.project.vertices_SCE_R)
     return;
 end
 
-crd=handles.ui.cursor;
+% the boxes say how big it is, the cursor where it goes
+cfg = [];
+cfg.centre  = handles.ui.cursor;
+cfg.rows    = str2num(get(handles.rowsPlanningGridEdit,'String'));      %#ok<ST2NM>
+cfg.columns = str2num(get(handles.columnsPlanningGridEdit,'String'));   %#ok<ST2NM>
+cfg.spacing = str2num(get(handles.distancePlanningGridEdit,'String'));  %#ok<ST2NM>
 
-% Define basic characteristics
-rows=str2num(get(handles.rowsPlanningGridEdit,'String'));       % rows
-cols=str2num(get(handles.columnsPlanningGridEdit,'String'));    % cols
-eDist=str2num(get(handles.distancePlanningGridEdit,'String'));  % inter-electrode distance
+[handles.project, handles.work, l] = ...
+    ielec.newTarget(handles.project, handles.work, cfg);
 
-target = newPlanningGrid(crd, rows, cols, eDist, ...
-    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
-
-% add new electrode to handles
-handles = addtarget2structure(handles,target);
+% show the one that was just planned
+handles = showPlanningArray(handles, l);
 
 % anatomical labeling (electrodes and projections)
 if strcmp(handles.project.currentSpace,'MNI') % options are 'Native' 'MNI'
@@ -5294,13 +5294,16 @@ function ChangeCenterPlanningGridButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Unlike the eight buttons below, this one has never checked that a planning
-% array exists, so with none it fails on the next line instead of warning.
-% Kept as it is - see docs/OPEN_QUESTIONS.md item 15.
+% array exists, so with none it fails instead of warning - now with
+% ielec:badOption from the layer rather than on an index of 0. Kept as it is
+% - see docs/OPEN_QUESTIONS.md item 15.
 a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
 
-handles.project.targets{a} = placePlanningGrid(target, handles.ui.cursor, [], ...
-    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
+cfg = [];
+cfg.index  = a;
+cfg.centre = handles.ui.cursor;
+[handles.project, handles.work] = ...
+    ielec.placeTarget(handles.project, handles.work, cfg);
 handles = redrawPlanningGrid(handles);
 
 % Update handles structure
@@ -5393,12 +5396,13 @@ if isempty(handles.project.targets)
 end
 
 a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
 
-centre = mean([target.x target.y target.z]) + offset;
-
-handles.project.targets{a} = placePlanningGrid(target, centre, rotation, ...
-    handles.project.vertices_SCE_L, handles.project.vertices_SCE_R);
+cfg = [];
+cfg.index    = a;
+cfg.offset   = offset;
+cfg.rotation = rotation;
+[handles.project, handles.work] = ...
+    ielec.placeTarget(handles.project, handles.work, cfg);
 handles = redrawPlanningGrid(handles);
 
 
@@ -5419,15 +5423,18 @@ handles=updateTAC(handles);
 
 % --- Add targets to structure 
 function handles = addtarget2structure(handles,target)
-% Add target to handles.project.targets 
-% 
-% add to structure
+% Add target to handles.project.targets
+%
+% The planning grid goes in through ielec.newTarget, which adds it itself;
+% this is the other caller, the depth target built in the frontend, and it
+% keeps its own ADDARRAY until that one moves onto the layer too.
 [handles.project.targets, l] = addArray(handles.project.targets, target);
 
+handles = showPlanningArray(handles, l);
 
-% anatomical labeling (electrodes and projections)
-% done in new instead
-    
+
+% --- Show the planning array at index L: the panel, the sliders, the views.
+function handles = showPlanningArray(handles, l)
 
 %set visualization to this electrode
 handles = setSelectedPlanningArray(handles, l);
@@ -5518,7 +5525,12 @@ end
 str=get(handles.editPlanningArrayName,'String');
 a=selectedPlanningArray(handles);
 
-handles.project.targets{a} = nameArrayContacts(handles.project.targets{a}, str);
+cfg = [];
+cfg.index    = a;
+cfg.group    = 'targets';
+cfg.baseName = str;
+[handles.project, handles.work] = ...
+    ielec.nameContacts(handles.project, handles.work, cfg);
 
 handles.ui.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);
