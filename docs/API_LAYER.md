@@ -204,6 +204,8 @@ not in the functions yet.
 
 | function | replaces | used by |
 |---|---|---|
+| `ielec.startSession` | the structure, the three lifts and the options of the opening function | start-up |
+| `ielec.setOptions` | rereading the options file | the Config button |
 | `ielec.newProject` | the reading and reset in the New button | the New button |
 | `ielec.openProject` | `readIelFile` and the project/work split in the Open button | the Open button |
 | `ielec.saveProject` | `writeIelFile` with the GUI's colour caches | the Save button |
@@ -231,11 +233,11 @@ not in the functions yet.
 | `ielec.buildEnvelope` | the Build branch of the SCE button | the SCE button |
 | `ielec.loadAnnotations` | reading the annotations, and clearing them | the pial button |
 
-Next, in the order of the App Designer prototype's workflow:
+Next, and last:
 
 | function | replaces |
 |---|---|
-| the planning panel | the workflow that is still almost entirely its own |
+| the planning panel | the one workflow still entirely its own |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
 It will then be the tutorial for scripting iElectrodes.

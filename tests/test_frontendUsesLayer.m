@@ -41,15 +41,14 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % nameArrayContacts left the Label button with IELEC.NAMECONTACTS; both are
 % still here because the planning panel makes an adjacency matrix and names a
 % target's contacts of its own accord.
+%
+% One group is left. When it is empty this list is empty, and rule 8 is met.
 waiting = {
   'the planning panel - the one workflow not on the layer at all', {
     'newPlanningGrid', 'placePlanningGrid', 'depthTrajectory', 'trajectoryEndPoint', ...
     'trajectoryFrameAngles', 'frameTrajectoryEndPoint', 'loadPlanningTargets', ...
     'savePlanningTargets', 'addArray', 'checkElectrodeStructure', ...
     'electrodes2hullCorrection', 'makeAdjMat', 'nameArrayContacts'}
-  'start-up, where the three state groups are made', {
-    'checkProjectStructure', 'liftToProject', 'liftToWork', 'liftToUi', ...
-    'uiFieldNames', 'default_ielectrodes_options'}
 };
 
 % Allowed by rule 8, and not work to be done: the shared geometry. Two-line
@@ -105,7 +104,7 @@ ielviewCalls = namesCalledIn(code, 'ielview');
 fprintf('\n--- and through the layers -----------------------------------\n');
 fprintf('  %d ielec functions:   %s\n', numel(ielecCalls), strjoin(ielecCalls, ', '));
 fprintf('  %d ielview functions: %s\n', numel(ielviewCalls), strjoin(ielviewCalls, ', '));
-nFail = nFail + check(numel(ielecCalls) >= 26, ...
+nFail = nFail + check(numel(ielecCalls) >= 28, ...
     'the frontend goes through the layer for the main workflow', '');
 nFail = nFail + check(isequal(sort(ielviewCalls), {'mixImages', 'voxelFromPlaneClick'}), ...
     'and through ielview for what it draws', '');

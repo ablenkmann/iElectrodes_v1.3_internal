@@ -1292,3 +1292,39 @@ project held in one place instead of in a callback's copy, reading a file and
 choosing from it stop being one transaction.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 33. `checkProjectStructure` writes `fname` at the top level, where it means `mask.fname`
+
+**Where:** `checkProjectStructure` in `src/project/`, the branch that reads a
+mask saved by the old NIfTI tools
+
+When a project file holds its brain mask as a raw image rather than as an SPM
+volume, the structure is rebuilt around the MRI and the image put back into
+it:
+
+    iel.mask = iel.T1;        % take as a base structure
+    iel.mask.img = s.mask;    % replace img
+    iel.fname = 'mask.nii';
+
+That last line almost certainly means `iel.mask.fname`. As written it puts a
+field called `fname` beside the project's own fields, where it says nothing
+about which file anything came from, and leaves the copied volume's `fname`
+pointing at the MRI it was copied from.
+
+Nothing reads it. `fname` is in none of the three name lists
+(`projectFieldNames`, `workFieldNames`, `uiFieldNames`), so the lifts drop it
+on the way into the three groups and it never reaches the `.iel` file again.
+The mask itself is correct; only the name of the file it claims to come from
+is wrong, and only for a project saved by iElectrodes 1.x with a raw mask.
+
+Found while moving the start-up onto the layer: the three lists cover every
+field an empty structure makes, and this is the one field that appears only in
+that legacy branch.
+
+**Decision needed:** whether it should be `iel.mask.fname`. It is one word,
+but it changes what a converted old project records about its own mask, so it
+belongs in a commit that says so.
+
+**Status: open.** Present in v1.020.

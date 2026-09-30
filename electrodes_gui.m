@@ -158,22 +158,17 @@ disp('https://sourceforge.net/p/ielectrodes/wiki/Home/')
 % check for updates - current version is defined inside
 handles=checkUpdates(handles);
 
-% make project structure
-handles=checkProjectStructure([],handles);
+% The three groups of state a session starts with: the empty project, the
+% work that goes with it, and the colour caches the frontend keeps. What
+% belongs where, and the order it has to be built in, is the layer's.
+% handles.work is kept, so the path this function set above survives.
+cfg = [];
+[handles.project, handles.work, caches] = ...
+    ielec.startSession([], handles.work, cfg);
+handles = takeColourCaches(handles, caches);
 
-% Patient data -> handles.project, work in progress -> handles.work.
-% defaultGuiVariables used to assign some of these flat, so lifting had to
-% come last; it now writes into the two groups directly, which frees the
-% lifts to run here, straight after the structure they act on was filled.
-handles=liftToProject(handles);   % patient data     -> handles.project
-handles=liftToWork(handles);      % work in progress -> handles.work
-handles=liftToUi(handles);        % colour caches    -> handles.ui
-
-% load default options: the scientific ones into work, the ones that only
-% change what is shown into ui
-options=[];
-handles.work.options = default_ielectrodes_options(options);
-handles.ui.options   = defaultDisplayOptions([]);
+% and the options that only change what is shown, which are this window's
+handles.ui.options = defaultDisplayOptions([]);
 
 colors=[];
 handles.ui.colors=defaultColors(colors);
@@ -1596,8 +1591,9 @@ function Configpushtool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Reload configuration from file
-options=[];
-handles.work.options = default_ielectrodes_options(options);
+cfg = [];
+[handles.project, handles.work] = ...
+    ielec.setOptions(handles.project, handles.work, cfg);
 handles.ui.options   = defaultDisplayOptions([]);
 disp('Default_ielectrodes_options.m loaded')
 disp('DefaultDisplayOptions loaded')
@@ -5874,15 +5870,19 @@ function handles = takeColourCaches(handles, caches)
 %TAKECOLOURCACHES  Put the colours derived from the project into ui.
 %   The parcellation and surface colours are display state, so the ielec
 %   layer does not keep them: it hands them over, and takes them back when
-%   a project is saved (COLOURCACHESOF).
+%   a project is saved (COLOURCACHESOF). Which colours those are is the
+%   layer's to say, so the names come with them and are kept for the way
+%   back - ielec.startSession hands over the empty set as the session opens,
+%   so they are there from the first moment.
 names = fieldnames(caches);
+handles.ui.colourCacheNames = names;
 for k = 1:numel(names)
     handles.ui.(names{k}) = caches.(names{k});
 end
 
 function caches = colourCachesOf(handles)
 %COLOURCACHESOF  The colour caches in ui, for the layer to save with the project.
-names = uiFieldNames();
+names = handles.ui.colourCacheNames;
 for k = 1:numel(names)
     caches.(names{k}) = handles.ui.(names{k});
 end
