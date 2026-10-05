@@ -42,17 +42,20 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % still here because the planning panel makes an adjacency matrix and names a
 % target's contacts of its own accord.
 %
-% One group is left. When it is empty this list is empty, and rule 8 is met.
+% NOTHING IS LEFT. Rule 8 is met: electrodes_gui.m calls no backend function
+% any more, apart from the three shared geometry ones below, which the rule
+% names as the exception.
 %
-% electrodes2hullCorrection used to be counted here, which was wrong: its one
-% call site was the planning GRID's "Fit grid to surface" button, not the
-% depth target at all. It went onto the layer as IELEC.FITTARGET. The frame
-% angles followed as IELEC.SETFRAME and the trajectory as IELEC.AIMTARGET, so
-% what is left is the New target button building the array itself.
-waiting = {
-  'the New target button - the last of the planning panel off the layer', {
-    'addArray', 'checkElectrodeStructure', 'makeAdjMat'}
-};
+% The planning panel was the last part of the frontend to go through the
+% layer, and it went in four commits: the grid's fit as IELEC.FITTARGET, the
+% frame angles as IELEC.SETFRAME, the trajectory as IELEC.AIMTARGET, and the
+% New target button as IELEC.NEWDEPTHTARGET, which was the last of them and
+% took ADDARRAY, CHECKELECTRODESTRUCTURE and MAKEADJMAT with it.
+%
+% The list stays here, empty, because its other half still does work: a
+% backend call that turns up in the frontend again is a failure, and this
+% test is what fails it.
+waiting = cell(0, 2);
 
 % Allowed by rule 8, and not work to be done: the shared geometry. Two-line
 % coordinate and distance functions that the backend itself uses, so they
@@ -79,6 +82,10 @@ for g = 1:size(waiting,1)
     if ~isempty(here), fprintf('        %s\n', strjoin(here, ', ')); end
 end
 
+if isempty(waiting)
+    fprintf('  %-28s %s\n', 'nothing left', ...
+        'every backend call goes through the layer - RULE 8 IS MET');
+end
 fprintf('  %-28s %s\n', sprintf('%d allowed', numel(intersect(allowed, called))), ...
     'the shared geometry, which the backend uses too (rule 8)');
 fprintf('        %s\n', strjoin(sort(intersect(allowed, called)), ', '));

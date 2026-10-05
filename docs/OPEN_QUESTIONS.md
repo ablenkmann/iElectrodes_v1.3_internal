@@ -1500,3 +1500,50 @@ which is this finding, written as a test.
 `beta`, and it makes the structure self-consistent.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 38. The New target button drew a placeholder, not the electrode it planned
+
+**Where:** `NewTargetpushbutton_Callback`, and `showPlanningArray` /
+`updateTarget` in `electrodes_gui.m`
+
+The button built a depth planning array with its coordinates set to a
+placeholder - `target.x = (0:5:45)'`, and the same for y and z - and only
+then worked out where the contacts really go. The order it did that in was:
+
+1. build the array, coordinates = the placeholder;
+2. `addtarget2structure`, which added it and called `showPlanningArray`;
+3. `updateTarget`, which replaced the coordinates with the real trajectory.
+
+`showPlanningArray` does not only move the three sliders. It sets
+`ui.updatePlots.targets`, `.targetLines` and `.views2D` and calls
+`updateElectrodes3D` and `updateTAC`, both of which read the whole of
+`.x`, `.y`, `.z`: the contact cloud, the lines between contacts, and the
+three 2-D views. And `updateTarget` never redraws - it recomputes, writes the
+edit boxes, labels the contacts and works out the frame angles, and returns.
+
+So step 2 drew the placeholder and step 3 silently replaced the data behind
+it. After pressing New target the user was looking at a ten-contact chain
+running to (45, 45, 45) at 8.66 mm spacing, while the project held the real
+electrode: ten contacts at 5 mm ending at (25.98, 25.98, 25.98). The last
+contact on screen was 32.94 mm from where it actually was. The picture
+corrected itself at the next redraw - any slider move, any box edited - so it
+was a first impression that was wrong, not a lasting error.
+
+`ielec.newDepthTarget` lays the contacts out before it returns, so there is
+no placeholder left to draw and the frontend's `showPlanningArray` draws the
+electrode that is in the project. The first contact is unchanged - it is the
+deep end either way - so the three sliders still land where they did.
+
+This is a **visible difference**, named in the commit that introduced it, and
+the only one in it. It is recorded here rather than being presented as a
+tidy-up, because it changes what a user sees for the same click.
+
+**Decision needed:** none for the drawing, which is now right. But
+`updateTarget` redrawing nothing is worth knowing about: every caller has to
+remember to redraw afterwards, and the twelve depth-target callbacks each do
+it by hand. In the App Designer frontend that belongs in one place.
+
+**Status: changed in v2.** Present in v1.020, where the placeholder is still
+drawn.

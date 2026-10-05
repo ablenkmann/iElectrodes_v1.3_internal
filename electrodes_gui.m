@@ -4383,52 +4383,36 @@ function NewTargetpushbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-target=[];
-target.Type='depth';
-target.Name='Planning';
-target.planning='yes';
-target=checkElectrodeStructure(target);
+% the layer's defaults are this button's defaults, so an empty cfg is it
+cfg = [];
+[handles.project, handles.work, l] = ...
+    ielec.newDepthTarget(cfg, handles.project, handles.work);
 
+target = handles.project.targets{l};
 
-set(handles.TargetInXedit,'String','0');
-set(handles.TargetInYedit,'String','0');
-set(handles.TargetInZedit,'String','0');
-target.targetIn.x=0;
-target.targetIn.y=0;
-target.targetIn.z=0;
+set(handles.TargetInXedit,'String',num2str(target.targetIn.x));
+set(handles.TargetInYedit,'String',num2str(target.targetIn.y));
+set(handles.TargetInZedit,'String',num2str(target.targetIn.z));
 
-set(handles.TargetOutXedit,'String','45');
-set(handles.TargetOutYedit,'String','45');
-set(handles.TargetOutZedit,'String','45');
-target.targetOut.x=45;
-target.targetOut.y=45;
-target.targetOut.z=45;
+set(handles.TargetOutXedit,'String',num2str(target.targetOut.x));
+set(handles.TargetOutYedit,'String',num2str(target.targetOut.y));
+set(handles.TargetOutZedit,'String',num2str(target.targetOut.z));
 
-target.x=[0:5:45]';
-target.y=[0:5:45]';
-target.z=[0:5:45]';
+set(handles.nTargetEdit,'String',num2str(target.nElectrodes));
+set(handles.FirstSecondTargetedit,'String',num2str(target.FirstSecond));
+set(handles.SecondLastTargetEdit,'String',num2str(target.SecondLast));
 
-target.rows=10; 
-target.columns=1;
-target.adjMat=makeAdjMat(target.rows,target.columns);
+% the radio follows the array, like the nine boxes above. The button could
+% only ever make an Anterior one; the layer can be asked for any of the four.
+switch target.framePosition
+    case 'Left',      set(handles.LeftFrameradiobutton,'value',1)
+    case 'Right',     set(handles.RightFrameradiobutton,'value',1)
+    case 'Posterior', set(handles.PosteriorFrameradiobutton,'value',1)
+    otherwise,        set(handles.AnteriorFrameradiobutton,'value',1)
+end
 
-target.ch_label={'Planning 1','Planning 2','Planning 3','Planning 4','Planning 5',...
-    'Planning 6','Planning 7','Planning 8','Planning 9','Planning 10'};
-
-set(handles.nTargetEdit,'String','10');
-target.nElectrodes=10;
-
-set(handles.FirstSecondTargetedit,'String','5');
-target.FirstSecond=5;
-
-set(handles.SecondLastTargetEdit,'String','5');
-target.SecondLast=5;
-
-set(handles.AnteriorFrameradiobutton,'value',1)
-target.framePosition='Anterior';
-target.frameDown=0;
-
-handles = addtarget2structure(handles,target); % updating anat info. Since empty, not working
+% show the one that was just planned
+handles = showPlanningArray(handles, l);
 
 handles = updateTarget(handles);
 
@@ -5398,17 +5382,6 @@ handles=updateTAC(handles);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%%%%%          NAVIGATE PLANNING                 %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% --- Add targets to structure 
-function handles = addtarget2structure(handles,target)
-% Add target to handles.project.targets
-%
-% The planning grid goes in through ielec.newTarget, which adds it itself;
-% this is the other caller, the depth target built in the frontend, and it
-% keeps its own ADDARRAY until that one moves onto the layer too.
-[handles.project.targets, l] = addArray(handles.project.targets, target);
-
-handles = showPlanningArray(handles, l);
 
 
 % --- Show the planning array at index L: the panel, the sliders, the views.

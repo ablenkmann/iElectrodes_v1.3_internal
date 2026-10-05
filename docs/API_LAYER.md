@@ -241,6 +241,7 @@ not in the functions yet.
 | `ielec.fitTarget` | the springs projection of the Fit grid to surface button | the planning panel |
 | `ielec.setFrame` | the frame angles of `estimateAnglesFrame` | the frame radio group, and every change to a depth target |
 | `ielec.aimTarget` | the trajectory of `updateTarget`, `angleChange` and `AlphaBetaChange` | the Azimuth and Elevation boxes, the Alpha and Beta boxes, and `updateTarget` for everything else |
+| `ielec.newDepthTarget` | the array the New target button built in the frontend | the New target button |
 | `ielec.pointLabel` | **reports only**: what the atlas calls the place a point is in | the coordinate box, on every cursor move |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
@@ -258,20 +259,20 @@ not in the functions yet.
 | `ielec.loadTargets` | `loadPlanningTargets`, into `project.targets` | the Load planning button |
 | `ielec.saveTargets` | `savePlanningTargets`, from `project.targets` | the Save planning button |
 
-Next, and last:
-
-| function | replaces |
-|---|---|
-| the depth target | its trajectories, and the array it builds in the frontend |
+That is all of them. **Rule 8 is met:** `electrodes_gui.m` calls no backend
+function any more, apart from the three shared geometry ones rule 8 names.
+`tests/test_frontendUsesLayer.m` keeps an empty list and fails if one comes
+back.
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
 It will then be the tutorial for scripting iElectrodes.
 
-`tests/test_frontendUsesLayer.m` measures the distance to rule 8: it lists
-every backend function `electrodes_gui.m` still calls, grouped by the ielec
-function that is going to take the group over, and fails when one appears
-that is not on the list - or when one is no longer called and the list has
-not been shortened. Running it is the shortest answer to "what is left".
+`tests/test_frontendUsesLayer.m` used to measure the distance to rule 8, by
+listing every backend function `electrodes_gui.m` still called, grouped by
+the ielec function that was going to take the group over. The list is empty
+now, and what the test still does is fail when a backend call turns up in the
+frontend again - or when one of the three allowed ones stops being called and
+the exception list has not been shortened.
 
 That question the list used to carry - what to do with the five functions the
 frontend calls in order to draw - is settled. The two nothing else calls,
