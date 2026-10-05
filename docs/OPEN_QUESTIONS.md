@@ -983,12 +983,29 @@ It does no harm as things stand, because the function ends by calling
 and stores them correctly - so the wrong value lives only for a moment. It
 would start to matter if that call were ever removed or moved.
 
-Found while the frame geometry was taken out of the GUI; the line is kept,
-marked with a comment.
+Found while the frame geometry was taken out of the GUI, and kept with a
+comment through the commits that followed.
 
-**Decision needed:** fix it - one word - or leave it, since it has no effect?
+**Both lines are now gone.** When the trajectory moved onto the layer as
+`ielec.aimTarget`, the typed angles stopped being written at all: nothing ever
+read either value - `frameTrajectoryEndPoint` takes the angles as arguments,
+and `ielec.setFrame` overwrites `.alpha` and `.beta` at the end of the call
+with the angles of the trajectory that came out. `tests/test_ielecAimTarget.m`
+keeps the double write in its verbatim copy of the old code and proves the
+results still match field for field, which is what "it did no harm" means
+when it is measured rather than argued.
 
-**Status:** preserved. Present in v1.020.
+So the question as asked - fix the typo or leave it - no longer has a subject.
+One question is left, and it is a different one.
+
+**Decision needed:** should the angles the user *typed* be stored anywhere?
+Today they are not: what the project records is the frame angles of the
+resulting trajectory, which for a straight answer are the same two numbers,
+and for a degenerate one are not. Storing the typed pair as well would be a
+change in what the `.iel` file holds, not a typo fix.
+
+**Status:** the typo is removed, behaviour unchanged. Present in v1.020, where
+both lines are still there.
 
 ---
 

@@ -46,12 +46,11 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 %
 % electrodes2hullCorrection used to be counted here, which was wrong: its one
 % call site was the planning GRID's "Fit grid to surface" button, not the
-% depth target at all. It went onto the layer as IELEC.FITTARGET, and the
-% group is the depth target alone.
+% depth target at all. It went onto the layer as IELEC.FITTARGET. The frame
+% angles followed as IELEC.SETFRAME and the trajectory as IELEC.AIMTARGET, so
+% what is left is the New target button building the array itself.
 waiting = {
-  'the depth target - the last of the planning panel off the layer', {
-    'depthTrajectory', 'trajectoryEndPoint', ...
-    'frameTrajectoryEndPoint', ...
+  'the New target button - the last of the planning panel off the layer', {
     'addArray', 'checkElectrodeStructure', 'makeAdjMat'}
 };
 

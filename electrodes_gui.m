@@ -4761,7 +4761,6 @@ function handles=angleChange(handles)
 % The user typed a direction: move the far end of the electrode to match.
 
 l=selectedPlanningArray(handles);
-target = handles.project.targets{l};
 
 az=str2double( get(handles.AzimuthTargetedit,'String') );
 el=str2double( get(handles.ElevacionTargetedit,'String') );
@@ -4775,13 +4774,29 @@ if isnan(el)
     return;
 end
 
-xi = [target.targetIn.x target.targetIn.y target.targetIn.z];
-xo = trajectoryEndPoint(xi, az, el, target.nElectrodes, ...
-                        target.FirstSecond, target.SecondLast);
+cfg = [];
+cfg.index     = l;
+cfg.azimuth   = az;
+cfg.elevation = el;
+[handles.project, handles.work] = ...
+    ielec.aimTarget(cfg, handles.project, handles.work);
 
-handles.project.targets{l}.targetOut.x=xo(1);
-handles.project.targets{l}.targetOut.y=xo(2);
-handles.project.targets{l}.targetOut.z=xo(3);
+handles = showTargetOut(handles);
+
+handles=updateTarget(handles);
+
+
+% --- Show the selected target's far end in the three Target Out boxes.
+% What the project stores is the full value; the rounding is display. The
+% two callbacks this came out of wrote the same three boxes the same way,
+% one spelling the version test the other way round.
+function handles = showTargetOut(handles)
+
+l=selectedPlanningArray(handles);
+
+xo(1)=handles.project.targets{l}.targetOut.x;
+xo(2)=handles.project.targets{l}.targetOut.y;
+xo(3)=handles.project.targets{l}.targetOut.z;
 
 if ~verLessThan('matlab','8.4.0')
     xo=round(xo,3,'significant');
@@ -4792,8 +4807,6 @@ set(handles.TargetOutXedit,'String',num2str(xo(1)));
 set(handles.TargetOutYedit,'String',num2str(xo(2)));
 set(handles.TargetOutZedit,'String',num2str(xo(3)));
 
-handles=updateTarget(handles);
-
 
 %--------------------------------------------------------------------
 function handles=updateTarget(handles)
@@ -4802,26 +4815,17 @@ function handles=updateTarget(handles)
 %%%%%%%%% Changes: delta, coordinates, az, el, distances, alpha, beta %%%%%
 
 l=selectedPlanningArray(handles);
-target = handles.project.targets{l};
 
-xi = [target.targetIn.x  target.targetIn.y  target.targetIn.z];
-xo = [target.targetOut.x target.targetOut.y target.targetOut.z];
-
-trajectory = depthTrajectory(xi, xo, target.nElectrodes, ...
-                             target.FirstSecond, target.SecondLast);
-
-handles.project.targets{l}.delta     = trajectory.delta;
-handles.project.targets{l}.azimut    = trajectory.azimuth;
-handles.project.targets{l}.elevation = trajectory.elevation;
-handles.project.targets{l}.distances = trajectory.distances;
-handles.project.targets{l}.x = trajectory.coordinates(:,1);
-handles.project.targets{l}.y = trajectory.coordinates(:,2);
-handles.project.targets{l}.z = trajectory.coordinates(:,3);
+% no direction in the cfg: the two ends the target already has
+cfg = [];
+cfg.index = l;
+[handles.project, handles.work] = ...
+    ielec.aimTarget(cfg, handles.project, handles.work);
 
 % the boxes show a rounded angle, and show a straight axis as exactly zero.
-% What is stored above is the full value.
-az = trajectory.azimuth;
-el = trajectory.elevation;
+% What is stored is the full value.
+az = handles.project.targets{l}.azimut;
+el = handles.project.targets{l}.elevation;
 
 if ~verLessThan('matlab','8.4.0')
     az=round(az,3,'significant');
@@ -4966,43 +4970,26 @@ guidata(hObject, handles);
 
 function handles=AlphaBetaChange(handles)
 % estimates xo based on changes on alpha or beta anlges
-% saves alpha and beta in targets structure
 
 l=selectedPlanningArray(handles);
-
-n=handles.project.targets{l}.nElectrodes;
-fs_dist=handles.project.targets{l}.FirstSecond;
-sl_dist=handles.project.targets{l}.SecondLast;
-
-%punto Target IN
-xi(1)= handles.project.targets{l}.targetIn.x;
-xi(2)= handles.project.targets{l}.targetIn.y;
-xi(3)= handles.project.targets{l}.targetIn.z;
 
 alpha = str2double( get(handles.AlphaAngleEdit,'String'));
 beta = str2double( get(handles.BetaAngleEdit,'String'));
 
-handles.project.targets{l}.alpha=alpha;
-handles.project.targets{l}.alpha=beta;   % sic: should be .beta - see OPEN_QUESTIONS item 24
+% The two typed angles used to be written into the target before the far end
+% was worked out from them - and into .alpha twice, so .beta never received
+% the typed value (docs/OPEN_QUESTIONS.md item 24). Neither write was ever
+% read: FRAMETRAJECTORYENDPOINT takes the angles as arguments, and the frame
+% angles are worked out again from the trajectory that comes out. So they are
+% not written here any more.
+cfg = [];
+cfg.index = l;
+cfg.alpha = alpha;
+cfg.beta  = beta;
+[handles.project, handles.work] = ...
+    ielec.aimTarget(cfg, handles.project, handles.work);
 
-% estimate xo, from the frame angles (src/geometry/)
-xo = frameTrajectoryEndPoint(xi, alpha, beta, ...
-        handles.project.targets{l}.framePosition, handles.project.targets{l}.frameDown, ...
-        n, fs_dist, sl_dist);
-
-handles.project.targets{l}.targetOut.x=xo(1);
-handles.project.targets{l}.targetOut.y=xo(2);
-handles.project.targets{l}.targetOut.z=xo(3);
-if verLessThan('matlab','8.4.0')
-    % execute code for R2014a or earlier
-else
-    xo=round(xo,3,'significant');
-end
-
-%punto taget Out
-set(handles.TargetOutXedit,'String',num2str(xo(1)));
-set(handles.TargetOutYedit,'String',num2str(xo(2)));
-set(handles.TargetOutZedit,'String',num2str(xo(3)));
+handles = showTargetOut(handles);
 
 handles=updateTarget(handles); %this will call to estimateAnglesFrame that should estimate the same angles
 
