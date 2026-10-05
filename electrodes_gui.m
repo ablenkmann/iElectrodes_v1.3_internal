@@ -1313,7 +1313,10 @@ else
     [FileName,PathName] = uiputfile('*.mat','Save planning structure', handles.work.PathName);
     if FileName~=0
         handles.work.PathName=PathName;
-        savePlanningTargets(handles.project.targets, [handles.work.PathName, FileName]);
+        cfg = [];
+        cfg.file = [handles.work.PathName, FileName];
+        [handles.project, handles.work] = ...
+            ielec.saveTargets(cfg, handles.project, handles.work);
         disp (['Saved targets in ' handles.work.PathName, FileName])
     end
 end
@@ -1336,7 +1339,10 @@ end
 [FileName,PathName] = uigetfile('*.mat','Load planning structure',handles.work.PathName);
 if FileName~=0
     handles.work.PathName=PathName;
-    handles.project.targets = loadPlanningTargets([handles.work.PathName, FileName]);
+    cfg = [];
+    cfg.file = [handles.work.PathName, FileName];
+    [handles.project, handles.work] = ...
+        ielec.loadTargets(cfg, handles.project, handles.work);
     disp (['Loaded targets from ' handles.work.PathName, FileName])
 
     

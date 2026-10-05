@@ -252,12 +252,14 @@ not in the functions yet.
 | `ielec.loadSurfaces` | reading, centring and thinning a pair of surfaces | the pial and the SCE buttons |
 | `ielec.buildEnvelope` | the Build branch of the SCE button | the SCE button |
 | `ielec.loadAnnotations` | reading the annotations, and clearing them | the pial button |
+| `ielec.loadTargets` | `loadPlanningTargets`, into `project.targets` | the Load planning button |
+| `ielec.saveTargets` | `savePlanningTargets`, from `project.targets` | the Save planning button |
 
 Next, and last:
 
 | function | replaces |
 |---|---|
-| the planning panel | the one workflow still entirely its own |
+| the depth target | its trajectories, and the array it builds in the frontend |
 
 `examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
 It will then be the tutorial for scripting iElectrodes.
