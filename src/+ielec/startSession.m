@@ -1,7 +1,7 @@
-function [project, work, caches] = startSession(cfg, project, work) %#ok<INUSL> project is replaced
+function [project, work, ui] = startSession(cfg, project, work) %#ok<INUSL> project is replaced
 %IELEC.STARTSESSION  The three groups of state a session starts with.
 %
-%   [project, work, caches] = ielec.startSession(cfg, [], []) builds the
+%   [project, work, ui] = ielec.startSession(cfg, [], []) builds the
 %   empty project a session begins with, the work that goes with it, and the
 %   colour caches that belong to the frontend. It is what the GUI ran on its
 %   way up, and what a script needs before it does anything else.
@@ -23,7 +23,7 @@ function [project, work, caches] = startSession(cfg, project, work) %#ok<INUSL> 
 %               everything the .iel file holds
 %     work      the session: options, the localization in progress, the
 %               atlases in memory, what is selected
-%     caches    colours derived from the project that only the frontend
+%     ui        colours derived from the project that only the frontend
 %               needs - the parcellation's and the annotations'. They are
 %               returned rather than kept in the project, the same way
 %               IELEC.OPENPROJECT hands them over, and the frontend keeps
@@ -72,7 +72,7 @@ state = liftToUi(state);
 
 project = state.project;
 work    = state.work;
-caches  = state.ui;
+ui      = state.ui;
 
 work.options = default_ielectrodes_options(cfg.options);
 end

@@ -1,4 +1,4 @@
-function [project, work] = saveProject(cfg, project, work, caches)
+function [project, work] = saveProject(cfg, project, work, ui)
 %IELEC.SAVEPROJECT  Save a project to a .iel file.
 %
 %   [project, work] = ielec.saveProject(cfg, project, work) writes PROJECT,
@@ -10,12 +10,12 @@ function [project, work] = saveProject(cfg, project, work, caches)
 %     cfg.file   path of the .iel file to write. An existing file is
 %                replaced.                                           required
 %
-%   [project, work] = ielec.saveProject(cfg, project, work, caches) writes
-%   the colour caches given in CACHES (wmparcColors, AnnotColor_R,
+%   [project, work] = ielec.saveProject(cfg, project, work, ui) writes
+%   the colour caches given in UI (wmparcColors, AnnotColor_R,
 %   AnnotColor_L) - the ones a display already holds.
 %
 %   The file is in the .iel format iElectrodes 1.020 reads: one flat
-%   variable s, and the colour caches with it. Without CACHES they are
+%   variable s, and the colour caches with it. Without UI they are
 %   computed from the project (PROJECTCOLOURCACHES, with
 %   work.options.atlasLUTFile), as the display computes them; for a large
 %   parcellation that takes seconds, which passing them saves.
@@ -55,10 +55,10 @@ lutFile = [];
 if isfield(work, 'options') && isfield(work.options, 'atlasLUTFile')
     lutFile = work.options.atlasLUTFile;
 end
-if nargin < 4 || isempty(caches)
-    caches = projectColourCaches(project, lutFile);
+if nargin < 4 || isempty(ui)
+    ui = projectColourCaches(project, lutFile);
 end
-writeIelFile(cfg.file, project, work, caches);
+writeIelFile(cfg.file, project, work, ui);
 
 if isempty(folder)
     folder = pwd;

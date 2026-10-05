@@ -60,14 +60,19 @@ three, as a fourth argument: `ielec.acceptArray(cfg, project, work, array)`
 takes the array to add that way, and the colour caches below travel the same
 road. It keeps `cfg` small enough to record.
 
-One exception, for the colour caches: the colours of the parcellation and the
-surfaces, which the `.iel` file carries for iElectrodes 1.020. They are
-display data, derived from the project, and large - computing the
-parcellation's takes seconds. So the functions that read and write the file
-hand them over and take them back as an extra argument, after the three:
-`[project, work, caches] = ielec.openProject(...)` and
-`ielec.saveProject(cfg, project, work, caches)`. Leave `caches` out when
-saving and they are computed.
+Display data is called `ui`, which is the name the back-end note gives the
+slot: the colours of the parcellation and the surfaces, which the `.iel` file
+carries for iElectrodes 1.020. They are derived from the project and large -
+computing the parcellation's takes seconds - so the layer hands them over
+rather than keeping them. The functions that read and write the file pass
+them as the last argument:
+
+```matlab
+[project, work, ui] = ielec.openProject(cfg, [], work)
+ielec.saveProject(cfg, project, work, ui)
+```
+
+Leave `ui` out when saving and the colours are computed.
 
 A function that *makes* such a cache while it changes the project returns it
 as the third output instead: `ielec.loadAnatomy` gives back the parcellation's
@@ -75,12 +80,24 @@ colours and `ielec.loadAnnotations` the surfaces'. Both ways keep the cache
 out of `project` and out of the layer's memory; the difference is only which
 side produced it.
 
-**2. `ui` never enters.** An ielec function does not receive `ui`, does not
-return it, and does not know it exists. It opens no window, no dialog and no
-figure, never calls `guidata`, and never reads a control. What the frontend
-shows is the frontend's business: after a call it redraws, and it updates its
-own display state. The colour caches are the example: the frontend keeps
-them in `ui`, and the layer only hands them over (rule 1).
+Those two still return their own shape - one array, and a structure with
+`.right` and `.left` - rather than a `ui` whose fields are the names the
+frontend files them under (`wmparcColors`, `AnnotColor_R`, `AnnotColor_L`).
+Making them match would let the frontend absorb any such output with one
+function instead of unwrapping each by hand. **For Alejandro:** worth doing,
+or is the third output free to be whatever the function produced?
+
+**2. The window never enters.** An ielec function opens no window, no dialog
+and no figure, never calls `guidata`, and never reads a control. What the
+frontend shows is the frontend's business: after a call it redraws, and it
+updates its own display state.
+
+The `ui` of rule 1 is not a breach of this. It is a plain structure of
+colours that the layer computes and hands over, or is handed back to write to
+the file. The layer never reads the frontend's `ui` and has no idea what else
+is in it; it is data passing through, not the window reaching in. Before the
+back-end note of 1 October this argument was called `caches`, and renaming it
+changed nothing but the name.
 
 A question the user has to answer is a dialog, so it belongs to the frontend
 too - but the frontend has to know that there is something to ask about.

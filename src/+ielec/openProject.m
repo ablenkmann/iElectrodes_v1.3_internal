@@ -1,11 +1,11 @@
-function [project, work, caches] = openProject(cfg, project, work) %#ok<INUSL> project is replaced
+function [project, work, ui] = openProject(cfg, project, work) %#ok<INUSL> project is replaced
 %IELEC.OPENPROJECT  Open a project from a .iel file.
 %
 %   [project, work] = ielec.openProject(cfg, [], work) reads the .iel file
 %   named in cfg.file and returns its project, and WORK with the file's work
 %   in progress in it.
 %
-%   [project, work, caches] = ielec.openProject(cfg, [], work) also returns
+%   [project, work, ui] = ielec.openProject(cfg, [], work) also returns
 %   the colour caches the file carries (wmparcColors, AnnotColor_R,
 %   AnnotColor_L), so that a display can use them without computing them
 %   again - for a large parcellation that takes seconds.
@@ -77,9 +77,9 @@ state = checkProjectStructure(s, state);
 state = liftToProject(state);
 state = liftToWork(state);
 
-caches = struct();
+ui = struct();
 for c = uiFieldNames()
-    caches.(c{1}) = state.(c{1});   % left flat by checkProjectStructure
+    ui.(c{1}) = state.(c{1});   % left flat by checkProjectStructure
 end
 
 project = state.project;

@@ -1,14 +1,14 @@
-function [project, work, caches] = colourCaches(cfg, project, work)
+function [project, work, ui] = colourCaches(cfg, project, work)
 %IELEC.COLOURCACHES  The colours a display derives from the project.
 %
-%   [project, work, caches] = ielec.colourCaches(cfg, project, work) returns,
-%   in CACHES, the colours of the parcellation and of the two pial surfaces
+%   [project, work, ui] = ielec.colourCaches(cfg, project, work) returns,
+%   in UI, the colours of the parcellation and of the two pial surfaces
 %   (wmparcColors, AnnotColor_R, AnnotColor_L). It changes nothing: PROJECT
 %   and WORK come back as they went in.
 %
 %   The .iel file carries these colours, and the GUI draws with them, but
 %   they are derived from the project, not part of it. So the layer does not
-%   keep them - they are display state, and ui never enters the layer - and
+%   keep them - they are display state, and the window never enters the layer - and
 %   a frontend asks for them when it has none that fit: for a new project.
 %   An opened project brings its own (IELEC.OPENPROJECT).
 %
@@ -19,8 +19,8 @@ function [project, work, caches] = colourCaches(cfg, project, work)
 %   default.
 %
 %   Example
-%       [project, work, caches] = ielec.colourCaches([], project, work);
-%       handles.ui.wmparcColors = caches.wmparcColors;
+%       [project, work, ui] = ielec.colourCaches([], project, work);
+%       handles.ui.wmparcColors = ui.wmparcColors;
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
@@ -32,5 +32,5 @@ lutFile = [];
 if isstruct(work) && isfield(work, 'options') && isfield(work.options, 'atlasLUTFile')
     lutFile = work.options.atlasLUTFile;
 end
-caches = projectColourCaches(project, lutFile);
+ui = projectColourCaches(project, lutFile);
 end
