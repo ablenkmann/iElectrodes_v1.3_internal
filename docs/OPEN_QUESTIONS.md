@@ -1447,3 +1447,39 @@ everywhere it changes. The second is the real fix and belongs to the App
 Designer frontend; the first is two lines in the GUIDE app.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 37. `checkElectrodeStructure` defends `beta` but not `alpha`
+
+**Where:** the depth planning block of `checkElectrodeStructure`, around the
+line `if ~isfield(elec,'beta'); elec.beta=[]; end`
+
+The block fills in every field a depth planning array is expected to have, so
+that an array saved by an older version can be read: `targetIn`, `targetOut`,
+`FirstSecond`, `SecondLast`, `framePosition`, `frameDown`, `delta`, `beta`,
+`azimut`, `elevation`. **`alpha` is not in the list**, although `beta` is and
+the two are always written together - `estimateAnglesFrame`, now
+`ielec.setFrame`, produces them in one call.
+
+`UpdateTargetEditBox` reads `handles.project.targets{l}.alpha` to fill the
+Alpha box. It gets away with it today because the backward-compatibility block
+just above runs `estimateAnglesFrame` - which writes `alpha` - whenever
+`frameDown` is missing or empty, and `checkElectrodeStructure` makes a missing
+`frameDown` empty. So an old array without `alpha` is also an old array
+without a usable `frameDown`, and the angles are recomputed before anything
+reads them.
+
+The gap is an array that carries a real `frameDown` but no `alpha`. Whether
+any released version saved such a file is unknown; the asymmetry in the field
+list is clearly an oversight either way, and it is the kind that goes unnoticed
+until a user opens a file nobody has.
+
+`ielec.setFrame` writes `alpha` and so closes the gap wherever it is called,
+and `tests/test_ielecSetFrame.m` checks that `alpha` is the one field it adds -
+which is this finding, written as a test.
+
+**Decision needed:** whether to add `alpha` to the list. One line, beside
+`beta`, and it makes the structure self-consistent.
+
+**Status: open.** Present in v1.020.

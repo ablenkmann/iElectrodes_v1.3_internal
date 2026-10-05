@@ -4849,38 +4849,31 @@ handles=estimateAnglesFrame(handles);
 
 
 function handles=estimateAnglesFrame(handles)
-% estimate angles frame based on coordinates
-% ALL angles in DEGREES
-
-% beta   0 - 360 degres
-% alpha  0 - 90
+% The selected target's frame angles, through the layer, and then shown.
+%
+% The frame position is the one the target already carries: the radio group
+% sends a new one through the layer itself, and the backward compatibility
+% block in UPDATETARGETEDITBOX sets it before calling this.
 
 l=selectedPlanningArray(handles);
 
-delta=handles.project.targets{l}.delta;
-%
-% % backward compatibility ---
-% if isfield (handles.project.targets{l},'frameDown')
-%     if isempty (handles.project.targets(l).frameDown)
-%         handles.project.targets(l).framePosition='Anterior';
-%         framePosition='Anterior';
-%     else
-%         framePosition=handles.project.targets(l).framePosition;
-%     end
-% else
-%     handles.project.targets(l).framePosition='Anterior';
-%     framePosition='Anterior';
-% end
-% % ----
-% the frame angles of this direction, and whether the frame points down
-% (src/geometry/)
-target = handles.project.targets{l};
-[alpha, beta, frameDown] = trajectoryFrameAngles(delta, target.z(target.nElectrodes), ...
-                                                 target.framePosition);
-handles.project.targets{l}.frameDown = frameDown;
+cfg = [];
+cfg.index = l;
+[handles.project, handles.work] = ...
+    ielec.setFrame(cfg, handles.project, handles.work);
 
-handles.project.targets{l}.beta=beta;
-handles.project.targets{l}.alpha=alpha;
+handles = showFrameAngles(handles);
+
+
+% --- Show the selected target's frame angles in the two boxes.
+% What the project stores is the full value; the rounding is display, and
+% an angle within a hundredth of zero is shown as a straight zero.
+function handles = showFrameAngles(handles)
+
+l=selectedPlanningArray(handles);
+
+alpha=handles.project.targets{l}.alpha;
+beta=handles.project.targets{l}.beta;
 
 if verLessThan('matlab','8.4.0')
     % execute code for R2014a or earlier
@@ -4908,20 +4901,31 @@ function Framebuttongroup_SelectionChangedFcn(hObject, eventdata, handles)
 
 l=selectedPlanningArray(handles);
 
+% An empty framePosition means "keep the target's own", which is what the
+% callback did when no button in the group was the selected one.
+framePosition='';
+
 %left frame
 if get(handles.LeftFrameradiobutton,'value')
-    handles.project.targets{l}.framePosition='Left';
+    framePosition='Left';
     %right frame
 elseif get(handles.RightFrameradiobutton,'value')
-    handles.project.targets{l}.framePosition='Right';
+    framePosition='Right';
     %anterior frame
 elseif get(handles.AnteriorFrameradiobutton,'value')
-    handles.project.targets{l}.framePosition='Anterior';
+    framePosition='Anterior';
     %posterior frame
 elseif get(handles.PosteriorFrameradiobutton,'value')
-    handles.project.targets{l}.framePosition='Posterior';
+    framePosition='Posterior';
 end
-handles=estimateAnglesFrame( handles);
+
+cfg = [];
+cfg.index         = l;
+cfg.framePosition = framePosition;
+[handles.project, handles.work] = ...
+    ielec.setFrame(cfg, handles.project, handles.work);
+
+handles = showFrameAngles(handles);
 
 % Update handles structure
 guidata(hObject, handles);
