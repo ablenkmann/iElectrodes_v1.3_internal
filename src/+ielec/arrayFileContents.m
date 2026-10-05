@@ -1,7 +1,7 @@
-function [project, work, report] = arrayFileContents(project, work, cfg)
+function [project, work, report] = arrayFileContents(cfg, project, work)
 %IELEC.ARRAYFILECONTENTS  What is in a file of electrodes, before importing it.
 %
-%   [project, work, report] = ielec.arrayFileContents(project, work, cfg)
+%   [project, work, report] = ielec.arrayFileContents(cfg, project, work)
 %   reads a file of electrodes and says what is in it, without touching the
 %   project. PROJECT and WORK come back as they went in.
 %
@@ -37,7 +37,7 @@ function [project, work, report] = arrayFileContents(project, work, cfg)
 %       cfg = [];
 %       cfg.file   = fullfile(folder, 'dataset.set');
 %       cfg.format = 'eeglab';
-%       [~, ~, what] = ielec.arrayFileContents(project, work, cfg);
+%       [~, ~, what] = ielec.arrayFileContents(cfg, project, work);
 %       what.arrays
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

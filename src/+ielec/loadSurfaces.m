@@ -1,7 +1,7 @@
-function [project, work] = loadSurfaces(project, work, cfg)
+function [project, work] = loadSurfaces(cfg, project, work)
 %IELEC.LOADSURFACES  Read a right/left pair of surfaces into the project.
 %
-%   [project, work] = ielec.loadSurfaces(project, work, cfg) reads the two
+%   [project, work] = ielec.loadSurfaces(cfg, project, work) reads the two
 %   hemispheres of a cortical surface and keeps them in the project. WORK is
 %   not changed.
 %
@@ -40,7 +40,7 @@ function [project, work] = loadSurfaces(project, work, cfg)
 %       cfg.right  = fullfile(folder, 'rh.pial');
 %       cfg.left   = fullfile(folder, 'lh.pial');
 %       cfg.centre = true;
-%       [project, work] = ielec.loadSurfaces(project, work, cfg);
+%       [project, work] = ielec.loadSurfaces(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

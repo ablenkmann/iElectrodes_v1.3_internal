@@ -1,7 +1,7 @@
-function [project, work] = buildEnvelope(project, work, cfg)
+function [project, work] = buildEnvelope(cfg, project, work)
 %IELEC.BUILDENVELOPE  Build the smooth cortical envelope from the pial surfaces.
 %
-%   [project, work] = ielec.buildEnvelope(project, work, cfg) wraps each
+%   [project, work] = ielec.buildEnvelope(cfg, project, work) wraps each
 %   hemisphere's pial surface in a smooth envelope and keeps the pair in the
 %   project, as vertices_SCE_R and the three fields beside it. WORK is not
 %   changed.
@@ -23,7 +23,7 @@ function [project, work] = buildEnvelope(project, work, cfg)
 %   ielec:badOption, those of the cfg check, and whatever BUILDSCE raises.
 %
 %   Example
-%       [project, work] = ielec.buildEnvelope(project, work, []);
+%       [project, work] = ielec.buildEnvelope([], project, work);
 %       size(project.vertices_SCE_R)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

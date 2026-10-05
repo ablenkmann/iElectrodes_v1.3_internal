@@ -1,7 +1,7 @@
-function [project, work, index] = acceptArray(project, work, cfg, array)
+function [project, work, index] = acceptArray(cfg, project, work, array)
 %IELEC.ACCEPTARRAY  Put a localized array into the project.
 %
-%   [project, work, index] = ielec.acceptArray(project, work, cfg, array)
+%   [project, work, index] = ielec.acceptArray(cfg, project, work, array)
 %   adds ARRAY - what IELEC.FITARRAY or IELEC.CLUSTER proposed - to
 %   project.electrodes, and returns where it went.
 %
@@ -28,8 +28,8 @@ function [project, work, index] = acceptArray(project, work, cfg, array)
 %   cfg check.
 %
 %   Example
-%       [project, work, array] = ielec.fitArray(project, work, fitCfg);
-%       [project, work, index] = ielec.acceptArray(project, work, [], array);
+%       [project, work, array] = ielec.fitArray(fitCfg, project, work);
+%       [project, work, index] = ielec.acceptArray([], project, work, array);
 %       project.electrodes{index}.Name
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

@@ -1,7 +1,7 @@
-function [project, work] = reorderArray(project, work, cfg)
+function [project, work] = reorderArray(cfg, project, work)
 %IELEC.REORDERARRAY  Change which contact of an array is which.
 %
-%   [project, work] = ielec.reorderArray(project, work, cfg) moves the
+%   [project, work] = ielec.reorderArray(cfg, project, work) moves the
 %   contact numbers of one array around: the coordinates, the anatomical
 %   labels, the cluster numbers and the projections all follow, so nothing
 %   about the array changes except which contact is number one and which
@@ -53,7 +53,7 @@ function [project, work] = reorderArray(project, work, cfg)
 %       cfg = [];
 %       cfg.index  = 1;
 %       cfg.change = 'rotateRight';
-%       [project, work] = ielec.reorderArray(project, work, cfg);
+%       [project, work] = ielec.reorderArray(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

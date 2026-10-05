@@ -1,11 +1,11 @@
-function [project, work, caches] = openProject(project, work, cfg) %#ok<INUSL> project is replaced
+function [project, work, caches] = openProject(cfg, project, work) %#ok<INUSL> project is replaced
 %IELEC.OPENPROJECT  Open a project from a .iel file.
 %
-%   [project, work] = ielec.openProject([], work, cfg) reads the .iel file
+%   [project, work] = ielec.openProject(cfg, [], work) reads the .iel file
 %   named in cfg.file and returns its project, and WORK with the file's work
 %   in progress in it.
 %
-%   [project, work, caches] = ielec.openProject([], work, cfg) also returns
+%   [project, work, caches] = ielec.openProject(cfg, [], work) also returns
 %   the colour caches the file carries (wmparcColors, AnnotColor_R,
 %   AnnotColor_L), so that a display can use them without computing them
 %   again - for a large parcellation that takes seconds.
@@ -39,7 +39,7 @@ function [project, work, caches] = openProject(project, work, cfg) %#ok<INUSL> p
 %   Example
 %       cfg = [];
 %       cfg.file = fullfile('examples', 'exampleNativeSpace.iel');
-%       [project, work] = ielec.openProject([], [], cfg);
+%       [project, work] = ielec.openProject(cfg, [], []);
 %       numel(project.electrodes)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

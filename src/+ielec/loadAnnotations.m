@@ -1,7 +1,7 @@
-function [project, work, colours] = loadAnnotations(project, work, cfg)
+function [project, work, colours] = loadAnnotations(cfg, project, work)
 %IELEC.LOADANNOTATIONS  Read the surface annotations, or clear them.
 %
-%   [project, work, colours] = ielec.loadAnnotations(project, work, cfg)
+%   [project, work, colours] = ielec.loadAnnotations(cfg, project, work)
 %   reads a FreeSurfer annotation for each hemisphere - the parcellation of
 %   the surface, one label per vertex - and keeps the labels and their colour
 %   tables in the project. WORK is not changed.
@@ -30,7 +30,7 @@ function [project, work, colours] = loadAnnotations(project, work, cfg)
 %       cfg = [];
 %       cfg.right = fullfile(folder, 'rh.aparc.annot');
 %       cfg.left  = fullfile(folder, 'lh.aparc.annot');
-%       [project, work, colours] = ielec.loadAnnotations(project, work, cfg);
+%       [project, work, colours] = ielec.loadAnnotations(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

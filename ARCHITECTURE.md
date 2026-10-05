@@ -44,7 +44,7 @@ iElectrodes/
 │
 ├── src/            ══ BACKEND ══  no figures, no handles, callable from a script
 │   ├── +ielec/       the layer: the functions the frontend calls, all as
-│   │                 [project, work] = ielec.fn(project, work, cfg)
+│   │                 [project, work] = ielec.fn(cfg, project, work)
 │   ├── project/      the project model: new / open / load / save, the
 │   │                 project / work / ui split, array add and remove,
 │   │                 default processing options

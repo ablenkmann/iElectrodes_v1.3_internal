@@ -19,7 +19,7 @@ first one on.
 │   calls ONE ielec function, keeps what it returns, draws             │
 │   holds: project, work  ─ the study      ui ─ only the frontend's    │
 └──────────────────────────────┬───────────────────────────────────────┘
-                               │  [project, work] = ielec.fn(project, work, cfg)
+                               │  [project, work] = ielec.fn(cfg, project, work)
 ┌─ LAYER ─ src/+ielec/ ────────▼───────────────────────────────────────┐
 │   checks cfg and fills in its defaults                               │
 │   calls the backend functions in the right order                     │
@@ -40,22 +40,23 @@ script. Users who know FieldTrip will recognise the style:
 **1. One signature.**
 
 ```matlab
-[project, work] = ielec.functionName(project, work, cfg)
+[project, work] = ielec.functionName(cfg, project, work)
 ```
 
-Always these three inputs, in this order. Always these two outputs, even when
-a function changes only one of them. That way the caller never has to look up
+Always these three inputs, in this order: `cfg` first, as the back-end note
+of 1 October 2026 fixes it, and as FieldTrip writes it. Always these two
+outputs, even when a function changes only one of them. That way the caller never has to look up
 what a function takes or returns. A function that starts something new, such
 as `ielec.newProject`, is given `[]` for what it replaces.
 
 A third output carries what is neither project nor work. A function that only
 *reports* something leaves both as they were and returns what it found:
-`[project, work, report] = ielec.fn(project, work, cfg)`. A function whose
+`[project, work, report] = ielec.fn(cfg, project, work)`. A function whose
 result is a proposal - `ielec.fitArray` returns the array it fitted, which
 nothing has accepted yet - returns it the same way.
 
 Data that is neither a setting nor part of project or work goes after the
-three, as an extra argument: `ielec.acceptArray(project, work, cfg, array)`
+three, as a fourth argument: `ielec.acceptArray(cfg, project, work, array)`
 takes the array to add that way, and the colour caches below travel the same
 road. It keeps `cfg` small enough to record.
 
@@ -65,7 +66,7 @@ display data, derived from the project, and large - computing the
 parcellation's takes seconds. So the functions that read and write the file
 hand them over and take them back as an extra argument, after the three:
 `[project, work, caches] = ielec.openProject(...)` and
-`ielec.saveProject(project, work, cfg, caches)`. Leave `caches` out when
+`ielec.saveProject(cfg, project, work, caches)`. Leave `caches` out when
 saving and they are computed.
 
 A function that *makes* such a cache while it changes the project returns it

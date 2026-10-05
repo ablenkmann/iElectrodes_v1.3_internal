@@ -109,6 +109,31 @@ nFail = nFail + check(numel(ielecCalls) >= 30, ...
 nFail = nFail + check(isequal(sort(ielviewCalls), {'mixImages', 'voxelFromPlaneClick'}), ...
     'and through ielview for what it draws', '');
 
+%% --------------------------------------------- the shape of a layer function
+% Rule 1 of docs/API_LAYER.md, in the order the back-end note of 1 October
+% fixes it: cfg first, then project, then work. A function written the old way
+% fails here, rather than being found by the next person who reads the
+% document. Only the order is checked, not what the arguments mean.
+fprintf('\n--- the shape every layer function has ------------------------\n');
+layer      = dir(fullfile(repoRoot, 'src', '+ielec', '*.m'));
+wrongOrder = {};
+for k = 1:numel(layer)
+    [~, name] = fileparts(layer(k).name);
+    code1 = withoutComments(fileread(fullfile(layer(k).folder, layer(k).name)));
+    taken = regexp(code1, ['function[^=\n]*=\s*' name '\s*\(([^)]*)\)'], 'tokens', 'once');
+    if isempty(taken)
+        wrongOrder{end+1} = [name ' (no declaration found)']; %#ok<AGROW>
+        continue
+    end
+    args = strtrim(strsplit(taken{1}, ','));
+    if numel(args) < 3 || ~isequal(args(1:3), {'cfg', 'project', 'work'})
+        wrongOrder{end+1} = name; %#ok<AGROW>
+    end
+end
+nFail = nFail + check(isempty(wrongOrder), ...
+    'every layer function takes (cfg, project, work)', strjoin(wrongOrder, ', '));
+fprintf('  %d functions in the layer.\n', numel(layer));
+
 fprintf('\n');
 fprintf('  %d backend calls left to move, and %d allowed to stay.\n', ...
         numel(setdiff(called, allowed)), numel(intersect(allowed, called)));

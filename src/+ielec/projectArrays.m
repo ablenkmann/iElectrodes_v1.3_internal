@@ -1,7 +1,7 @@
-function [project, work] = projectArrays(project, work, cfg)
+function [project, work] = projectArrays(cfg, project, work)
 %IELEC.PROJECTARRAYS  Compensate the brain shift: project the arrays to the envelope.
 %
-%   [project, work] = ielec.projectArrays(project, work, cfg) projects the
+%   [project, work] = ielec.projectArrays(cfg, project, work) projects the
 %   grids and strips onto the smooth cortical envelope and corrects the
 %   depth electrodes with them, and stores the result in each array's
 %   .projection. WORK is not changed.
@@ -31,7 +31,7 @@ function [project, work] = projectArrays(project, work, cfg)
 %   ielec:badOption, and those of the cfg check.
 %
 %   Example
-%       [project, work] = ielec.projectArrays(project, work, []);
+%       [project, work] = ielec.projectArrays([], project, work);
 %       project.electrodes{1}.projection
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

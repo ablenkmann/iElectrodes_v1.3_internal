@@ -1,7 +1,7 @@
-function [project, work, quality] = cluster(project, work, cfg) %#ok<INUSL> project is not changed
+function [project, work, quality] = cluster(cfg, project, work) %#ok<INUSL> project is not changed
 %IELEC.CLUSTER  Group the selected voxels into contacts.
 %
-%   [project, work, quality] = ielec.cluster(project, work, cfg) splits the
+%   [project, work, quality] = ielec.cluster(cfg, project, work) splits the
 %   voxels in work.selectedVoxels into cfg.nClusters groups and takes the
 %   centre of each as a contact. The contacts are added to the ones already
 %   found, in work:
@@ -36,7 +36,7 @@ function [project, work, quality] = cluster(project, work, cfg) %#ok<INUSL> proj
 %   voxels than that), and those of the cfg check.
 %
 %   Example
-%       [project, work, quality] = ielec.cluster(project, work, struct('nClusters', 8));
+%       [project, work, quality] = ielec.cluster(struct('nClusters', 8), project, work);
 %       quality.meanDistance
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

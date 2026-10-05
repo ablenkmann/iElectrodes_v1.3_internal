@@ -1,7 +1,7 @@
-function [project, work] = selectVoxels(project, work, cfg)
+function [project, work] = selectVoxels(cfg, project, work)
 %IELEC.SELECTVOXELS  Choose some of the voxels on offer, and weigh them.
 %
-%   [project, work] = ielec.selectVoxels(project, work, cfg) takes the
+%   [project, work] = ielec.selectVoxels(cfg, project, work) takes the
 %   voxels cfg.indices picks out of work.candidateVoxels and puts them in
 %   work as the selection to work from:
 %
@@ -29,7 +29,7 @@ function [project, work] = selectVoxels(project, work, cfg)
 %   Example
 %       cfg = [];
 %       cfg.indices = brushed;              % logical, from the 3-D view
-%       [project, work] = ielec.selectVoxels(project, work, cfg);
+%       [project, work] = ielec.selectVoxels(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

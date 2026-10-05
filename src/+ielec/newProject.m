@@ -1,7 +1,7 @@
-function [project, work] = newProject(project, work, cfg) %#ok<INUSL> project is replaced
+function [project, work] = newProject(cfg, project, work) %#ok<INUSL> project is replaced
 %IELEC.NEWPROJECT  Start a new, empty project around an MRI.
 %
-%   [project, work] = ielec.newProject([], work, cfg) reads the MRI named in
+%   [project, work] = ielec.newProject(cfg, [], work) reads the MRI named in
 %   cfg.mri, reslices it, and returns an empty project built around it,
 %   together with WORK emptied of everything that belonged to the previous
 %   project.
@@ -39,7 +39,7 @@ function [project, work] = newProject(project, work, cfg) %#ok<INUSL> project is
 %   Example
 %       cfg = [];
 %       cfg.mri = 'C:\data\patient01\T1.nii';
-%       [project, work] = ielec.newProject([], [], cfg);
+%       [project, work] = ielec.newProject(cfg, [], []);
 %       project.electrodes          % empty - nothing localized yet
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

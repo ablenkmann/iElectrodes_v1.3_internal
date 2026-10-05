@@ -1,7 +1,7 @@
-function [project, work, report] = projectionState(project, work, cfg)
+function [project, work, report] = projectionState(cfg, project, work)
 %IELEC.PROJECTIONSTATE  Which arrays can be projected, and which already are.
 %
-%   [project, work, report] = ielec.projectionState(project, work, cfg)
+%   [project, work, report] = ielec.projectionState(cfg, project, work)
 %   reports on the brain-shift projection without doing anything: PROJECT
 %   and WORK come back as they went in.
 %
@@ -32,7 +32,7 @@ function [project, work, report] = projectionState(project, work, cfg)
 %   Errors: ielec:badOption, and those of the cfg check.
 %
 %   Example
-%       [~, ~, state] = ielec.projectionState(project, work, []);
+%       [~, ~, state] = ielec.projectionState([], project, work);
 %       if ~state.anyProjectable, disp('localize a grid first'), end
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

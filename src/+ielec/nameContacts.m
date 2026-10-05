@@ -1,7 +1,7 @@
-function [project, work] = nameContacts(project, work, cfg)
+function [project, work] = nameContacts(cfg, project, work)
 %IELEC.NAMECONTACTS  Name an array and its contacts.
 %
-%   [project, work] = ielec.nameContacts(project, work, cfg) gives one array
+%   [project, work] = ielec.nameContacts(cfg, project, work) gives one array
 %   its name and its contacts theirs. WORK is not changed.
 %
 %   Options (cfg):
@@ -41,10 +41,10 @@ function [project, work] = nameContacts(project, work, cfg)
 %       cfg = [];
 %       cfg.index    = 1;
 %       cfg.baseName = 'LTG';                  % LTG1, LTG2, LTG3, ...
-%       [project, work] = ielec.nameContacts(project, work, cfg);
+%       [project, work] = ielec.nameContacts(cfg, project, work);
 %
 %       cfg.labels = {'A1','A2','A3','A4'};    % or the recording's own names
-%       [project, work] = ielec.nameContacts(project, work, cfg);
+%       [project, work] = ielec.nameContacts(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

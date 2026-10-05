@@ -1,7 +1,7 @@
-function [project, work, report] = export(project, work, cfg)
+function [project, work, report] = export(cfg, project, work)
 %IELEC.EXPORT  Write the contacts out, in one of the formats iElectrodes knows.
 %
-%   [project, work, report] = ielec.export(project, work, cfg) writes one
+%   [project, work, report] = ielec.export(cfg, project, work) writes one
 %   file. Neither PROJECT nor WORK is changed - exporting is reading.
 %
 %   Options (cfg):
@@ -47,7 +47,7 @@ function [project, work, report] = export(project, work, cfg)
 %       cfg = [];
 %       cfg.file        = fullfile(pwd, 'contacts.tsv');
 %       cfg.format      = 'bids';
-%       [project, work, report] = ielec.export(project, work, cfg);
+%       [project, work, report] = ielec.export(cfg, project, work);
 %       report.contacts
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

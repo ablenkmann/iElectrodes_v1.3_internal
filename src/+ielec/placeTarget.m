@@ -1,7 +1,7 @@
-function [project, work] = placeTarget(project, work, cfg)
+function [project, work] = placeTarget(cfg, project, work)
 %IELEC.PLACETARGET  Move or turn a planned grid on the brain.
 %
-%   [project, work] = ielec.placeTarget(project, work, cfg) lays one of the
+%   [project, work] = ielec.placeTarget(cfg, project, work) lays one of the
 %   project's planning targets down again at a new place on the smooth
 %   cortical envelope, or turns it where it is. WORK is not changed.
 %
@@ -36,10 +36,10 @@ function [project, work] = placeTarget(project, work, cfg)
 %       cfg = [];
 %       cfg.index  = 1;
 %       cfg.offset = [0 0 1];          % 1 mm superior
-%       [project, work] = ielec.placeTarget(project, work, cfg);
+%       [project, work] = ielec.placeTarget(cfg, project, work);
 %
 %       cfg.offset = [0 0 0];  cfg.rotation = 5;
-%       [project, work] = ielec.placeTarget(project, work, cfg);
+%       [project, work] = ielec.placeTarget(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

@@ -1,7 +1,7 @@
-function [project, work, caches] = startSession(project, work, cfg) %#ok<INUSL> project is replaced
+function [project, work, caches] = startSession(cfg, project, work) %#ok<INUSL> project is replaced
 %IELEC.STARTSESSION  The three groups of state a session starts with.
 %
-%   [project, work, caches] = ielec.startSession([], [], cfg) builds the
+%   [project, work, caches] = ielec.startSession(cfg, [], []) builds the
 %   empty project a session begins with, the work that goes with it, and the
 %   colour caches that belong to the frontend. It is what the GUI ran on its
 %   way up, and what a script needs before it does anything else.

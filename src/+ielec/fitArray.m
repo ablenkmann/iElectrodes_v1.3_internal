@@ -1,7 +1,7 @@
-function [project, work, array] = fitArray(project, work, cfg)
+function [project, work, array] = fitArray(cfg, project, work)
 %IELEC.FITARRAY  Fit an electrode array to the selected voxels.
 %
-%   [project, work, array] = ielec.fitArray(project, work, cfg) fits a grid,
+%   [project, work, array] = ielec.fitArray(cfg, project, work) fits a grid,
 %   a strip or a depth electrode of the given size and spacing to the voxels
 %   in work.selectedVoxels, and returns the array it found.
 %
@@ -52,7 +52,7 @@ function [project, work, array] = fitArray(project, work, cfg)
 %       cfg = [];
 %       cfg.type = 'depth';  cfg.rows = 1;  cfg.columns = 10;
 %       cfg.spacing = 3.5;   cfg.firstSecondSpacing = 3.5;
-%       [project, work, array] = ielec.fitArray(project, work, cfg);
+%       [project, work, array] = ielec.fitArray(cfg, project, work);
 %       array.nElectrodes
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

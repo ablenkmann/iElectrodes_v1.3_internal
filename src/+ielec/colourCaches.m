@@ -1,7 +1,7 @@
-function [project, work, caches] = colourCaches(project, work, cfg)
+function [project, work, caches] = colourCaches(cfg, project, work)
 %IELEC.COLOURCACHES  The colours a display derives from the project.
 %
-%   [project, work, caches] = ielec.colourCaches(project, work, cfg) returns,
+%   [project, work, caches] = ielec.colourCaches(cfg, project, work) returns,
 %   in CACHES, the colours of the parcellation and of the two pial surfaces
 %   (wmparcColors, AnnotColor_R, AnnotColor_L). It changes nothing: PROJECT
 %   and WORK come back as they went in.
@@ -19,7 +19,7 @@ function [project, work, caches] = colourCaches(project, work, cfg)
 %   default.
 %
 %   Example
-%       [project, work, caches] = ielec.colourCaches(project, work, []);
+%       [project, work, caches] = ielec.colourCaches([], project, work);
 %       handles.ui.wmparcColors = caches.wmparcColors;
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

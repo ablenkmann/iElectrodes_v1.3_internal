@@ -1,7 +1,7 @@
-function [project, work, index] = newTarget(project, work, cfg)
+function [project, work, index] = newTarget(cfg, project, work)
 %IELEC.NEWTARGET  Plan a grid on the brain, before surgery.
 %
-%   [project, work, index] = ielec.newTarget(project, work, cfg) builds a
+%   [project, work, index] = ielec.newTarget(cfg, project, work) builds a
 %   simulated subdural grid, lays it on the smooth cortical envelope with its
 %   centre where it is told, and puts it in the project's planning targets.
 %   INDEX is where it went, which is the one the frontend then shows. WORK is
@@ -34,7 +34,7 @@ function [project, work, index] = newTarget(project, work, cfg)
 %       cfg = [];
 %       cfg.centre  = [-54 -22 12];
 %       cfg.rows    = 4;   cfg.columns = 5;   cfg.spacing = 10;
-%       [project, work, index] = ielec.newTarget(project, work, cfg);
+%       [project, work, index] = ielec.newTarget(cfg, project, work);
 %       project.targets{index}.Name
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

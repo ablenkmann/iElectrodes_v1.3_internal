@@ -1,7 +1,7 @@
-function [project, work, selected] = deleteArray(project, work, cfg)
+function [project, work, selected] = deleteArray(cfg, project, work)
 %IELEC.DELETEARRAY  Take an array out of the project.
 %
-%   [project, work, selected] = ielec.deleteArray(project, work, cfg)
+%   [project, work, selected] = ielec.deleteArray(cfg, project, work)
 %   removes one array from the project and returns the index of the array
 %   that should be shown next, by REMOVEARRAY's rule: the one before it, or
 %   the one that followed it when it was the first, or 0 when nothing is
@@ -33,7 +33,7 @@ function [project, work, selected] = deleteArray(project, work, cfg)
 %   Example
 %       cfg = [];
 %       cfg.index = 2;
-%       [project, work, selected] = ielec.deleteArray(project, work, cfg);
+%       [project, work, selected] = ielec.deleteArray(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

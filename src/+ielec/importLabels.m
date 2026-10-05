@@ -1,7 +1,7 @@
-function [project, work, labels] = importLabels(project, work, cfg)
+function [project, work, labels] = importLabels(cfg, project, work)
 %IELEC.IMPORTLABELS  Load the list of contact labels a project labels from.
 %
-%   [project, work, labels] = ielec.importLabels(project, work, cfg) reads a
+%   [project, work, labels] = ielec.importLabels(cfg, project, work) reads a
 %   list of contact labels - the channel names of the recording, usually -
 %   and keeps it in project.elecListLabels, which is what the label dialog
 %   offers when a contact is named by hand. WORK is not changed.
@@ -31,7 +31,7 @@ function [project, work, labels] = importLabels(project, work, cfg)
 %       cfg = [];
 %       cfg.file   = fullfile(folder, 'channels.txt');
 %       cfg.format = 'txt';
-%       [project, work, labels] = ielec.importLabels(project, work, cfg);
+%       [project, work, labels] = ielec.importLabels(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

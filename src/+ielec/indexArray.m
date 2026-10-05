@@ -1,7 +1,7 @@
-function [project, work, array] = indexArray(project, work, cfg)
+function [project, work, array] = indexArray(cfg, project, work)
 %IELEC.INDEXARRAY  Number the contacts of an array, in the order they lie.
 %
-%   [project, work, array] = ielec.indexArray(project, work, cfg) takes a
+%   [project, work, array] = ielec.indexArray(cfg, project, work) takes a
 %   set of contact coordinates, works out which contact is number one and
 %   which follows which, and returns the array it made. The array is not put
 %   in the project: it is a proposal, like the one IELEC.FITARRAY returns,
@@ -55,8 +55,8 @@ function [project, work, array] = indexArray(project, work, cfg)
 %   Example
 %       cfg = [];
 %       cfg.shape = 'grid';  cfg.rows = 4;  cfg.columns = 5;
-%       [project, work, array] = ielec.indexArray(project, work, cfg);
-%       [project, work] = ielec.acceptArray(project, work, [], array);
+%       [project, work, array] = ielec.indexArray(cfg, project, work);
+%       [project, work] = ielec.acceptArray([], project, work, array);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

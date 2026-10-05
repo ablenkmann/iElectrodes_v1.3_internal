@@ -1,7 +1,7 @@
-function [project, work] = thresholdCT(project, work, cfg)
+function [project, work] = thresholdCT(cfg, project, work)
 %IELEC.THRESHOLDCT  The CT voxels bright enough to be contacts.
 %
-%   [project, work] = ielec.thresholdCT(project, work, cfg) finds the voxels
+%   [project, work] = ielec.thresholdCT(cfg, project, work) finds the voxels
 %   of the CT between two intensities and inside the brain mask, and puts
 %   them in work as the voxels on offer for selection:
 %
@@ -34,7 +34,7 @@ function [project, work] = thresholdCT(project, work, cfg)
 %       cfg = [];
 %       cfg.lowThreshold  = 2500;
 %       cfg.highThreshold = 4000;
-%       [project, work] = ielec.thresholdCT(project, work, cfg);
+%       [project, work] = ielec.thresholdCT(cfg, project, work);
 %       size(work.candidateVoxels, 1)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

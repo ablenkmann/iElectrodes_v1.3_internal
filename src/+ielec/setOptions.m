@@ -1,7 +1,7 @@
-function [project, work] = setOptions(project, work, cfg)
+function [project, work] = setOptions(cfg, project, work)
 %IELEC.SETOPTIONS  Put the scientific options into work.
 %
-%   [project, work] = ielec.setOptions(project, work, cfg) fills
+%   [project, work] = ielec.setOptions(cfg, project, work) fills
 %   work.options with the defaults, and with whatever cfg.options overrides.
 %   PROJECT is not changed.
 %
@@ -24,7 +24,7 @@ function [project, work] = setOptions(project, work, cfg)
 %   the cfg check.
 %
 %   Example
-%       [project, work] = ielec.setOptions(project, work, []);
+%       [project, work] = ielec.setOptions([], project, work);
 %       work.options.clustering_method
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

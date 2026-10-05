@@ -1,7 +1,7 @@
-function [project, work] = label(project, work, cfg)
+function [project, work] = label(cfg, project, work)
 %IELEC.LABEL  Give every contact its anatomical label.
 %
-%   [project, work] = ielec.label(project, work, cfg) labels the contacts of
+%   [project, work] = ielec.label(cfg, project, work) labels the contacts of
 %   every array in the project, and of the planning targets, from the
 %   anatomy: the patient's FreeSurfer parcellation in native space, or a
 %   probabilistic atlas in MNI space. WORK is not changed.
@@ -26,8 +26,8 @@ function [project, work] = label(project, work, cfg)
 %   in work), and those of the cfg check.
 %
 %   Example
-%       [project, work] = ielec.label(project, work, []);        % as stored
-%       [project, work] = ielec.label(project, work, struct('space','MNI'));
+%       [project, work] = ielec.label([], project, work);        % as stored
+%       [project, work] = ielec.label(struct('space','MNI'), project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

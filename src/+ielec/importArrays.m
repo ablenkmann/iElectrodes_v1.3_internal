@@ -1,7 +1,7 @@
-function [project, work, added] = importArrays(project, work, cfg)
+function [project, work, added] = importArrays(cfg, project, work)
 %IELEC.IMPORTARRAYS  Read arrays from another format into the project.
 %
-%   [project, work, added] = ielec.importArrays(project, work, cfg) reads a
+%   [project, work, added] = ielec.importArrays(cfg, project, work) reads a
 %   file of electrodes and appends what it holds to project.electrodes.
 %   ADDED is the index of each array that was added. WORK is not changed.
 %
@@ -38,7 +38,7 @@ function [project, work, added] = importArrays(project, work, cfg)
 %       cfg = [];
 %       cfg.file   = fullfile(folder, 'electrodes.mat');
 %       cfg.format = 'structure';
-%       [project, work, added] = ielec.importArrays(project, work, cfg);
+%       [project, work, added] = ielec.importArrays(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

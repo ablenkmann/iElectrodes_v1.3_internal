@@ -164,7 +164,7 @@ handles=checkUpdates(handles);
 % handles.work is kept, so the path this function set above survives.
 cfg = [];
 [handles.project, handles.work, caches] = ...
-    ielec.startSession([], handles.work, cfg);
+    ielec.startSession(cfg, [], handles.work);
 handles = takeColourCaches(handles, caches);
 
 % and the options that only change what is shown, which are this window's
@@ -418,8 +418,8 @@ if T1file ~=0
     % read the MRI and start an empty project around it
     cfg = [];
     cfg.mri = [PathName, T1file];
-    [handles.project, handles.work] = ielec.newProject([], handles.work, cfg);
-    [~, ~, caches] = ielec.colourCaches(handles.project, handles.work, []);
+    [handles.project, handles.work] = ielec.newProject(cfg, [], handles.work);
+    [~, ~, caches] = ielec.colourCaches([], handles.project, handles.work);
     handles = takeColourCaches(handles, caches);
     disp (['Loaded MRI from ' PathName, T1file])
  
@@ -501,7 +501,7 @@ if TACfile~=0
         cfg = [];
         cfg.ct   = [PathName, TACfile];
         cfg.mask = [maskPath, maskfile];
-        [handles.project, handles.work] = ielec.loadCT(handles.project, handles.work, cfg);
+        [handles.project, handles.work] = ielec.loadCT(cfg, handles.project, handles.work);
         disp (['Loaded CT from ' PathName, TACfile])
         disp (['Loaded Mask from ' maskPath, maskfile])
         PathName = maskPath;
@@ -546,7 +546,7 @@ else
         cfg = [];
         cfg.file = [PathName, FileName];
         [handles.project, handles.work] = ...
-            ielec.saveProject(handles.project, handles.work, cfg, colourCachesOf(handles));
+            ielec.saveProject(cfg, handles.project, handles.work, colourCachesOf(handles));
         disp (['Saved project in ' handles.work.PathName, handles.work.FileName])
         
         %fiugre name
@@ -593,7 +593,7 @@ end
 if FileName ~=0   
     cfg = [];
     cfg.file = [PathName, FileName];
-    [project, work, caches] = ielec.openProject([], handles.work, cfg);
+    [project, work, caches] = ielec.openProject(cfg, [], handles.work);
     disp (['Loaded project from ' PathName, FileName])
        
     % load defaults, including plot updates
@@ -794,7 +794,7 @@ cfg = [];
 cfg.file        = file;
 cfg.format      = format;
 cfg.coordinates = coordinates;
-[handles.project, handles.work] = ielec.export(handles.project, handles.work, cfg);
+[handles.project, handles.work] = ielec.export(cfg, handles.project, handles.work);
 
 %%%%%%%%%%%            Load electrode structure               %%%%%%%%%%%%%
 function LoadElectrodespushtool_ClickedCallback(hObject, eventdata, handles)
@@ -833,7 +833,7 @@ if valid
     cfg.format = formats{selection};
 
     try
-        [~, ~, contents] = ielec.arrayFileContents(handles.project, handles.work, cfg);
+        [~, ~, contents] = ielec.arrayFileContents(cfg, handles.project, handles.work);
     catch err
         warning(err.message);
         return;
@@ -855,7 +855,7 @@ if valid
         end
     end
 
-    [handles.project, handles.work] = ielec.importArrays(handles.project, handles.work, cfg);
+    [handles.project, handles.work] = ielec.importArrays(cfg, handles.project, handles.work);
     
     handles = setSelectedArray(handles, 1);
     handles = setSelectedContact(handles, 1);
@@ -942,7 +942,7 @@ if ~isequal(wmparcFile,0)
     cfg = [];
     cfg.file = [PathName wmparcFile];
     [handles.project, handles.work, handles.ui.wmparcColors] = ...
-        ielec.loadAnatomy(handles.project, handles.work, cfg);
+        ielec.loadAnatomy(cfg, handles.project, handles.work);
 
     
 %    [handles.project.wmparc,handles.project.wmparcS,wmparcFile]=loading_images(handles.work.PathName,wmparcFile,2,handles.project.T1);
@@ -1002,13 +1002,13 @@ function handles=labels2MNIspace(handles)
 % Thin GUI wrapper around ielec.label: two lines, kept because eight
 % callbacks say "label in MNI space" and read better for it.
 [handles.project, handles.work] = ...
-    ielec.label(handles.project, handles.work, struct('space','MNI'));
+    ielec.label(struct('space','MNI'), handles.project, handles.work);
 
 %%%%%%%%%%%%%%%           Labels to Native space            %%%%%%%%%%%%%%%
 function handles=labels2NativeSpace(handles)
 % Thin GUI wrapper around ielec.label, as labels2MNIspace above.
 [handles.project, handles.work] = ...
-    ielec.label(handles.project, handles.work, struct('space','Native'));
+    ielec.label(struct('space','Native'), handles.project, handles.work);
 
 
 % --------------------------------------------------------------------
@@ -1068,7 +1068,7 @@ end
 % the pial surfaces are kept whole: the annotation below has one label per
 % vertex, so a thinned surface would have vertices with no label
 [handles.project, handles.work] = ...
-    ielec.loadSurfaces(handles.project, handles.work, cfg);
+    ielec.loadSurfaces(cfg, handles.project, handles.work);
 
 disp (['Loaded surfaces from ' rFile ' (right hem) and '  lFile ' (left hem)' ])
 if cfg.centre
@@ -1127,7 +1127,7 @@ switch choice
         annotCfg.right = AnnotFile_R;
         annotCfg.left  = AnnotFile_L;
         [handles.project, handles.work, colours] = ...
-            ielec.loadAnnotations(handles.project, handles.work, annotCfg);
+            ielec.loadAnnotations(annotCfg, handles.project, handles.work);
         disp (['Loaded annotation files from ' AnnotFile_R ' (right hem) and ' AnnotFile_L ' (left hem)'])
 
         handles.ui.AnnotColor_R=colours.right; %actual color used for each node
@@ -1137,7 +1137,7 @@ switch choice
         
         % no annotation: the labels are cleared and every node is grey
         [handles.project, handles.work, colours] = ...
-            ielec.loadAnnotations(handles.project, handles.work, []);
+            ielec.loadAnnotations([], handles.project, handles.work);
 
         handles.ui.AnnotColor_R=colours.right;
         handles.ui.AnnotColor_L=colours.left;
@@ -1245,7 +1245,7 @@ switch type
                 end
 
                 [handles.project, handles.work] = ...
-                    ielec.loadSurfaces(handles.project, handles.work, cfg);
+                    ielec.loadSurfaces(cfg, handles.project, handles.work);
 
                 disp (['Loaded surfaces from ' PathName, rFile ' and ' PathName, lFile ])
                 
@@ -1260,8 +1260,9 @@ switch type
         
         % compute SCE, and reduce to 15k vertices for nice resolution and
         % speed plots
-        [handles.project, handles.work] = ielec.buildEnvelope(handles.project, ...
-            handles.work, struct('resample', 15000));
+        [handles.project, handles.work] = ielec.buildEnvelope(struct('resample', 15000), ...
+                                                               handles.project, ...
+                                                               handles.work);
         
 end
 
@@ -1593,7 +1594,7 @@ function Configpushtool_ClickedCallback(hObject, eventdata, handles)
 % Reload configuration from file
 cfg = [];
 [handles.project, handles.work] = ...
-    ielec.setOptions(handles.project, handles.work, cfg);
+    ielec.setOptions(cfg, handles.project, handles.work);
 handles.ui.options   = defaultDisplayOptions([]);
 disp('Default_ielectrodes_options.m loaded')
 disp('DefaultDisplayOptions loaded')
@@ -1800,7 +1801,7 @@ end
 % the box when none can is this window's.
 cfg = [];
 cfg.coordinate = handles.ui.cursor;
-[~, ~, whereTheCursorIs] = ielec.pointLabel(handles.project, handles.work, cfg);
+[~, ~, whereTheCursorIs] = ielec.pointLabel(cfg, handles.project, handles.work);
 
 if strcmp(whereTheCursorIs.source, 'none')
     set(handles.aLabelText,'String','No Native Atlas loaded');
@@ -2507,7 +2508,7 @@ else
     cfg.denoiseKernel     = settings.denoiseKernel;
     cfg.maxCount          = handles.ui.options.scatter3D_elem_limit;
     cfg.excludeLocalized  = logical(get(handles.LocalizedCheckbox,'value'));
-    [handles.project, handles.work] = ielec.thresholdCT(handles.project, handles.work, cfg);
+    [handles.project, handles.work] = ielec.thresholdCT(cfg, handles.project, handles.work);
 
     % the voxels on offer for selection are work data: the plot below shows
     % them, and the selection is made by their position in this list
@@ -2996,13 +2997,13 @@ if isempty(brushedIdx)
 end
 
 [handles.project, handles.work] = ...
-    ielec.selectVoxels(handles.project, handles.work, struct('indices', brushedIdx));
+    ielec.selectVoxels(struct('indices', brushedIdx), handles.project, handles.work);
 
 handles = readLocalizationSettings(handles);
 nClus   = handles.work.localization.nClusters;
 
 [handles.project, handles.work, quality] = ...
-    ielec.cluster(handles.project, handles.work, struct('nClusters', nClus));
+    ielec.cluster(struct('nClusters', nClus), handles.project, handles.work);
 
 % report how regular the spacing came out. The numbers are computed in
 % clusterContacts; the wording belongs here.
@@ -3042,7 +3043,7 @@ if isempty(brushedIdx)
 end
 
 [handles.project, handles.work] = ...
-    ielec.selectVoxels(handles.project, handles.work, struct('indices', brushedIdx));
+    ielec.selectVoxels(struct('indices', brushedIdx), handles.project, handles.work);
 
 fixM1_BF = [];   % only a depth electrode asks for it
 
@@ -3141,7 +3142,7 @@ disp(['Fitting a grid/depth of dimensions: ' num2str(rows) ' x ' num2str(cols) '
 tic;
 
 [handles.project, handles.work, electrodes] = ...
-    ielec.fitArray(handles.project, handles.work, cfg);
+    ielec.fitArray(cfg, handles.project, handles.work);
 disp(['GridFit algorithm finished in ' num2str(toc) ' seconds']);
 
 if cfg.useNailedContacts
@@ -3479,7 +3480,7 @@ else
 end
 
 [handles.project, handles.work, array] = ...
-    ielec.indexArray(handles.project, handles.work, cfg);
+    ielec.indexArray(cfg, handles.project, handles.work);
 
 % an array that was numbered again replaces itself; a new one is appended
 handles = addElectrode2structure(handles, array, thisArray);
@@ -3496,7 +3497,7 @@ function handles = addElectrode2structure(handles,electrodes,array)
 % array also finishes the localization it came from, so the contacts in
 % progress are cleared - the layer does both.
 [handles.project, handles.work, l] = ...
-    ielec.acceptArray(handles.project, handles.work, struct('index', array), electrodes);
+    ielec.acceptArray(struct('index', array), handles.project, handles.work, electrodes);
 
 % process projections if needed
 handles=processProjections(handles);
@@ -3561,7 +3562,7 @@ else
     cfg.index  = a;
     cfg.change = 'rotateLeft';
     [handles.project, handles.work] = ...
-        ielec.reorderArray(handles.project, handles.work, cfg);
+        ielec.reorderArray(cfg, handles.project, handles.work);
 
     handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
@@ -3592,7 +3593,7 @@ else
     cfg.index  = a;
     cfg.change = 'rotateRight';
     [handles.project, handles.work] = ...
-        ielec.reorderArray(handles.project, handles.work, cfg);
+        ielec.reorderArray(cfg, handles.project, handles.work);
 
     handles.ui.updatePlots.labels=1;
     handles=updateElectrodes3D(handles);
@@ -3618,7 +3619,7 @@ cfg = [];
 cfg.index  = a;
 cfg.change = 'flipLeftRight';
 [handles.project, handles.work] = ...
-    ielec.reorderArray(handles.project, handles.work, cfg);
+    ielec.reorderArray(cfg, handles.project, handles.work);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3642,7 +3643,7 @@ cfg = [];
 cfg.index  = a;
 cfg.change = 'flipUpDown';
 [handles.project, handles.work] = ...
-    ielec.reorderArray(handles.project, handles.work, cfg);
+    ielec.reorderArray(cfg, handles.project, handles.work);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3669,7 +3670,7 @@ cfg = [];
 cfg.index  = a;
 cfg.change = 'reverse';
 [handles.project, handles.work] = ...
-    ielec.reorderArray(handles.project, handles.work, cfg);
+    ielec.reorderArray(cfg, handles.project, handles.work);
 
 handles.ui.updatePlots.labels=1;
 handles=updateElectrodes3D(handles);
@@ -3707,7 +3708,7 @@ cfg.index  = a;
 cfg.change = 'order';
 cfg.order  = newOrder(:);
 [handles.project, handles.work] = ...
-    ielec.reorderArray(handles.project, handles.work, cfg);
+    ielec.reorderArray(cfg, handles.project, handles.work);
 
 handles.ui.updatePlots.electrodes=1;
 handles.ui.updatePlots.labels=1;
@@ -3741,7 +3742,7 @@ cfg = [];
 cfg.index    = l;
 cfg.baseName = elecBaseName;
 [handles.project, handles.work] = ...
-    ielec.nameContacts(handles.project, handles.work, cfg);
+    ielec.nameContacts(cfg, handles.project, handles.work);
 
 handles = setSelectedContact(handles, 1);
 set(handles.editArrayName,'String', handles.project.electrodes{l}.Name);
@@ -3839,7 +3840,7 @@ cfg.index    = l;
 cfg.baseName = elecBaseName;
 cfg.labels   = right;
 [handles.project, handles.work] = ...
-    ielec.nameContacts(handles.project, handles.work, cfg);
+    ielec.nameContacts(cfg, handles.project, handles.work);
 
 set(handles.editArrayName,'String',handles.project.electrodes{l}.Name);
 handles = setSelectedContact(handles, 1);
@@ -3873,7 +3874,7 @@ end
 cfg = [];
 cfg.file   = [PathName labelsFile];
 cfg.format = formats{filterindex};
-[handles.project, handles.work] = ielec.importLabels(handles.project, handles.work, cfg);
+[handles.project, handles.work] = ielec.importLabels(cfg, handles.project, handles.work);
 
 %--------------------------------------------------------------------
 %%%%%%%%%%%%%%%    Project electrodes to SCE  %%%%%%%%%%%%%%%
@@ -3919,7 +3920,7 @@ end
 
 % What the layer knows about the projection; the questions are ours.
 [handles.project, handles.work, state] = ...
-    ielec.projectionState(handles.project, handles.work, []);
+    ielec.projectionState([], handles.project, handles.work);
 
 if ~state.anyProjectable
     warning('It is not posible to project electrodes to SCE. No grids localized yet. Please localize grids first.');
@@ -3959,7 +3960,7 @@ if ~state.surfaceAvailable && ~strcmp(handles.project.currentSpace,'MNI')
     set(handles.projectSCEcheckbox,'Value',0);
 else
     [handles.project, handles.work] = ...
-        ielec.projectArrays(handles.project, handles.work, cfg);
+        ielec.projectArrays(cfg, handles.project, handles.work);
 end
 
 % anatomical labeling (electrodes and projections)
@@ -4295,7 +4296,7 @@ if ~isempty(handles.project.electrodes)
        return;
     end
     [handles.project, handles.work, a] = ...
-        ielec.deleteArray(handles.project, handles.work, struct('index', l));
+        ielec.deleteArray(struct('index', l), handles.project, handles.work);
     handles = setSelectedArray(handles, a);
 
     if a == 0 % nothing left
@@ -5196,7 +5197,7 @@ cfg.columns = str2num(get(handles.columnsPlanningGridEdit,'String'));   %#ok<ST2
 cfg.spacing = str2num(get(handles.distancePlanningGridEdit,'String'));  %#ok<ST2NM>
 
 [handles.project, handles.work, l] = ...
-    ielec.newTarget(handles.project, handles.work, cfg);
+    ielec.newTarget(cfg, handles.project, handles.work);
 
 % show the one that was just planned
 handles = showPlanningArray(handles, l);
@@ -5303,7 +5304,7 @@ cfg = [];
 cfg.index  = a;
 cfg.centre = handles.ui.cursor;
 [handles.project, handles.work] = ...
-    ielec.placeTarget(handles.project, handles.work, cfg);
+    ielec.placeTarget(cfg, handles.project, handles.work);
 handles = redrawPlanningGrid(handles);
 
 % Update handles structure
@@ -5402,7 +5403,7 @@ cfg.index    = a;
 cfg.offset   = offset;
 cfg.rotation = rotation;
 [handles.project, handles.work] = ...
-    ielec.placeTarget(handles.project, handles.work, cfg);
+    ielec.placeTarget(cfg, handles.project, handles.work);
 handles = redrawPlanningGrid(handles);
 
 
@@ -5477,8 +5478,8 @@ if ~isempty(handles.project.targets)
     if strcmp(choice,'No')
        return;
     end
-    [handles.project, handles.work, a] = ielec.deleteArray(handles.project, handles.work, ...
-        struct('index', l, 'group', 'targets'));
+    [handles.project, handles.work, a] = ielec.deleteArray(...
+            struct('index', l, 'group', 'targets'), handles.project, handles.work);
     handles = setSelectedPlanningArray(handles, a);
 
     if a == 0 % nothing left
@@ -5530,7 +5531,7 @@ cfg.index    = a;
 cfg.group    = 'targets';
 cfg.baseName = str;
 [handles.project, handles.work] = ...
-    ielec.nameContacts(handles.project, handles.work, cfg);
+    ielec.nameContacts(cfg, handles.project, handles.work);
 
 handles.ui.updatePlots.targetLabels=1;
 handles=updateElectrodes3D(handles);

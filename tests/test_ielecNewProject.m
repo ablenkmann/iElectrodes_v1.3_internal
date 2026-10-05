@@ -51,7 +51,7 @@ expected = originalNewButton(before, [p filesep], [n e]);
 
 cfg = [];
 cfg.mri = mriFile;
-[project, work] = ielec.newProject([], before.work, cfg);
+[project, work] = ielec.newProject(cfg, [], before.work);
 
 nFail = nFail + check(isequaln(project, expected.project), ...
     'project is what the New button built', sprintf('%d fields', numel(fieldnames(project))));
@@ -61,7 +61,7 @@ nFail = nFail + check(isequal(work.selection, ...
         struct('array',0,'contact',0,'planningArray',0,'planningTarget',0)), ...
     'nothing is selected', '');
 
-[~, ~, caches] = ielec.colourCaches(project, work, []);
+[~, ~, caches] = ielec.colourCaches([], project, work);
 same = isequal(caches.wmparcColors, expected.ui.wmparcColors) && ...
        isequal(caches.AnnotColor_R, expected.ui.AnnotColor_R) && ...
        isequal(caches.AnnotColor_L, expected.ui.AnnotColor_L) && ...
@@ -84,34 +84,34 @@ nFail = nFail + check(strcmp(work.v_MNI, before.work.v_MNI) && isequaln(work.opt
 fprintf('\n--- cfg ------------------------------------------------------\n');
 
 cfg = []; cfg.mri = mriFile; cfg.voxdim = [1 1 1];
-p1 = ielec.newProject([], before.work, cfg);
+p1 = ielec.newProject(cfg, [], before.work);
 vprm = spm_imatrix(p1.T1.vol.mat);
 nFail = nFail + check(max(abs(abs(vprm(7:9)) - 1)) < 1e-9, 'cfg.voxdim is used', ...
     sprintf('%g %g %g mm', abs(vprm(7:9))));
 
 cfg = []; cfg.mri = string(mriFile);
-nFail = nFail + check(isequaln(ielec.newProject([], before.work, cfg), project), ...
+nFail = nFail + check(isequaln(ielec.newProject(cfg, [], before.work), project), ...
     'a string works as well as a char', '');
 
-p2 = ielec.newProject([], [], struct('mri', mriFile));
+p2 = ielec.newProject(struct('mri', mriFile), [], []);
 nFail = nFail + check(isequaln(p2, project), ...
     'a script can start from no work at all', '');
 
 cfg = []; cfg.mri = mriFile; cfg.T1file = mriFile;   % a misspelt option
-nFail = nFail + check(strcmp(errorId(@() ielec.newProject([], before.work, cfg)), ...
+nFail = nFail + check(strcmp(errorId(@() ielec.newProject(cfg, [], before.work)), ...
     'ielec:unknownOption'), 'an unknown option is refused, not ignored', 'cfg.T1file');
 
-nFail = nFail + check(strcmp(errorId(@() ielec.newProject([], before.work, [])), ...
+nFail = nFail + check(strcmp(errorId(@() ielec.newProject([], [], before.work)), ...
     'ielec:missingOption'), 'a missing cfg.mri is refused', '');
 
 cfg = []; cfg.mri = fullfile(folder, 'there_is_no_such.nii');
-nFail = nFail + check(strcmp(errorId(@() ielec.newProject([], before.work, cfg)), ...
+nFail = nFail + check(strcmp(errorId(@() ielec.newProject(cfg, [], before.work)), ...
     'ielec:noSuchFile'), 'a missing file is refused by name', '');
 
 %% --------------------------------------------------------- layer rules
 fprintf('\n--- the rules of the layer -----------------------------------\n');
 nFail = nFail + check(nargin(@ielec.newProject) == 3 && nargout(@ielec.newProject) == 2, ...
-    '[project, work] = ielec.newProject(project, work, cfg)', '');
+    '[project, work] = ielec.newProject(cfg, project, work)', '');
 nFail = nFail + check(numel(findall(0, 'Type', 'figure')) == figuresBefore, ...
     'no window was opened', '');
 

@@ -1,7 +1,7 @@
-function [project, work, colours] = loadAnatomy(project, work, cfg)
+function [project, work, colours] = loadAnatomy(cfg, project, work)
 %IELEC.LOADANATOMY  Read a FreeSurfer parcellation into the project.
 %
-%   [project, work, colours] = ielec.loadAnatomy(project, work, cfg)
+%   [project, work, colours] = ielec.loadAnatomy(cfg, project, work)
 %   reads a parcellation volume - aparc+aseg, aparc.a2009s or wmparc - onto
 %   the MRI's voxel grid, and keeps it in project.wmparc and project.wmparcS.
 %   WORK is not changed.
@@ -35,7 +35,7 @@ function [project, work, colours] = loadAnatomy(project, work, cfg)
 %   Example
 %       cfg = [];
 %       cfg.file = fullfile(folder, 'wmparc.nii');
-%       [project, work, colours] = ielec.loadAnatomy(project, work, cfg);
+%       [project, work, colours] = ielec.loadAnatomy(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

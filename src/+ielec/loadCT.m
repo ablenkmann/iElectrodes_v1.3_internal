@@ -1,7 +1,7 @@
-function [project, work] = loadCT(project, work, cfg)
+function [project, work] = loadCT(cfg, project, work)
 %IELEC.LOADCT  Add the CT and the brain mask to a project.
 %
-%   [project, work] = ielec.loadCT(project, work, cfg) reads the CT named in
+%   [project, work] = ielec.loadCT(cfg, project, work) reads the CT named in
 %   cfg.ct and the mask named in cfg.mask, reslices both onto the MRI's grid,
 %   and puts them in the project. WORK gets the CT's intensity limits, which
 %   the threshold sliders work from.
@@ -31,7 +31,7 @@ function [project, work] = loadCT(project, work, cfg)
 %       cfg = [];
 %       cfg.ct   = 'C:\data\p01\CT.nii';
 %       cfg.mask = 'C:\data\p01\mask.nii';
-%       [project, work] = ielec.loadCT(project, work, cfg);
+%       [project, work] = ielec.loadCT(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %

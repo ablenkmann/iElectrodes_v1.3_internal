@@ -1,7 +1,7 @@
-function [project, work, report] = pointLabel(project, work, cfg)
+function [project, work, report] = pointLabel(cfg, project, work)
 %IELEC.POINTLABEL  Which anatomical region a point is in.
 %
-%   [project, work, report] = ielec.pointLabel(project, work, cfg) says what
+%   [project, work, report] = ielec.pointLabel(cfg, project, work) says what
 %   the atlas calls the place a coordinate is in. Nothing is changed: the
 %   project and work come back as they went in, and the answer is the third
 %   output.
@@ -52,7 +52,7 @@ function [project, work, report] = pointLabel(project, work, cfg)
 %   Example
 %       cfg = [];
 %       cfg.coordinate = [-54 -22 12];
-%       [~, ~, report] = ielec.pointLabel(project, work, cfg);
+%       [~, ~, report] = ielec.pointLabel(cfg, project, work);
 %       report.source
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo

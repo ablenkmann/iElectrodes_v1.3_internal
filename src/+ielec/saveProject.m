@@ -1,7 +1,7 @@
-function [project, work] = saveProject(project, work, cfg, caches)
+function [project, work] = saveProject(cfg, project, work, caches)
 %IELEC.SAVEPROJECT  Save a project to a .iel file.
 %
-%   [project, work] = ielec.saveProject(project, work, cfg) writes PROJECT,
+%   [project, work] = ielec.saveProject(cfg, project, work) writes PROJECT,
 %   and the part of WORK the file format holds, to the .iel file named in
 %   cfg.file. It returns PROJECT unchanged, and WORK with work.FileName and
 %   work.PathName set to the file just written.
@@ -10,7 +10,7 @@ function [project, work] = saveProject(project, work, cfg, caches)
 %     cfg.file   path of the .iel file to write. An existing file is
 %                replaced.                                           required
 %
-%   [project, work] = ielec.saveProject(project, work, cfg, caches) writes
+%   [project, work] = ielec.saveProject(cfg, project, work, caches) writes
 %   the colour caches given in CACHES (wmparcColors, AnnotColor_R,
 %   AnnotColor_L) - the ones a display already holds.
 %
@@ -31,7 +31,7 @@ function [project, work] = saveProject(project, work, cfg, caches)
 %   Example
 %       cfg = [];
 %       cfg.file = 'C:\data\patient01\patient01.iel';
-%       [project, work] = ielec.saveProject(project, work, cfg);
+%       [project, work] = ielec.saveProject(cfg, project, work);
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
