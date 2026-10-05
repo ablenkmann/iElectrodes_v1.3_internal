@@ -1328,3 +1328,122 @@ but it changes what a converted old project records about its own mask, so it
 belongs in a commit that says so.
 
 **Status: open.** Present in v1.020.
+
+---
+
+## 34. The planning grid is fitted to the native envelope whatever space the project is in
+
+**Where:** the "Fit grid to surface" button - `fitPlanningGridButton_Callback`,
+now `ielec.fitTarget`
+
+The button merges `vertices_SCE_L` and `vertices_SCE_R` - the patient's own
+envelope - and fits the planned grid to that. It never looks at
+`project.currentSpace`.
+
+`processProjections`, the same correction for the localized arrays, does look:
+`sceSurfaceForSpace` gives it the MNI template envelope from `work` when the
+project is being worked in MNI space, and the patient's own from `project`
+otherwise. `ielec.projectArrays` keeps that, with `cfg.space` defaulting to
+`project.currentSpace`.
+
+So the two halves of the same operation disagree - but not in the way it first
+looks. `ielec.newTarget` lays the grid on those same two fields, so planning
+and fitting always agree with each other, in any space. The disagreement is
+between planning and localization: in MNI space the localized arrays are
+projected onto `work.v_MNI_SCE` and the planned ones onto the patient's own
+envelope, so the same project ends up holding two kinds of projection that
+cannot be compared.
+
+`ielec.fitTarget` reproduces the button: the space is written as `'Native'` in
+one place, with a comment pointing here, and there is no `cfg.space` until
+this is decided.
+
+Alejandro's own question sits in the same place, as a commented-out block in
+the button, now a comment in `ielec.fitTarget`:
+
+    SPLIT LEFT AND RIGHT ???
+
+i.e. whether a grid should be fitted to the hemisphere it is on rather than to
+both hemispheres at once.
+
+**Decision needed:** whether the planning fit should follow
+`project.currentSpace` as the localization fit does, and whether it should use
+one hemisphere or both. The first is a `cfg.space` with a different default;
+the second changes the result for every grid near the midline.
+
+**Status: open.** Present in v1.020.
+
+---
+
+## 35. A planning file can be loaded into a project that has no envelope
+
+**Where:** `ielec.loadTargets` and the "Fit grid to surface" button
+
+`ielec.newTarget` refuses to plan a grid in a project with no cortical
+envelope, because there is nothing to lay it on. `ielec.loadTargets` has no
+such check: it replaces `project.targets` from a `.mat` file whatever the
+project holds.
+
+So a plan made for one project can be loaded into a fresh one, and then Fit
+grid to surface reaches `mergemesh` with two empty surfaces. In v1.020 and
+until this commit that is `MATLAB:badsubscript` thrown inside `mesheuler`,
+which `mergemesh` calls - "Index in position 2 is invalid" - so the message
+names neither the surfaces nor the button.
+
+`ielec.fitTarget` now says `ielec:noSurfaces` instead. That is the same
+identifier `ielec.newTarget` and `ielec.placeTarget` use, but not quite the
+same check: those two test `vertices_SCE_R`, while this one goes through
+`envelopeFor` and so tests `vertices_SCE_L`. A project with one hemisphere and
+not the other would be judged differently by the three, and the message would
+say the project has no envelope when it has half of one. Neither
+`ielec.loadSurfaces` nor `ielec.buildEnvelope` can produce such a project, so
+this is about the check being honest rather than about a case that happens.
+
+The frontend does not catch the error yet, so the user still sees a MATLAB
+error - a clear one rather than a confusing one.
+
+**Decision needed:** whether `ielec.loadTargets` should refuse a plan the
+project cannot hold, or whether a plan without an envelope is a legitimate
+state to be in - a plan loaded first and the surfaces built afterwards. The
+second is the more useful, and is why the check was not added there.
+
+**Status: open.** Present in v1.020.
+
+---
+
+## 36. Fit grid to surface silently does nothing when a depth target is selected
+
+**Where:** the "Fit grid to surface" button - `fitPlanningGridButton_Callback`,
+now `ielec.fitTarget`
+
+`ELECTRODES2HULLCORRECTION` loops over the arrays it is given and projects the
+ones whose `Type` is `'grid'` or `'strip'`. Given a single `'depth'` array it
+warns `no grid electrodes to do projection` and returns it unchanged, so the
+button writes the array back exactly as it was and redraws.
+
+That looked unreachable - the Fit button lives in the Grids panel, and
+`showPlanningPanel` follows the selected array's type. It is not.
+`UpdateTargetEditBox`, which is what calls `showPlanningPanel`, runs only when
+a project is opened and when the next/previous array buttons are pressed. Two
+paths leave the Grids panel up while a depth target is selected:
+
+- `PlanningSelectionGroup_SelectionChangedFcn` shows the Grids panel when the
+  Grids radio is clicked, and does not change the selection. So: create a
+  depth target, click Grids, press Fit;
+- `removePlanningArrayButton_Callback` moves the selection with
+  `setSelectedPlanningArray` and never calls `UpdateTargetEditBox`. Removing a
+  grid can leave a depth target selected with the Grids panel still shown.
+
+Either way the user presses Fit, sees a warning in the command window if they
+are looking at it, and nothing happens to the array.
+
+`ielec.fitTarget` reproduces this rather than refusing the call: refusing would
+turn a warning into an error on a path a user can reach. The guard was written
+and then taken out for that reason.
+
+**Decision needed:** whether the button should be disabled when the selected
+planning array is not a grid, or whether the panel should follow the selection
+everywhere it changes. The second is the real fix and belongs to the App
+Designer frontend; the first is two lines in the GUIDE app.
+
+**Status: open.** Present in v1.020.

@@ -43,12 +43,16 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % target's contacts of its own accord.
 %
 % One group is left. When it is empty this list is empty, and rule 8 is met.
+%
+% electrodes2hullCorrection used to be counted here, which was wrong: its one
+% call site was the planning GRID's "Fit grid to surface" button, not the
+% depth target at all. It went onto the layer as IELEC.FITTARGET, and the
+% group is the depth target alone.
 waiting = {
   'the depth target - the last of the planning panel off the layer', {
     'depthTrajectory', 'trajectoryEndPoint', ...
     'trajectoryFrameAngles', 'frameTrajectoryEndPoint', ...
-    'addArray', 'checkElectrodeStructure', ...
-    'electrodes2hullCorrection', 'makeAdjMat'}
+    'addArray', 'checkElectrodeStructure', 'makeAdjMat'}
 };
 
 % Allowed by rule 8, and not work to be done: the shared geometry. Two-line

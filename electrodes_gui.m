@@ -5260,32 +5260,12 @@ if isempty(handles.project.targets)
     return;
 end
 
-a=selectedPlanningArray(handles);
-target=handles.project.targets{a};
+cfg = [];
+cfg.index = selectedPlanningArray(handles);
+[handles.project, handles.work] = ...
+    ielec.fitTarget(cfg, handles.project, handles.work);
 
-options=handles.work.options;
-options.SCE_projection_method = 'springs';
-options.SCE_springs_projection = options.SCE_springs_projection_planning;
-
-
-[vertices,faces] = mergemesh(handles.project.vertices_SCE_L, handles.project.faces_SCE_L, handles.project.vertices_SCE_R, handles.project.faces_SCE_R );
-targetCell = electrodes2hullCorrection({target},vertices,faces,options);
-
-% SPLIT LEFT AND RIGHT ??? 
-% if strcmp(target.hemisphere,'left')
-%     target=electrodes2hullCorrection({target},handles.project.vertices_SCE_L,handles.project.faces_SCE_L,handles.work.options);
-% else
-%    target=electrodes2hullCorrection({target},handles.project.vertices_SCE_R,handles.project.faces_SCE_R,handles.work.options);
-% end
-
-handles.project.targets{a}=targetCell{1};
-
-handles.ui.updatePlots.targets=1;
-handles.ui.updatePlots.targetLines=1;
-handles.ui.updatePlots.targetLabels=1;
-
-handles=updateElectrodes3D(handles);
-handles=updateTAC(handles);
+handles = redrawPlanningGrid(handles);
 
 guidata(hObject, handles);
 

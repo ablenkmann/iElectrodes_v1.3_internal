@@ -238,6 +238,7 @@ not in the functions yet.
 | `ielec.nameContacts` | the naming call of both Label buttons, and the planning name box | Label, Label from list, the planning panel |
 | `ielec.newTarget` | the New planning grid button's grid, and adding it | the planning panel |
 | `ielec.placeTarget` | the centre and the turn of the nine move buttons | the planning panel |
+| `ielec.fitTarget` | the springs projection of the Fit grid to surface button | the planning panel |
 | `ielec.pointLabel` | **reports only**: what the atlas calls the place a point is in | the coordinate box, on every cursor move |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
