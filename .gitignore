@@ -2,3 +2,7 @@
 /backups/
 /subjects_normalized_space/
 *.m~
+
+# scaffolding for the frontend mockups, not part of the toolbox
+/export_mockup_data.m
+/mockup_data/
