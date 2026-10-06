@@ -1547,3 +1547,59 @@ it by hand. In the App Designer frontend that belongs in one place.
 
 **Status: changed in v2.** Present in v1.020, where the placeholder is still
 drawn.
+
+---
+
+## 39. The layer does not name the `work` fields a script has to read
+
+**Where:** `ielec.loadCT` / `ielec.openProject` and `ielec.fitArray`, against
+`examples/exampleHeadlessWorkflow.m`
+
+Writing the headless example through the layer turned up two places where a
+script has to know a field name that no `ielec` help mentions. Both are small;
+together they are the difference between the layer being an interface and
+being a convention.
+
+**1. The CT's intensity limits.** The first thing the example does after
+opening a project is set a threshold at half the CT's range:
+
+    cfg.lowThreshold = 0.5 * (work.maxValue - work.minValue) + work.minValue;
+
+`ielec.thresholdCT` is right to take an intensity rather than a slider
+position - a recorded threshold has to mean the same thing without the
+window. But the limits it needs are `work.minValue` and `work.maxValue`, and
+those names appear in no help text in `src/`: `ielec.loadCT` says "WORK gets
+the CT's intensity limits" and `ielec.openProject` says "the CT intensity
+limits", neither naming the fields. A scripter cannot write the toolbox's own
+default threshold without reading the source.
+
+**2. The spacing an array was fitted with.** The example re-fits an electrode
+with the spacing the stored one used, which it reads from
+`reference.methodParameters.fixM1` and `.fixM1_BF`. `ielec.fitArray` takes
+`cfg.spacing` and `cfg.firstSecondSpacing`, so the script has to translate
+between the layer's names and the backend's, and `methodParameters` is
+documented nowhere in `src/+ielec/`.
+
+**3. What a space needs loaded.** `ielec.label` with no `cfg.space` follows
+`project.currentSpace`, which is right. But the MNI branch reads the template
+atlas out of `work` - `work.MNI_S_matrix`, `MNIlabels`, `MNIprob` - and
+`ielec.openProject` does not load it; only `ielec.startSession` does. So a
+script that opens an MNI-space project and labels it gets `ielec:noAtlas`,
+while the same two lines on a Native-space project work. The window never
+meets this because it opens a session at start-up. The example now says so in
+a comment, and opens a Native project; before the layer it called
+`labelElectrodesNative` unconditionally and so did not care.
+
+None of the three is a defect: the example runs, and the fields are stable.
+But all three are reach-ins past the interface, or things the interface does
+not say, and the point of the layer is that there should not be any.
+
+**Decision needed:** whether to name these fields and this prerequisite in
+the help of the functions concerned - one line each in `ielec.loadCT` and
+`ielec.openProject`, and a sentence in `ielec.fitArray` - or to answer them
+with a reporting call, the way `ielec.projectionState` reports what the
+projection would do. A `ielec.ctRange` that returns the limits would let a
+script ask instead of reach; the cost is a function for two numbers.
+
+**Status: open.** New in v2, and a consequence of the layer rather than
+something v1.020 had.

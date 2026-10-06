@@ -126,7 +126,7 @@ their own, and the entry says whether Alejandro has confirmed it.
 Checks that go beyond "same as before":
 
 - `test_headlessWorkflow` re-localizes one of the example project's depth
-  electrodes from its CT with no window open: open, threshold, select, weigh,
+  electrodes from its CT with no window open: open, threshold, select,
   cluster, fit, label, export, save and reopen. GridFit lands 0.29 mm from the
   stored contacts on average.
 - Pairs of functions that should be inverses are tested as inverses: the two

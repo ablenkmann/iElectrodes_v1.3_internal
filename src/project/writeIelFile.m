@@ -11,11 +11,14 @@ function writeIelFile(fullPath, project, work, ui)
 %   loaded. Either way the file is complete, and iElectrodes 1.020 can open
 %   it; see UIFIELDNAMES.
 %
-%   Until the headless example was written this was not so: the help said
-%   a file without UI would simply lack the colours, but for any project
-%   with cortical annotations CHECKPROJECTSTRUCTURE requires them, and the
-%   save failed with "Unrecognized field name AnnotColor_R". Nothing had
-%   ever saved without UI before, so it had never shown.
+%   This was not always so: the help used to say a file without UI would
+%   simply lack the colours, but for any project with cortical annotations
+%   CHECKPROJECTSTRUCTURE requires them, and the save failed with
+%   "Unrecognized field name AnnotColor_R". Nothing had ever saved without UI
+%   before, so it had never shown. It was the first headless example that
+%   found it; that example now passes the UI it was given when the project
+%   was opened, so the branch is exercised by TEST_SCRIPTENTRYPOINTS and
+%   TEST_SESSIONSTATE instead.
 %
 %   The .iel format is a MATLAB v7.3 file holding a single variable named s,
 %   and s is FLAT: every field sits at the top level, the way the toolbox

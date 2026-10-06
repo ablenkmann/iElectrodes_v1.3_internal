@@ -264,8 +264,10 @@ function any more, apart from the three shared geometry ones rule 8 names.
 `tests/test_frontendUsesLayer.m` keeps an empty list and fails if one comes
 back.
 
-`examples/exampleHeadlessWorkflow.m` will be rewritten with ielec calls only.
-It will then be the tutorial for scripting iElectrodes.
+`examples/exampleHeadlessWorkflow.m` is written with ielec calls only, and is
+the tutorial for scripting iElectrodes: ten steps, nine `ielec` functions, no
+window, and the one backend call rule 8 allows. `tests/test_headlessWorkflow.m`
+checks that it stays that way as well as that it still works.
 
 `tests/test_frontendUsesLayer.m` used to measure the distance to rule 8, by
 listing every backend function `electrodes_gui.m` still called, grouped by
