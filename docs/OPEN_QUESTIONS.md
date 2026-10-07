@@ -1603,3 +1603,65 @@ script ask instead of reach; the cost is a function for two numbers.
 
 **Status: open.** New in v2, and a consequence of the layer rather than
 something v1.020 had.
+
+---
+
+## 40. Anchors and hand-placed contacts are the same list, and the Fit button anchors to all of it
+
+**Where:** `work.GS`, the Add coordinate button, and the Fit button -
+`ielec.addCoordinate`, `ielec.cluster` and `ielec.fitArray`
+
+This is Alejandro's front-end note, comments 3 and 4R3: *"Consider separating
+anchors from added coordinates in the work structure"* and *"Ideally, we need
+a new variable to store anchors."* Here is what the code does today, so that
+the question can be answered against it.
+
+`work.GS` holds the contacts in progress, and three things put them there:
+
+- `ielec.cluster`, which appends the centres it found;
+- `ielec.addCoordinate`, the Add coordinate button, which appends one by
+  hand with a cluster of its own;
+- nothing else.
+
+The front-end note has the Add coordinate button under **both** Localization
+via Clustering and Localization via Grid Fit, with "(same function and
+variable)" beside the second, and a counter that reads "number of electrodes"
+in one panel and "number of anchors" in the other with "(same function)". That
+is accurate: it is one button, one variable and one counter, wearing two
+names.
+
+**What the Fit button does with it.** `cfg.useNailedContacts` is set to
+`~isempty(work.GS)`, so pressing Fit anchors the fit to **everything** in the
+list - the clustered contacts as much as the hand-placed ones. That is the
+normal workflow: cluster, then fit, and the clustering holds the fit.
+
+**So the separation is not a refactor.** If anchors become their own
+variable, then after clustering the anchor list is empty and Fit no longer
+holds to the clustered contacts, which changes the main path through the
+program. Two readings of the note, and they differ in what the program does:
+
+1. **Anchors are the hand-placed ones only.** The clustered contacts stop
+   holding the fit. The note's "Use anchors (using add coordinate manually)"
+   reads this way. It is a real change in what Fit produces.
+2. **Anchors are both, and the new variable only records which came from
+   where.** Fit behaves as it does now, and the separation buys the frontend
+   two counters and the ability to show them differently. Behaviour is
+   preserved.
+
+**It also changes the `.iel` file.** `GS`, `clusters`, `brushCrd`,
+`brushWeight` and their `old*` copies are all in `workFieldNames`, so they
+are saved. A new `work.anchors` would be saved too, which puts this in the
+same box as `history` and `schemaVersion`: a format change, needing the test
+that v1.020 can still open a v2 file.
+
+**Decision needed, and it is the one that blocks the work:** which of the two
+readings? If (1), say so and it becomes a named behaviour change with its own
+commit. If (2), the work is bookkeeping and can go in with the format change.
+
+What has been done in the meantime is the part that needs no decision: the
+four buttons that change the list - Add, Delete, Clear and Undo - now go
+through the layer instead of editing `work` in the frontend, so whichever
+reading is chosen, the change is inside the layer rather than spread across
+four callbacks.
+
+**Status: open, and blocking.** The conflation is in v1.020 too.

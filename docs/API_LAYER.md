@@ -178,12 +178,15 @@ without anyone noticing. Three things the frontend may call:
   no state and decide nothing scientific, and no backend function calls them.
   `ielview.mixImages` blends the MRI and the CT into the picture a view shows;
   `ielview.voxelFromPlaneClick` turns a click in a 2-D view into a voxel;
-- the shared geometry: `AnatSpace2Mesh`, `mesh2AnatSpace` and `eucDistMat`.
-  These are two-line coordinate and distance functions that the backend itself
+- the shared geometry: `AnatSpace2Mesh` and `mesh2AnatSpace`.
+  These are two-line coordinate functions that the backend itself
   uses - `thresholdCTVoxels`, `gridFit`, `clusterContacts` and others - so they
   cannot become the frontend's. They are library functions, called the way
   `norm` is called, and the test lists them by name so that the exception
-  stays three functions long.
+  stays as short as it is. It was three until the coordinates in progress
+  moved onto the layer: `eucDistMat` was there because the Delete button
+  measured which contact the cursor was nearest, and `ielec.removeCoordinate`
+  measures it now.
 
 ## Recording each step
 
@@ -242,6 +245,10 @@ not in the functions yet.
 | `ielec.setFrame` | the frame angles of `estimateAnglesFrame` | the frame radio group, and every change to a depth target |
 | `ielec.aimTarget` | the trajectory of `updateTarget`, `angleChange` and `AlphaBetaChange` | the Azimuth and Elevation boxes, the Alpha and Beta boxes, and `updateTarget` for everything else |
 | `ielec.newDepthTarget` | the array the New target button built in the frontend | the New target button |
+| `ielec.addCoordinate` | the four lines and the CT weight of the Add coordinate button | the Add coordinate button |
+| `ielec.removeCoordinate` | the nearest-contact search and the cluster renumbering of the Delete button | the Delete coordinate button |
+| `ielec.clearCoordinates` | the emptying in the Clear all button | the Clear all button |
+| `ielec.undoCoordinates` | the four swaps in the Undo button | the Undo button |
 | `ielec.pointLabel` | **reports only**: what the atlas calls the place a point is in | the coordinate box, on every cursor move |
 | `ielec.acceptArray` | the adding and the clearing in `addElectrode2structure` | every button that adds an array |
 | `ielec.label` | the two labelling wrappers, `labels2MNIspace` / `labels2NativeSpace` | eight callbacks |
@@ -260,7 +267,7 @@ not in the functions yet.
 | `ielec.saveTargets` | `savePlanningTargets`, from `project.targets` | the Save planning button |
 
 That is all of them. **Rule 8 is met:** `electrodes_gui.m` calls no backend
-function any more, apart from the three shared geometry ones rule 8 names.
+function any more, apart from the two shared geometry ones rule 8 names.
 `tests/test_frontendUsesLayer.m` keeps an empty list and fails if one comes
 back.
 

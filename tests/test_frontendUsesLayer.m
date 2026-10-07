@@ -43,7 +43,7 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 % target's contacts of its own accord.
 %
 % NOTHING IS LEFT. Rule 8 is met: electrodes_gui.m calls no backend function
-% any more, apart from the three shared geometry ones below, which the rule
+% any more, apart from the two shared geometry ones below, which the rule
 % names as the exception.
 %
 % The planning panel was the last part of the frontend to go through the
@@ -58,11 +58,16 @@ repoRoot = fileparts(fileparts(mfilename('fullpath')));
 waiting = cell(0, 2);
 
 % Allowed by rule 8, and not work to be done: the shared geometry. Two-line
-% coordinate and distance functions that the backend itself uses, so they
-% cannot become the frontend's - library functions, called the way norm is.
-% The list is short on purpose; anything else that wants to be an exception
-% has to be argued for here.
-allowed = {'AnatSpace2Mesh', 'mesh2AnatSpace', 'eucDistMat'};
+% coordinate functions that the backend itself uses, so they cannot become
+% the frontend's - library functions, called the way norm is. The list is
+% short on purpose; anything else that wants to be an exception has to be
+% argued for here.
+%
+% It was three. EUCDISTMAT came off when the coordinates in progress moved
+% onto the layer: the Delete button was its last caller in the frontend, and
+% it measured which contact the cursor was nearest. IELEC.REMOVECOORDINATE
+% does that now, so the frontend no longer measures a distance at all.
+allowed = {'AnatSpace2Mesh', 'mesh2AnatSpace'};
 
 expected = sort([waiting{:,2}, allowed]);
 

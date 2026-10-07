@@ -3240,29 +3240,12 @@ x=floor(get(handles.sliderX,'Value'));
 y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
-crd=[x y z];
-crd=mesh2AnatSpace(crd,handles.project.S2);
+cfg = [];
+cfg.coordinate = mesh2AnatSpace([x y z], handles.project.S2);
+[handles.project, handles.work] = ...
+    ielec.addCoordinate(cfg, handles.project, handles.work);
 
-if ~isempty(handles.project.TAC)
-    weight=handles.project.TAC.img(x,y,z)-min(handles.project.TAC.img(:));
-else
-    weight=0; % force to zero if CT not present
-end
-        
-% save old GS
-handles.work.oldGS=handles.work.GS;
-handles.work.oldbrushCrd=handles.work.brushCrd;
-handles.work.oldbrushWeight=handles.work.brushWeight;
-handles.work.oldclusters=handles.work.clusters;
-
-handles.work.GS=[handles.work.GS; crd];
-handles.work.brushCrd=[handles.work.brushCrd; crd];
-handles.work.clusters=[handles.work.clusters; (length(unique(handles.work.clusters))+1)];
-handles.work.brushWeight=[handles.work.brushWeight; weight];
-set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
-
-handles.ui.updatePlots.GS=1;
-handles=updateElectrodes3D(handles);
+handles = redrawCoordinates(handles);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -3284,37 +3267,16 @@ x=floor(get(handles.sliderX,'Value'));
 y=floor(get(handles.sliderY,'Value'));
 z=floor(get(handles.sliderZ,'Value'));
 
-crd=[x y z];
-crd=mesh2AnatSpace(crd,handles.project.S2);
+cfg = [];
+cfg.coordinate = mesh2AnatSpace([x y z], handles.project.S2);
+[handles.project, handles.work, removed] = ...
+    ielec.removeCoordinate(cfg, handles.project, handles.work);
 
-%search for closest coordinate 
-dist=eucDistMat(handles.work.GS,crd);
-[m,ind]=min(dist);
+% Nothing is saved when nothing was removed, as before: the callback returns
+% without guidata, so the project it was given is the project that stands.
+if removed
+    handles = redrawCoordinates(handles);
 
-if m<2 %2mm
-    % save old GS
-    handles.work.oldGS=handles.work.GS;
-    handles.work.oldbrushCrd=handles.work.brushCrd;
-    handles.work.oldbrushWeight=handles.work.brushWeight;
-    handles.work.oldclusters=handles.work.clusters;
-    
-    %remove coordinate from GS
-    handles.work.GS(ind,:)=[];
-    
-    indClus=find(handles.work.clusters==ind); %actual cluster
-    indBigClus=find(handles.work.clusters>ind); %clusters of bigger index
-    
-    handles.work.clusters(indBigClus,:)= handles.work.clusters(indBigClus,:)-1; %decrease the clus num
-    handles.work.clusters(indClus,:)=[]; % remove cluster elements 
-        
-    handles.work.brushCrd(indClus,:)=[]; %remove brush coords
-    handles.work.brushWeight(indClus,:)=[]; %remove brushweight
-    
-    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
-    
-    handles.ui.updatePlots.GS=1;
-    handles=updateElectrodes3D(handles);
-    
     % Update handles structure
     guidata(hObject, handles);
 
@@ -3333,23 +3295,13 @@ if isempty(handles.project.T1)
     return
 end
 
-% save old GS
-handles.work.oldGS=handles.work.GS;
-handles.work.oldbrushCrd=handles.work.brushCrd;
-handles.work.oldbrushWeight=handles.work.brushWeight;
-handles.work.oldclusters=handles.work.clusters;
-
-handles.work.GS=[];
-handles.work.brushCrd=[];
-handles.work.brushWeight=[];
-handles.work.clusters=[];
-set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
+[handles.project, handles.work] = ...
+    ielec.clearCoordinates([], handles.project, handles.work);
 
 handles.ui.updatePlots.electrodes=1;
 handles.ui.updatePlots.labels=1;
 handles.ui.updatePlots.elecLines=1;
-handles.ui.updatePlots.GS=1;
-handles=updateElectrodes3D(handles);
+handles = redrawCoordinates(handles);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -3364,49 +3316,42 @@ function ClearLastButton_Callback(hObject, eventdata, handles)
 %     warning ('First Load MRI image. Click New button or open existing project.')
 %     return
 % end
-% 
+%
 % handles.work.oldGS=handles.work.GS;
 % handles.work.GS(end,:)=[];
 % set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 %
 % handles.ui.updatePlots.GS=1;
 % handles=updateElectrodes3D(handles);
-% 
+%
 % % Update handles structure
 % guidata(hObject, handles);
-% 
+%
 
-% --- Undo 
+% --- Undo
 function Recpushbutton_Callback(hObject, eventdata, handles)
 % hObject    handle to Recpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%recover GS, brushCrd, and brushWeight from old  
+[handles.project, handles.work] = ...
+    ielec.undoCoordinates([], handles.project, handles.work);
 
-tempGS=handles.work.GS;
-handles.work.GS=handles.work.oldGS;
-handles.work.oldGS=tempGS;
+handles = redrawCoordinates(handles);
 
-tempbrushCrd=handles.work.brushCrd;
-handles.work.brushCrd=handles.work.oldbrushCrd;
-handles.work.oldbrushCrd=tempbrushCrd;
+% Update handles structure
+guidata(hObject, handles);
 
-tempbrushWeight=handles.work.brushWeight;
-handles.work.brushWeight=handles.work.oldbrushWeight;
-handles.work.oldbrushWeight=tempbrushWeight;
 
-tempclusters=handles.work.clusters;
-handles.work.clusters=handles.work.oldclusters;
-handles.work.oldclusters=tempclusters;
+% --- Show how many contacts are in progress, and redraw them.
+% The counter and the red dots are the same two lines in all four buttons
+% that change the coordinates in progress.
+function handles = redrawCoordinates(handles)
 
 set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
 
 handles.ui.updatePlots.GS=1;
 handles=updateElectrodes3D(handles);
-
-% Update handles structure
-guidata(hObject, handles);
 
 
 
