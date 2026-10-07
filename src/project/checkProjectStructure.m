@@ -246,6 +246,22 @@ else
     iel.targets={}; % new version: 27 August 2018
 end
 
+%% processing history
+% Added in iElectrodes 2: the cfg of every ielec call that changed the
+% project, in the order they were made. A file written by 1.020 has none, and
+% opens with an empty one - which is also what a project that has only been
+% opened and saved again has. See docs/API_LAYER.md, "Recording each step".
+% A cell, or nothing. Anything else is a history this version cannot read -
+% a hand-edited file, or one from a version that stores it differently - and
+% it opens with an empty history rather than being carried through to break
+% history{end+1} several frames later. Nothing has ever written a non-cell,
+% so no load that works today becomes an error.
+if isfield(s,'history') && ~isempty(s.history) && iscell(s.history)
+    iel.history=s.history;
+else
+    iel.history={};
+end
+
 %% current space
 if isfield(s,'currentSpace')
     iel.currentSpace=s.currentSpace;

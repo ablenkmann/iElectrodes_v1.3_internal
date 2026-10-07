@@ -20,6 +20,13 @@ function writeIelFile(fullPath, project, work, ui)
 %   was opened, so the branch is exercised by TEST_SCRIPTENTRYPOINTS and
 %   TEST_SESSIONSTATE instead.
 %
+%   The file carries two fields iElectrodes 1.020 never wrote: PROJECT.history,
+%   the cfg of every ielec call that changed the project, and schemaVersion,
+%   stamped here as 2. Both are ignored by 1.020, which asks isfield for the
+%   fields it wants rather than enumerating what it was given -
+%   TEST_IELFORMAT runs 1.020's own reading code on a file written here to
+%   check that, rather than taking it on trust.
+%
 %   The .iel format is a MATLAB v7.3 file holding a single variable named s,
 %   and s is FLAT: every field sits at the top level, the way the toolbox
 %   held them before the project/work/ui split. That is deliberate, so that
@@ -54,7 +61,17 @@ else
     state.ui.AnnotColor_L = surfaceColours(project, 'L');
 end
 
-s = checkProjectStructure(flattenProject(state));   %#ok<NASGU> .iel stays flat
+s = checkProjectStructure(flattenProject(state));   % .iel stays flat
+
+% The format this file is written in. It goes on AFTER the structure check,
+% which builds s from the fields it knows and would drop anything else.
+% Nothing reads it yet: it is here so that a later version can tell what it
+% is looking at, and 1.020 ignores it - it asks isfield for the fields it
+% wants and never enumerates what it was given. Note that this STAMPS rather
+% than preserves: a file carrying a higher version opens here (the structure
+% check drops the field with everything else it does not know) and is written
+% back as 2, along with whatever this version understood of it.
+s.schemaVersion = 2;
 
 save(fullPath, 's', '-v7.3');
 end

@@ -1665,3 +1665,73 @@ reading is chosen, the change is inside the layer rather than spread across
 four callbacks.
 
 **Status: open, and blocking.** The conflation is in v1.020 too.
+
+---
+
+## 41. A recorded step costs 4.5 kB of container, whatever is in its cfg
+
+**Where:** `docs/API_LAYER.md`, "Recording each step"; the shape created in
+`checkProjectStructure` and written by `writeIelFile`
+
+The design's rule for the processing history is that *"the cfg holds settings
+and file names only, never images or other large data, so the file does not
+grow."* The first half is right and worth keeping. The second does not follow,
+and the reason is the container rather than the contents.
+
+A `.iel` file is `-v7.3`, which is HDF5, and the history is a cell of structs.
+Every cell element and every nested struct becomes an HDF5 object with its own
+header, so the cost per step is almost independent of what the cfg holds.
+Measured with the design's own example step - `ielec.thresholdCT` with a low
+and a high threshold, plus the function name, the date and the version:
+
+| steps | file | per step |
+|---|---|---|
+| 0 | 1,928 B | |
+| 1 | 11,552 B | |
+| 10 | 49,992 B | ~4,800 B |
+| 100 | 448,248 B | 4,463 B |
+| 500 | 2,228,888 B | 4,458 B |
+
+In the real example project, a hundred steps take `exampleNativeSpace.iel`
+from 47,231,649 to 47,670,401 bytes: +0.4 MB.
+
+The same five hundred steps are **8,586 bytes in total** in `-v7` - 17 bytes a
+step, a 260-fold difference - so this is the container, not the data. Three
+other shapes, measured at five hundred steps:
+
+| shape | per step |
+|---|---|
+| cell of structs (what the design says) | 4,458 B |
+| struct array | 3,357 B |
+| cell of `jsonencode`d steps | 652 B |
+| the whole history as one JSON string | 13 B |
+
+**How much does it matter?** A real session is hundreds of ielec calls:
+threshold, select, cluster, fit, index, six reorders per array, a naming call
+per array and per contact, nine moves per planning target. At five hundred
+steps the history is ~2.2 MB of overhead for ~25 KB of settings, written on
+every save. Against a 47 MB project that is 5%; against a project that is an
+MRI and a few arrays it is a visible share.
+
+**Why now:** the format commit has landed and nothing fills the history yet.
+Changing the shape later is another format change, with another round of
+1.020 compatibility work. Changing it now costs nothing, because there is
+nothing to migrate.
+
+**Decision needed:** keep the cell of structs, or store the history in a
+cheaper shape?
+
+The case for keeping it: it is what the design says, it is what Alejandro's
+back-end note implies - *"a history of previous cfg should be stored"* - and
+it is directly inspectable at the prompt, `project.history{3}.cfg.lowThreshold`.
+A serialised string is 340 times smaller and cannot be read without decoding
+it, which also means a future version of the toolbox has to agree about the
+encoding.
+
+The recommendation, for what it is worth: keep the cell of structs. 0.4 MB per
+hundred steps is a price worth paying for a history a user can read, and a
+project that reaches five hundred steps has bigger problems than 2 MB. But the
+rule in `API_LAYER.md` had to stop claiming the file does not grow, and now
+states the real figure.
+
+**Status: open.** New in v2; there was no history to size in 1.020.

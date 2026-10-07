@@ -155,7 +155,7 @@ eventually.
 | 1 | stabilise v1 | partly - v1.020 is kept as a reference copy and its faults are recorded; no release tag yet, and no reference datasets beyond the two example projects |
 | 2 | characterisation tests | done - `tests/`, run with `run_all_tests` |
 | 3 | headless computational API | done - `src/`, proven by `exampleHeadlessWorkflow` |
-| 4 | explicit project model | done - `project` / `work` / `ui`; no `schemaVersion` yet, because it would change the file (a decision) |
+| 4 | explicit project model | done - `project` / `work` / `ui`; `schemaVersion` 2 and `project.history` are now written. The earlier decision not to change the file was reversed once 1.020's side of the compatibility could be measured rather than assumed - `tests/test_ielFormat.m` runs 1.020's own reader on a file written here |
 | 5 | vertical GUI prototype in App Designer | next, together with the ielec layer (`docs/API_LAYER.md`) |
 | 6 | gradual release | later |
 

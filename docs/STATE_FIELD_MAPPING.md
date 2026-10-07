@@ -14,6 +14,12 @@ This is the task that discussion names as the first concrete step, because a
 field cannot be moved safely until its readers, its writers and its true owner
 are known.
 
+One field of `project` is not in this inventory and cannot be: `history`,
+added in iElectrodes 2, was never a `handles` field. It holds the cfg of every
+`ielec` call that changed the project, it is saved with the patient data, and
+`PROJECTFIELDNAMES` lists it beside the migrated fields. See
+`docs/API_LAYER.md`, "Recording each step".
+
 ## How each field was classified
 
 Classification is derived from the source, not from the field names. Three

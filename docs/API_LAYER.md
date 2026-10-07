@@ -209,17 +209,38 @@ a "save the session as a script" feature would read.
 Rules for it:
 
 - The cfg holds settings and file names only, never images or other large
-  data, so the file does not grow.
+  data. That keeps the *settings* small, but it is not what decides the size:
+  the container does. A cell of structs in a `-v7.3` file is HDF5, and every
+  cell element and nested struct is an object with its own header, so a
+  recorded step costs about **4.5 kB whatever is in its cfg** - measured, and
+  roughly flat from 10 steps to 500. A hundred steps add 0.4 MB to a file; a
+  session of five hundred adds 2.2 MB. The same history is 17 bytes a step in
+  `-v7`, and 13 as one serialised string. Whether that is worth changing the
+  shape for is `docs/OPEN_QUESTIONS.md` item 41, and it is worth deciding
+  before the functions start filling it.
 - It changes the `.iel` format. The file gets two new fields, `history` and
-  `schemaVersion` (2). v2 opens v1.020 files as before, with an empty history.
-  v1.020 should open v2 files by ignoring the new fields; that will be tested
-  with the v1.020 copy, not assumed. A v2 file saved again from v1.020 loses
-  its history.
+  `schemaVersion` (2). **That half is done.** v2 opens a v1.020 file with an
+  empty history, and v1.020 opens a v2 file: `tests/test_ielFormat.m` runs
+  1.020's own reading code on a file written here, in a MATLAB of its own
+  because its folders would shadow ours - 77 of the 406 function names under
+  its `priv` are also names in our `src`, `checkProjectStructure` among them,
+  and the rest are the SPM it carries, which would shadow ours in
+  `third_party`. It gets back every electrode array and every planning
+  target, compared by content and not by count. It ignores the new fields
+  because its structure check asks `isfield` for the fields it wants and
+  never enumerates what it was given - which is also why a v2 file saved
+  again from v1.020 loses its history: the history does not survive being
+  read by it, so it cannot be written back out. Measured, not assumed.
+- Nothing reads `schemaVersion` yet. It is written so that a later version can
+  tell what it is looking at; refusing a file from a *future* version would be
+  a new behaviour and is not part of this.
 - File paths are stored as given. They can contain a patient's name, so they
   need care when a project is shared.
 
-Because it changes the file, history is added in a commit of its own. It is
-not in the functions yet.
+Because it changes the file, the format came in a commit of its own. The
+functions do not record anything yet: `project.history` exists, is saved and is
+read back, and is still empty for every project. Filling it is the next
+commit, and it touches every ielec function that changes the project.
 
 ## What exists
 
