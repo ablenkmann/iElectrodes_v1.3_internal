@@ -20,9 +20,10 @@ function writeIelFile(fullPath, project, work, ui)
 %   was opened, so the branch is exercised by TEST_SCRIPTENTRYPOINTS and
 %   TEST_SESSIONSTATE instead.
 %
-%   The file carries two fields iElectrodes 1.020 never wrote: PROJECT.history,
-%   the cfg of every ielec call that changed the project, and schemaVersion,
-%   stamped here as 2. Both are ignored by 1.020, which asks isfield for the
+%   The file carries two fields iElectrodes 1.020 never wrote: history, the cfg
+%   of every ielec call that changed the project - serialised by ENCODEHISTORY,
+%   because the cell the project holds costs 4.5 kB a step in HDF5 - and
+%   schemaVersion, stamped here as 2. Both are ignored by 1.020, which asks isfield for the
 %   fields it wants rather than enumerating what it was given -
 %   TEST_IELFORMAT runs 1.020's own reading code on a file written here to
 %   check that, rather than taking it on trust.
@@ -71,6 +72,13 @@ s = checkProjectStructure(flattenProject(state));   % .iel stays flat
 % than preserves: a file carrying a higher version opens here (the structure
 % check drops the field with everything else it does not know) and is written
 % back as 2, along with whatever this version understood of it.
+% The history goes in as one string rather than as the cell the project
+% holds: in HDF5 a cell of structs costs about 4.5 kB a step whatever the cfg
+% holds, and one string costs about 13 - docs/OPEN_QUESTIONS.md item 41.
+% DECODEHISTORY turns it back on the way in. The field is the one the design
+% names; only its type on disk is different from the type in memory.
+s.history = encodeHistory(s.history);
+
 s.schemaVersion = 2;
 
 save(fullPath, 's', '-v7.3');

@@ -1718,20 +1718,107 @@ Changing the shape later is another format change, with another round of
 1.020 compatibility work. Changing it now costs nothing, because there is
 nothing to migrate.
 
-**Decision needed:** keep the cell of structs, or store the history in a
-cheaper shape?
+**Answered, by separating the two shapes.** The question as posed - keep the
+readable cell, or take the cheap string - was a false choice: the cell is what
+makes a history readable *in the project*, and the string is only how it
+reaches the disk. So the project holds the cell the design specifies, and
+`writeIelFile` serialises it on the way out while `checkProjectStructure`
+decodes it on the way in - `encodeHistory` and `decodeHistory`, two functions
+of twenty lines.
 
-The case for keeping it: it is what the design says, it is what Alejandro's
-back-end note implies - *"a history of previous cfg should be stored"* - and
-it is directly inspectable at the prompt, `project.history{3}.cfg.lowThreshold`.
-A serialised string is 340 times smaller and cannot be read without decoding
-it, which also means a future version of the toolbox has to agree about the
-encoding.
+Measured after the change, on the history alone rather than as a delta buried
+in a 47 MB file, and with **distinct** steps rather than repeated copies of
+one:
 
-The recommendation, for what it is worth: keep the cell of structs. 0.4 MB per
-hundred steps is a price worth paying for a history a user can read, and a
-project that reaches five hundred steps has bigger problems than 2 MB. But the
-rule in `API_LAYER.md` had to stop claiming the file does not grow, and now
-states the real figure.
+| steps | JSON | file | on disk, per step |
+|---|---|---|---|
+| 1 | 124 chars | 9,112 B | 248 B |
+| 10 | 124/step | 11,336 B | 247 B |
+| 100 | 124/step | 15,448 B | 66 B |
+| 500 | 124/step | 20,498 B | 23 B |
+| 1000 | 124/step | 29,740 B | 21 B |
 
-**Status: open.** New in v2; there was no history to size in 1.020.
+against the same distinct steps as a cell of structs: 4,401 B/step at a
+hundred, 4,435 at five hundred. So the reduction is about **a hundredfold**,
+and `project.history{3}.cfg.lowThreshold` reads exactly as it did.
+
+The only fixed figure is **124 characters of JSON a step**. The on-disk column
+falls as the history grows because the file is deflated, so "bytes per step"
+is not a cost - it is a compression ratio. An earlier version of this item
+quoted 27 B and 9 B a step; those came from a hundred and five hundred
+*identical* steps, which deflate to almost nothing. The proof is that a
+hundred and five hundred identical steps give the same file size to the byte.
+
+What it gives up is type, and that is the part worth knowing. JSON does not
+carry class or orientation: an `int32` comes back a double of the same value,
+a column vector comes back a row, an empty char comes back 0-by-0.
+`tests/test_ielFormat.m` pins which types survive and which flatten, so a
+change in MATLAB's own encoder shows up there. A cfg holds thresholds, file
+names, counts and flags, so nothing a recorded step carries today needs more
+than JSON gives - but a cfg field that has to survive byte for byte must not
+be put in a history.
+
+Two alternatives were rejected. `-v7` instead of `-v7.3` would have fixed the
+cost for the whole file at 17 bytes a step, but it changes how every image is
+stored and caps a variable at 2 GB, which is a far larger change than the
+history warrants. `getByteStreamFromArray` would have been exact and smaller
+still, but it is not a documented function, and a `.iel` file holds patient
+data that has to open in ten years.
+
+**Decision still open for Alejandro:** nothing above needs him, but the type
+flattening is the kind of thing he may want written differently - or may want
+the history to carry a `schemaVersion` of its own, so that a future encoding
+can be told from this one.
+
+**Status: answered in the commit that serialised it.** New in v2; there was no
+history to size in 1.020.
+
+---
+
+## 42. A cfg read back out of the history cannot always be replayed
+
+**Where:** `encodeHistory` / `decodeHistory`, against `ielec.newTarget:47` and
+`ielec.placeTarget:69`
+
+`docs/API_LAYER.md` names a "save the session as a script" feature as one of
+the things the processing history is for. That does not work yet, and the
+reason is two lines of validation disagreeing with the storage.
+
+JSON does not carry orientation. A JSON array decodes to a **column**, so a
+`cfg` field that was a 1-by-3 row when it was recorded comes back 3-by-1.
+Measured on a real save and reopen:
+
+    cfg.centre as recorded : [17.7419 -37.5927 67.254]    size [1 3]
+    cfg.centre as reopened : [17.7419; -37.5927; 67.254]  size [3 1]
+    values identical       : yes
+    replayed into ielec.newTarget: ielec:badOption,
+        "cfg.centre must be one point, as [x y z]."
+
+`ielec.newTarget` and `ielec.placeTarget` check `isequal(size(v), [1 3])`.
+`ielec.addCoordinate` and `ielec.aimTarget` check `numel(v) ~= 3` and then
+normalise with `(:)'`, so they replay fine. The layer is inconsistent with
+itself about this, and only half of it can be driven from a recorded cfg.
+
+The same applies to `default_ielectrodes_options`: its `image_voxdim` is a
+1-by-3 row, and a recorded `cfg.options` comes back with a 3-by-1 - which
+`ielec.setOptions` accepts and stores, so the column then travels into
+`work.options`. It survives today only because `loading_images_SPM` happens to
+do `voxdim = abs(voxdim(:)')`. Nothing guarantees that for the next consumer.
+
+**Decision needed:** which side moves? Either
+
+1. the four functions that take a point agree to accept three numbers in any
+   orientation, as two of them already do - two lines, and it makes every
+   recorded cfg replayable; or
+2. `decodeHistory` restores orientation, which it cannot do in general because
+   the information is not in the file - it would need the encoder to record
+   the shape of every numeric field, which is a bigger format commitment than
+   the history itself; or
+3. the history is documented as a record to read rather than to replay, and
+   the "save as a script" idea needs the shapes written down separately.
+
+(1) is the small one and the layer is already half-way there. It is a
+behaviour change in two layer functions - they would accept input they refuse
+today - so it belongs in a commit that says so, not in the format commit.
+
+**Status: open.** New in v2; there was no history to replay in 1.020.

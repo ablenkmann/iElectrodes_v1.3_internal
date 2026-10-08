@@ -251,13 +251,13 @@ end
 % project, in the order they were made. A file written by 1.020 has none, and
 % opens with an empty one - which is also what a project that has only been
 % opened and saved again has. See docs/API_LAYER.md, "Recording each step".
-% A cell, or nothing. Anything else is a history this version cannot read -
-% a hand-edited file, or one from a version that stores it differently - and
-% it opens with an empty history rather than being carried through to break
-% history{end+1} several frames later. Nothing has ever written a non-cell,
-% so no load that works today becomes an error.
-if isfield(s,'history') && ~isempty(s.history) && iscell(s.history)
-    iel.history=s.history;
+% The file stores the history as one JSON string; the project holds it as the
+% cell of steps docs/API_LAYER.md specifies. DECODEHISTORY does that, and
+% also takes a cell as it is, and gives an empty history for anything it
+% cannot read - rather than carrying a value through to break
+% history{end+1} several frames later.
+if isfield(s,'history')
+    iel.history=decodeHistory(s.history);
 else
     iel.history={};
 end

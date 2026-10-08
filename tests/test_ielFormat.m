@@ -6,7 +6,9 @@ function ok = test_ielFormat()
 %
 %     - a file written by 1.020 opens with an empty history;
 %     - a file written here carries history and schemaVersion 2;
-%     - a history survives being written and read again;
+%     - a history survives being written and read again - as a cell in the
+%       project and as one JSON string in the file, which is what keeps a
+%       recorded step to tens of bytes instead of 4.5 kB;
 %     - **iElectrodes 1.020 can open a file written here**, which is the
 %       promise docs/API_LAYER.md makes and says will be tested rather than
 %       assumed.
@@ -123,6 +125,154 @@ nFail = nFail + check(isequaln(keptFile, step1.cfg.ct), ...
 nFail = nFail + check(isequaln(rmfield(reopened, 'history'), ...
         rmfield(withHistory, 'history')), ...
     'and nothing else in the project moved', '');
+
+%% ----------------------------- stored as a string, held as a cell
+fprintf('\n--- the shape on disk and the shape in memory ---------------\n');
+
+stored = readFlat(stamped);
+nFail = nFail + check(ischar(stored.history), ...
+    'the file holds the history as one string', ...
+    sprintf('%s, %d chars', class(stored.history), numel(stored.history)));
+nFail = nFail + check(iscell(reopened.history), ...
+    'and the project holds the cell the design specifies', ...
+    'so project.history{3}.cfg still reads');
+
+% JSONDECODE's own inconsistency: a JSON array whose objects all have the
+% same fields comes back a STRUCT ARRAY, one whose objects differ comes back
+% a CELL. Two identical ielec calls give the first, and the project's history
+% has to be a cell either way.
+same = struct('function', 'ielec.thresholdCT', ...
+              'cfg',      struct('lowThreshold', 2500, 'highThreshold', 4000), ...
+              'date',     '2026-10-09 10:00:00', 'version', '2.0');
+uniform = project;
+uniform.history = {same, same, same};
+uniformFile = fullfile(outFolder, 'uniform.iel');
+ielec.saveProject(struct('file', uniformFile), uniform, work, ui);
+[backUniform, ~] = ielec.openProject(struct('file', uniformFile), [], []);
+nFail = nFail + check(iscell(backUniform.history) && ...
+        isequaln(backUniform.history, {same, same, same}), ...
+    'three identical steps come back as a cell of three', ...
+    sprintf('%s of %d', class(backUniform.history), numel(backUniform.history)));
+
+% A file written between the commit that added the history and the one that
+% started serialising it holds the cell itself. There are none outside a
+% temporary folder, and reading them costs one branch.
+oldShape = fullfile(outFolder, 'cellshape.iel');
+flat = readFlat(stamped);
+flat.history = {step1, step2};
+saveFlat(oldShape, flat);
+[backOld, ~] = ielec.openProject(struct('file', oldShape), [], []);
+nFail = nFail + check(isequaln(backOld.history, {step1, step2}), ...
+    'and a file holding the cell itself still opens', ...
+    sprintf('%d steps', numel(backOld.history)));
+
+%% --------------------------------------------- what it costs, and what it loses
+fprintf('\n--- what a step costs --------------------------------------\n');
+
+% Measured on the history itself rather than as a delta buried in a 47 MB
+% file, where HDF5 block granularity dominates - and with DISTINCT steps,
+% because a hundred identical ones deflate to almost nothing and give a
+% figure that flatters the result. The one fixed number is the JSON length.
+steps = cell(1, 100);
+for k = 1:100
+    steps{k} = struct('function', 'ielec.thresholdCT', ...
+        'cfg',  struct('lowThreshold', 2000 + k, 'highThreshold', 4000 + 3*k), ...
+        'date', sprintf('2026-10-09 %02d:%02d:00', mod(k,24), mod(k*7,60)), ...
+        'version', '2.0');
+end
+perStepChars = numel(encodeHistory(steps)) / 100;
+nFail = nFail + check(perStepChars > 50 && perStepChars < 300, ...
+    'a recorded step is about 124 characters of JSON', ...
+    sprintf('%.0f characters a step', perStepChars));
+
+asString = fullfile(outFolder, 'asString.mat');
+asCell   = fullfile(outFolder, 'asCell.mat');
+saveHistory(asString, encodeHistory(steps));
+saveHistory(asCell,   steps);
+ratio = sizeOf(asCell) / sizeOf(asString);
+nFail = nFail + check(ratio > 10, ...
+    'and on disk it costs at least ten times less than the cell', ...
+    sprintf('%d B against %d B, %.0f-fold', sizeOf(asString), sizeOf(asCell), ratio));
+
+% What JSON carries and what it flattens, pinned here so that a change is
+% noticed in this test rather than in somebody's history. docs/API_LAYER.md
+% says the same in words.
+drift = struct('function', 'ielec.fitArray', 'date', 'd', 'version', '2.0', ...
+    'cfg', struct('name', 'LA', 'count', int32(8), 'spacing', 4.5, ...
+                  'useNailed', true, 'nothing', [], 'row', [1 2 3], ...
+                  'column', [1;2;3], 'unbounded', Inf, 'missing', NaN, ...
+                  'window', [10 Inf]));
+driftFile = fullfile(outFolder, 'drift.iel');
+withDrift = project;  withDrift.history = {drift};
+ielec.saveProject(struct('file', driftFile), withDrift, work, ui);
+[backDrift, ~] = ielec.openProject(struct('file', driftFile), [], []);
+c = backDrift.history{1}.cfg;
+
+nFail = nFail + check(strcmp(c.name, 'LA') && isequal(c.spacing, 4.5) && ...
+        islogical(c.useNailed) && c.useNailed && isempty(c.nothing), ...
+    'a name, a number, a flag and an empty come back as they were', '');
+nFail = nFail + check(isa(c.count, 'double') && isequal(c.count, 8), ...
+    'an int32 comes back a double, by value', ...
+    sprintf('int32(8) -> %s(%g)', class(c.count), c.count));
+
+% Orientation, the right way round: a JSON array decodes to a COLUMN, so a
+% row becomes a column and a column survives. The earlier version of this
+% check used c.row(:)' and passed either way, while the doc beside it said
+% the opposite of what happens.
+nFail = nFail + check(isequal(size(c.row), [3 1]) && isequal(c.row, [1;2;3]), ...
+    'a ROW vector comes back a column, values intact', ...
+    sprintf('1x3 -> %s', mat2str(size(c.row))));
+nFail = nFail + check(isequal(size(c.column), [3 1]) && isequal(c.column, [1;2;3]), ...
+    'and a column survives as it was', ...
+    sprintf('3x1 -> %s', mat2str(size(c.column))));
+
+% Inf and NaN are LOST, not flattened - the one case where a value rather
+% than a type goes. [NaN NaN NaN] is the documented default of
+% options.image_voxdim, so this is not a corner case.
+nFail = nFail + check(isempty(c.unbounded) && isempty(c.missing), ...
+    'a scalar Inf or NaN comes back 0-by-0 - the value is gone', ...
+    sprintf('Inf -> %s%s, NaN -> %s%s', class(c.unbounded), mat2str(size(c.unbounded)), ...
+            class(c.missing), mat2str(size(c.missing))));
+nFail = nFail + check(numel(c.window) == 2 && c.window(1) == 10 && ...
+        isnan(c.window(2)), ...
+    'and an Inf inside an array becomes NaN', mat2str(c.window'));
+
+%% --------------------------- a step JSON cannot carry costs that step only
+fprintf('\n--- and a save never fails because of a history -------------\n');
+
+% JSON cannot encode a function handle. Before this, such a cfg aborted the
+% save of the whole patient project and wrote no file at all.
+hard = project;
+hard.history = { ...
+    struct('function', 'ielec.loadCT', 'cfg', struct('callback', @sin), ...
+           'date', 'd', 'version', '2.0'), ...
+    struct('function', 'ielec.cluster', 'cfg', struct('nClusters', 8), ...
+           'date', 'd', 'version', '2.0')};
+hardFile = fullfile(outFolder, 'unencodable.iel');
+
+warnBefore = warning('off', 'all');
+threw = '';
+try
+    ielec.saveProject(struct('file', hardFile), hard, work, ui);
+catch err
+    threw = err.identifier;
+end
+warning(warnBefore);
+
+nFail = nFail + check(isempty(threw) && isfile(hardFile), ...
+    'a function handle in a cfg does not stop the save', threw);
+
+if isfile(hardFile)
+    [backHard, ~] = ielec.openProject(struct('file', hardFile), [], []);
+    nFail = nFail + check(numel(backHard.history) == 2 && ...
+            isequaln(backHard.history{2}, hard.history{2}), ...
+        'the step beside it is kept, cfg and all', ...
+        sprintf('%d steps back', numel(backHard.history)));
+    nFail = nFail + check(ischar(backHard.history{1}.cfg) && ...
+            contains(backHard.history{1}.cfg, 'not recorded'), ...
+        'and the one that could not be written says so', ...
+        firstChars(backHard.history{1}.cfg, 48));
+end
 
 %% ----------------------------------------------- and 1.020 can open it
 fprintf('\n--- iElectrodes 1.020 opening a v2 file --------------------\n');
@@ -271,6 +421,30 @@ end
 function s = readFlat(file)
 loaded = load(file, '-mat');
 s = loaded.s;
+end
+
+function saveFlat(file, s)
+% s is used - SAVE takes it by name, which the Code Analyzer understands, so
+% no pragma (one suppressing a message MATLAB does not emit becomes a message
+% of its own)
+save(file, 's', '-v7.3');
+end
+
+function n = sizeOf(file)
+d = dir(file);
+n = d.bytes;
+end
+
+function saveHistory(file, value)
+% the history on its own, in the two fields the format adds
+s = struct();
+s.schemaVersion = 2;
+s.history = value;
+save(file, 's', '-v7.3');
+end
+
+function out = firstChars(text, n)
+if numel(text) > n, out = [text(1:n) '...']; else, out = text; end
 end
 
 function value = fieldOr(s, name, default)

@@ -209,15 +209,46 @@ a "save the session as a script" feature would read.
 Rules for it:
 
 - The cfg holds settings and file names only, never images or other large
-  data. That keeps the *settings* small, but it is not what decides the size:
-  the container does. A cell of structs in a `-v7.3` file is HDF5, and every
-  cell element and nested struct is an object with its own header, so a
-  recorded step costs about **4.5 kB whatever is in its cfg** - measured, and
-  roughly flat from 10 steps to 500. A hundred steps add 0.4 MB to a file; a
-  session of five hundred adds 2.2 MB. The same history is 17 bytes a step in
-  `-v7`, and 13 as one serialised string. Whether that is worth changing the
-  shape for is `docs/OPEN_QUESTIONS.md` item 41, and it is worth deciding
-  before the functions start filling it.
+  data. That keeps the settings small, but it is not what decides the size of
+  the file: the container does. A cell of structs in a `-v7.3` file is HDF5,
+  where every cell element and nested struct is an object with its own header,
+  so a recorded step cost about **4,400 bytes whatever was in its cfg**.
+- **So the file stores the history as one string, and the project holds the
+  cell.** `encodeHistory` and `decodeHistory` are the two ends of that, called
+  by `writeIelFile` and `checkProjectStructure`. The shape above is unchanged:
+  `project.history{3}.cfg.lowThreshold` is how a step is read, and the file
+  carries the field the design names. Only its type on disk is different.
+- The honest figure for what it costs is **124 characters of JSON a step**.
+  What that costs on disk falls as the history grows, because the file is
+  deflated: measured with distinct steps, about 250 bytes a step for the
+  first few, 66 at a hundred steps, 21 at a thousand. Two orders of magnitude
+  below the cell of structs either way. Beware per-step figures taken from
+  repeated identical steps - a hundred and five hundred copies of one step
+  give the same file size, because what is being measured there is
+  compression. `docs/OPEN_QUESTIONS.md` item 41 has the tables.
+- **A save never fails because of a history.** JSON cannot carry a function
+  handle, a complex number, a sparse matrix or a duration. A cfg holding one
+  used to abort the save of the whole patient project; now that step's cfg is
+  replaced by a note, the other steps are kept, the file is written, and a
+  warning says which steps were affected.
+- What JSON does not carry, for the values it does accept, is three things,
+  and `tests/test_ielFormat.m` pins all three:
+    - **class**: an `int32` comes back a double of the same value;
+    - **orientation**: a ROW vector comes back a COLUMN. A column survives -
+      a JSON array decodes to a column, which is why it is that way round and
+      not the other. This has a consequence worth knowing: `ielec.newTarget`
+      and `ielec.placeTarget` require `cfg.centre` to be exactly 1-by-3, so a
+      `cfg` read back out of a history cannot be replayed into them without
+      transposing it first. `ielec.addCoordinate` and `ielec.aimTarget` take
+      either orientation. See `docs/OPEN_QUESTIONS.md` item 42;
+    - **`Inf` and `NaN`**, which are *lost rather than flattened*: a scalar
+      comes back 0-by-0 and inside an array it becomes `NaN`. That is a value
+      going, not a type, and it matters - `[NaN NaN NaN]` is the documented
+      default of `options.image_voxdim`, so a step that records a whole
+      options struct does not survive a round trip intact.
+
+  A value that has to survive byte for byte does not belong in a recorded
+  step.
 - It changes the `.iel` format. The file gets two new fields, `history` and
   `schemaVersion` (2). **That half is done.** v2 opens a v1.020 file with an
   empty history, and v1.020 opens a v2 file: `tests/test_ielFormat.m` runs
