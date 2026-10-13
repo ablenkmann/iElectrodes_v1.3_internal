@@ -203,6 +203,8 @@ project.targets{cfg.index} = target;
 % --------------------------------------------------------- and the frame
 % After the trajectory, because frameDown follows the new last contact.
 [project, work] = ielec.setFrame(struct('index', cfg.index), project, work);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

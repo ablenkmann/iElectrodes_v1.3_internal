@@ -99,6 +99,8 @@ end
 project.targets{cfg.index}.frameDown = frameDown;
 project.targets{cfg.index}.beta      = beta;
 project.targets{cfg.index}.alpha     = alpha;
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

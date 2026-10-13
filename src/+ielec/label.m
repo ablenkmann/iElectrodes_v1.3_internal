@@ -56,6 +56,8 @@ end
 % the one authoritative copy
 project.electrodes = prj.electrodes;
 project.targets    = prj.targets;
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

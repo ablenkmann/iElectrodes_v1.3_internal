@@ -3,9 +3,10 @@ function [project, work] = clearCoordinates(cfg, project, work)
 %
 %   [project, work] = ielec.clearCoordinates(cfg, project, work) empties the
 %   coordinates in progress: the contacts, the voxels they were made from,
-%   their weights and their cluster numbers. PROJECT is not changed, so the
-%   arrays already localized are untouched - this is the way out of a
-%   clustering that went wrong, not a way to delete an array.
+%   their weights and their cluster numbers. PROJECT gains nothing but the
+%   step this records in its history, so the arrays already localized are
+%   untouched - this is the way out of a clustering that went wrong, not a
+%   way to delete an array.
 %
 %   Options (cfg): none. Pass [].
 %
@@ -31,7 +32,7 @@ function [project, work] = clearCoordinates(cfg, project, work)
 %   See also IELEC.UNDOCOORDINATES, IELEC.ADDCOORDINATE,
 %            IELEC.REMOVECOORDINATE, IELEC.CLUSTER.
 
-checkCfg(cfg, struct(), {}, 'clearCoordinates');
+cfg = checkCfg(cfg, struct(), {}, 'clearCoordinates');
 
 work = keepForUndo(work);
 
@@ -39,4 +40,6 @@ work.GS          = [];
 work.brushCrd    = [];
 work.brushWeight = [];
 work.clusters    = [];
+
+project = recordStep(project, mfilename, cfg);
 end

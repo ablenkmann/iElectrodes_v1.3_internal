@@ -76,6 +76,8 @@ end
 before = numel(fieldOr(project, 'electrodes', {}));
 project.electrodes = [fieldOr(project, 'electrodes', {}) newArrays];
 added = before + (1:numel(newArrays));
+
+project = recordStep(project, mfilename, cfg);
 end
 
 % ---------------------------------------------------------------------

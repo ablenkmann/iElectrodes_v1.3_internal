@@ -10,11 +10,17 @@ function [project, work] = selectVoxels(cfg, project, work)
 %                            lowest in the CT - the weight clustering and
 %                            GridFit give it
 %
-%   PROJECT is not changed.
+%   PROJECT gains nothing but the step this records in its history.
 %
 %   Options (cfg):
 %     cfg.indices   which of the candidate voxels are selected: a logical
 %                   array as long as them, or a list of positions. required
+%
+%   What reaches the history is not cfg.indices but how many were picked,
+%   as .selected out of .outOf - rule 3b of docs/API_LAYER.md, because the
+%   list is as long as the candidate voxels and the history is meant to stay
+%   small. It is the one function whose recorded step is a summary of its cfg
+%   rather than the cfg.
 %
 %   Which voxels the user picked is the frontend's input - in the GUI it
 %   comes from brushing the 3-D plot. What they are is data, and it belongs
@@ -63,4 +69,15 @@ end
 
 work.selectedVoxels  = candidates(idx, :);
 work.selectedWeights = voxelWeights(project.TAC, project.S2, work.selectedVoxels);
+
+% Rule 3b of docs/API_LAYER.md: "the history records how many were picked
+% rather than the list". cfg.indices is as long as the candidate voxels -
+% 4,558 of them on the example project, which is 27,000 characters of JSON
+% for one step where every other kind of step is 124. So the step records the
+% count, and the field says what it is rather than keeping the name of
+% something it no longer holds.
+recorded = rmfield(cfg, 'indices');
+recorded.selected   = size(work.selectedVoxels, 1);
+recorded.outOf      = size(candidates, 1);
+project = recordStep(project, mfilename, recorded);
 end

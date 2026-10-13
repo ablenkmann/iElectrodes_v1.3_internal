@@ -124,6 +124,8 @@ if ~isempty(nailCoords)
     work.oldclusters    = fieldOr(work, 'clusters', []);
     work.GS             = [];
 end
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

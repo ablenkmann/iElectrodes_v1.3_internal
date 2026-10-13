@@ -92,6 +92,8 @@ end
 
 project.targets{cfg.index} = placePlanningGrid(target, centre, cfg.rotation, ...
     project.vertices_SCE_L, project.vertices_SCE_R);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

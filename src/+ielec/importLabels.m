@@ -53,5 +53,10 @@ labels = readContactLabels(cfg.file, cfg.format);
 
 if ~isempty(labels)
     project.elecListLabels = labels;
+
+    % Only here: a file that yields no labels leaves the project as it was,
+    % which this function's help promises, and a step for that would be a
+    % record of nothing happening.
+    project = recordStep(project, mfilename, cfg);
 end
 end

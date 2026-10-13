@@ -3,7 +3,7 @@ function [project, work] = setOptions(cfg, project, work)
 %
 %   [project, work] = ielec.setOptions(cfg, project, work) fills
 %   work.options with the defaults, and with whatever cfg.options overrides.
-%   PROJECT is not changed.
+%   PROJECT gains nothing but the step this records in its history.
 %
 %   Options (cfg):
 %     cfg.options  a struct whose fields override the defaults. [] takes the
@@ -44,4 +44,6 @@ if isempty(work)
 end
 
 work.options = default_ielectrodes_options(cfg.options);
+
+project = recordStep(project, mfilename, cfg);
 end

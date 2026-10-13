@@ -68,6 +68,8 @@ if isempty(cfg.index)
     work.brushWeight = [];
     work.clusters    = [];
 end
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

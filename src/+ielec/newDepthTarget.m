@@ -140,6 +140,8 @@ target.frameDown     = 0;
 
 % and aim it, which lays the contacts out and works out the frame angles
 [project, work] = ielec.aimTarget(struct('index', index), project, work);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

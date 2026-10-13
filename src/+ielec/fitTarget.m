@@ -87,6 +87,8 @@ options.SCE_springs_projection = options.SCE_springs_projection_planning;
 fitted = electrodes2hullCorrection({target}, vertices, faces, options);
 
 project.targets{cfg.index} = fitted{1};
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

@@ -67,6 +67,8 @@ if isempty(lut)
     lut = fieldOr(fieldOr(work, 'options', struct()), 'atlasLUTFile', '');
 end
 colours = parcellationColours(project.wmparc.img, lut);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

@@ -76,6 +76,8 @@ target = newPlanningGrid(cfg.centre, cfg.rows, cfg.columns, cfg.spacing, ...
                          project.vertices_SCE_L, project.vertices_SCE_R);
 
 [project.targets, index] = addArray(project.targets, target);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

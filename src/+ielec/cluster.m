@@ -1,4 +1,4 @@
-function [project, work, quality] = cluster(cfg, project, work) %#ok<INUSL> project is not changed
+function [project, work, quality] = cluster(cfg, project, work)
 %IELEC.CLUSTER  Group the selected voxels into contacts.
 %
 %   [project, work, quality] = ielec.cluster(cfg, project, work) splits the
@@ -14,8 +14,9 @@ function [project, work, quality] = cluster(cfg, project, work) %#ok<INUSL> proj
 %
 %   The previous values are kept in work.oldGS, work.oldbrushCrd,
 %   work.oldclusters and work.oldbrushWeight, which is what Undo restores.
-%   PROJECT is not changed: these are contacts in progress, not an accepted
-%   array. IELEC.GRIDFIT and the Add button are what make an array of them.
+%   PROJECT gains nothing but the step this records in its history: these are
+%   contacts in progress, not an accepted array. IELEC.GRIDFIT and the Add
+%   button are what make an array of them.
 %
 %   Options (cfg):
 %     cfg.nClusters   how many contacts to find.                   required
@@ -73,4 +74,6 @@ work.GS          = [work.GS;          GS];
 work.brushCrd    = [work.brushCrd;    work.selectedVoxels];
 work.clusters    = [work.clusters;    clusters + length(unique(work.clusters))];
 work.brushWeight = [work.brushWeight; weight];
+
+project = recordStep(project, mfilename, cfg);
 end

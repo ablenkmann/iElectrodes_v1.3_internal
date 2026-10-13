@@ -3,7 +3,8 @@ function [project, work] = addCoordinate(cfg, project, work)
 %
 %   [project, work] = ielec.addCoordinate(cfg, project, work) puts one more
 %   contact into the coordinates in progress, at the point it is given, and
-%   weighs it by the CT. PROJECT is not changed.
+%   weighs it by the CT. PROJECT gains nothing but the step this records in
+%   its history.
 %
 %   Options (cfg):
 %     cfg.coordinate   1-by-3, where the contact goes, in anatomical
@@ -93,6 +94,8 @@ work.GS          = [work.GS;          crd];
 work.brushCrd    = [work.brushCrd;    crd];
 work.clusters    = [work.clusters;    (length(unique(work.clusters)) + 1)];
 work.brushWeight = [work.brushWeight; weight];
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

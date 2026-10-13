@@ -68,6 +68,8 @@ end
 
 project.electrodes = electrodes2hullCorrection(arrays, vertices, faces, ...
                                                work.options, alreadyDone);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

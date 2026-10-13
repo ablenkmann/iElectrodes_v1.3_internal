@@ -3,7 +3,7 @@ function [project, work] = undoCoordinates(cfg, project, work)
 %
 %   [project, work] = ielec.undoCoordinates(cfg, project, work) swaps the
 %   coordinates in progress with the copy kept before the last change to
-%   them. PROJECT is not changed.
+%   them. PROJECT gains nothing but the step this records in its history.
 %
 %   Options (cfg): none. Pass [].
 %
@@ -27,7 +27,7 @@ function [project, work] = undoCoordinates(cfg, project, work)
 %   See also IELEC.ADDCOORDINATE, IELEC.REMOVECOORDINATE,
 %            IELEC.CLEARCOORDINATES, IELEC.CLUSTER, IELEC.FITARRAY.
 
-checkCfg(cfg, struct(), {}, 'undoCoordinates');
+cfg = checkCfg(cfg, struct(), {}, 'undoCoordinates');
 
 % four swaps, as the button made them
 for f = {{'GS', 'oldGS'}, {'brushCrd', 'oldbrushCrd'}, ...
@@ -38,4 +38,6 @@ for f = {{'GS', 'oldGS'}, {'brushCrd', 'oldbrushCrd'}, ...
     work.(current) = work.(before);
     work.(before)  = keep;
 end
+
+project = recordStep(project, mfilename, cfg);
 end

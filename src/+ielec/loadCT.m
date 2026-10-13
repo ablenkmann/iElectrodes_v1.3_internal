@@ -61,4 +61,6 @@ project.S2   = project.TAC.vol.mat(1:3,:);
 
 work.maxValue = max(project.TAC.img(:));
 work.minValue = min(project.TAC.img(:));
+
+project = recordStep(project, mfilename, cfg);
 end

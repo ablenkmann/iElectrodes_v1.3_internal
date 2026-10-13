@@ -53,7 +53,7 @@ cfg = [];
 cfg.mri = mriFile;
 [project, work] = ielec.newProject(cfg, [], before.work);
 
-nFail = nFail + check(isequaln(project, expected.project), ...
+nFail = nFail + check(isequaln(withoutHistory(project), withoutHistory(expected.project)), ...
     'project is what the New button built', sprintf('%d fields', numel(fieldnames(project))));
 nFail = nFail + check(isequaln(rmfield(work,'selection'), rmfield(expected.work,'selection')), ...
     'work is what the New button built', '');
@@ -94,7 +94,7 @@ nFail = nFail + check(isequaln(ielec.newProject(cfg, [], before.work), project),
     'a string works as well as a char', '');
 
 p2 = ielec.newProject(struct('mri', mriFile), [], []);
-nFail = nFail + check(isequaln(p2, project), ...
+nFail = nFail + check(isequaln(withoutHistory(p2), withoutHistory(project)), ...
     'a script can start from no work at all', '');
 
 cfg = []; cfg.mri = mriFile; cfg.T1file = mriFile;   % a misspelt option

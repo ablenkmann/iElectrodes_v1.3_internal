@@ -98,6 +98,8 @@ if ~isempty(cfg.labels)
 else
     project.(cfg.group){cfg.index} = nameArrayContacts(array, cfg.baseName);
 end
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

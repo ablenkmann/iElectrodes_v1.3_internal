@@ -3,7 +3,8 @@ function [project, work, removed] = removeCoordinate(cfg, project, work)
 %
 %   [project, work, removed] = ielec.removeCoordinate(cfg, project, work)
 %   finds the contact in progress nearest the point it is given and takes it
-%   out, together with the voxels it was made from. PROJECT is not changed.
+%   out, together with the voxels it was made from. PROJECT gains nothing but
+%   the step this records in its history.
 %
 %   Options (cfg):
 %     cfg.coordinate   1-by-3, the point to look near, in anatomical
@@ -78,6 +79,8 @@ work.brushCrd(thisCluster, :)    = [];
 work.brushWeight(thisCluster, :) = [];
 
 removed = true;
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

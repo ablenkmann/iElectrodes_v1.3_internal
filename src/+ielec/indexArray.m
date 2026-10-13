@@ -148,6 +148,8 @@ else
 end
 
 array.adjMat = makeAdjMat(array.rows, array.columns);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

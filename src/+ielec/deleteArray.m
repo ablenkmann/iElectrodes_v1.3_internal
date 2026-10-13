@@ -57,6 +57,8 @@ if ~isnumeric(n) || ~isscalar(n) || n < 1 || mod(n,1) ~= 0 || n > numel(arrays)
 end
 
 [project.(cfg.group), selected] = removeArray(arrays, n);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

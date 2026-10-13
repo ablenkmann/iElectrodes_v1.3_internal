@@ -106,6 +106,8 @@ else
 end
 
 project.electrodes{cfg.index} = reorderElectrodes(array, newOrder);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

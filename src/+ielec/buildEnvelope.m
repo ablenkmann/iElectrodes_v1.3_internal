@@ -48,6 +48,8 @@ if ~isempty(cfg.resample)
 end
 
 project = putSurfaces(project, 'envelope', vR, fR, vL, fL);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

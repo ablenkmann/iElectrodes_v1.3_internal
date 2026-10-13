@@ -268,10 +268,55 @@ Rules for it:
 - File paths are stored as given. They can contain a patient's name, so they
   need care when a project is shared.
 
-Because it changes the file, the format came in a commit of its own. The
-functions do not record anything yet: `project.history` exists, is saved and is
-read back, and is still empty for every project. Filling it is the next
-commit, and it touches every ielec function that changes the project.
+Because it changes the file, the format came in two commits of its own - the
+fields, and then the string the history is stored as. **The functions record
+now.**
+
+Thirty-one of the forty record a step; nine do not, and
+`tests/test_ielecHistory.m` names those nine with a reason each and fails if a
+layer function neither records nor appears there. The nine are the three kinds
+of function that produce nothing: one that reports (`projectionState`,
+`pointLabel`, `arrayFileContents`, `colourCaches`), one that writes a file
+(`saveProject`, `saveTargets`, `export`), and one that starts a session
+(`startSession`, `openProject` - which replaces the project with a file,
+history and all, so a step there would grow the history on every open).
+
+Two things about what gets recorded are worth knowing:
+
+- **the cfg is the one `checkCfg` filled in**, not the one the caller passed.
+  `ielec.newDepthTarget([], project, work)` records
+  `{"name":"Planning","targetIn":[0,0,0],"targetOut":[45,45,45],"nContacts":10,...}`,
+  which is the point: a threshold of 2500 is recorded as 2500 and not as an
+  empty cfg that happened to default to it. The one exception is
+  `ielec.selectVoxels`, which records how many voxels were picked instead of
+  which - rule 3b above, because `cfg.indices` is as long as the candidate
+  list and the step would be 27,000 characters against a typical 124;
+- **a call the layer makes to itself records nothing.** `ielec.aimTarget`
+  calls `ielec.setFrame`, and `ielec.newDepthTarget` calls `ielec.aimTarget`.
+  Without that, one keystroke in the Azimuth box would write three steps, two
+  of them the layer talking to itself, and replaying them in order would apply
+  the inner ones twice. So the history records the calls the FRONTEND made,
+  which is also the list a script would have to make; `recordStep` reads the
+  stack to tell them apart. Called directly, each still records.
+
+Two things a recorded cfg carries that are worth knowing before this is relied
+on. `ielec.setOptions` takes a whole options struct, so its step is 2,733
+characters - twenty times a typical one - and `options.image_voxdim` is a
+1-by-3 row, which JSON brings back as a column, so that one step does not
+survive the file unchanged. The window never reaches it (the Config button
+passes `cfg = []`, recorded as twelve characters); a script does. And every
+function that takes a file name records it as given: `loadCT`, `newProject`,
+`loadSurfaces`, `loadTargets` and `importLabels` put the full path in the
+history, which from this commit travels inside a shared `.iel`. The bullet
+below has always said paths need care when a project is shared; it now
+applies to the history as well as to the fields it was written about.
+
+The work-stage functions record too - `thresholdCT`, `selectVoxels`,
+`cluster`, `fitArray` and the rest - which is what keeps the Localize settings
+and answers item 18. The consequence is that their help no longer says
+"PROJECT is not changed": it says the project gains nothing but the step
+recorded in its history, which is true and is the only thing that changed
+about them.
 
 ## What exists
 

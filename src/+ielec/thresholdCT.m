@@ -8,9 +8,9 @@ function [project, work] = thresholdCT(cfg, project, work)
 %     work.candidateVoxels   N x 3, their anatomical coordinates
 %     work.candidateValues   N x 1, how bright each one is
 %
-%   PROJECT is not changed. What the user then picks out of these is
-%   IELEC.SELECTVOXELS; any earlier selection is cleared, because it refers
-%   to voxels that are no longer on offer.
+%   PROJECT gains nothing but the step this records in its history. What the
+%   user then picks out of these is IELEC.SELECTVOXELS; any earlier selection
+%   is cleared, because it refers to voxels that are no longer on offer.
 %
 %   Options (cfg):
 %     cfg.lowThreshold    lower intensity, in the CT's own units. required
@@ -72,4 +72,6 @@ end
 % a selection made from the previous voxels means nothing now
 work.selectedVoxels  = [];
 work.selectedWeights = [];
+
+project = recordStep(project, mfilename, cfg);
 end

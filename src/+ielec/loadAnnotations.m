@@ -62,6 +62,12 @@ if ~any(given)     % no annotation: grey vertices, and nothing kept
 
     colours.right = ones(length(fieldOr(project, 'verticesR', [])), 3) * .5;
     colours.left  = ones(length(fieldOr(project, 'verticesL', [])), 3) * .5;
+
+    % Clearing the annotations IS the work on this branch - the four fields
+    % above held a label per vertex, over a hundred thousand of them - so the
+    % step is recorded here and not at the end, which this return never
+    % reaches. The Pial button's "No" takes it.
+    project = recordStep(project, mfilename, cfg);
     return
 end
 
@@ -75,6 +81,8 @@ project.AnnotColortable_L = tableL;
 
 colours.right = annotationColours(labelR, tableR);
 colours.left  = annotationColours(labelL, tableL);
+
+project = recordStep(project, mfilename, cfg);
 end
 
 function value = fieldOr(s, name, default)

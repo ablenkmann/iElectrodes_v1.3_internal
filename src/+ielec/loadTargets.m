@@ -39,4 +39,6 @@ if ~ischar(cfg.file) || isempty(cfg.file)
 end
 
 project.targets = loadPlanningTargets(cfg.file);
+
+project = recordStep(project, mfilename, cfg);
 end

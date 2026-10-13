@@ -83,4 +83,6 @@ work.selection.array          = 0;     % nothing selected in an empty project
 work.selection.contact        = 0;
 work.selection.planningArray  = 0;
 work.selection.planningTarget = 0;
+
+project = recordStep(project, mfilename, cfg);
 end

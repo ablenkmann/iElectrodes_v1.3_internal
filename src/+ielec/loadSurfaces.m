@@ -71,4 +71,6 @@ if ~isempty(cfg.resample)
 end
 
 project = putSurfaces(project, cfg.target, vR, fR, vL, fL);
+
+project = recordStep(project, mfilename, cfg);
 end
