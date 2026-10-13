@@ -236,11 +236,21 @@ Rules for it:
     - **class**: an `int32` comes back a double of the same value;
     - **orientation**: a ROW vector comes back a COLUMN. A column survives -
       a JSON array decodes to a column, which is why it is that way round and
-      not the other. This has a consequence worth knowing: `ielec.newTarget`
-      and `ielec.placeTarget` require `cfg.centre` to be exactly 1-by-3, so a
-      `cfg` read back out of a history cannot be replayed into them without
-      transposing it first. `ielec.addCoordinate` and `ielec.aimTarget` take
-      either orientation. See `docs/OPEN_QUESTIONS.md` item 42;
+      not the other. That used to mean a recorded cfg could not be replayed:
+      `ielec.newTarget` and `ielec.placeTarget` required `cfg.centre` to be
+      exactly 1-by-3 and so refused their own recorded step. All **six**
+      functions that take a point now accept three numbers in any
+      orientation and normalise with `(:)'`: `ielec.addCoordinate`,
+      `ielec.removeCoordinate`, `ielec.aimTarget` and
+      `ielec.newDepthTarget` already did, and these two now do.
+      `ielec.pointLabel` is the seventh function that takes coordinates and
+      is deliberately left out: its `cfg.coordinate` is an N-by-3 **list**,
+      where a 3-by-1 is ambiguous rather than merely unoriented - one point
+      as a column, or three points of one coordinate each? It also records
+      no step, being one of the nine that only report, so no recorded cfg is
+      ever replayed into it. See `docs/OPEN_QUESTIONS.md` item 42;
+      `tests/test_ielecPlanningGrid.m` replays a step out of a history to
+      prove the rest;
     - **`Inf` and `NaN`**, which are *lost rather than flattened*: a scalar
       comes back 0-by-0 and inside an array it becomes `NaN`. That is a value
       going, not a type, and it matters - `[NaN NaN NaN]` is the documented

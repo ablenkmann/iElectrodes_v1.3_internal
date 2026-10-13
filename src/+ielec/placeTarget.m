@@ -7,10 +7,11 @@ function [project, work] = placeTarget(cfg, project, work)
 %
 %   Options (cfg):
 %     cfg.index     which target. Required.
-%     cfg.centre    1-by-3, where its centre should go. Use this or
-%                   cfg.offset, not both.                      Default: []
-%     cfg.offset    1-by-3 in mm, added to the centre it has now - which is
-%                   what the six arrow buttons do.             Default: []
+%     cfg.centre    three numbers in any orientation, where its centre
+%                   should go. Use this or cfg.offset, not both.
+%                                                              Default: []
+%     cfg.offset    three numbers in mm, added to the centre it has now -
+%                   which is what the six arrow buttons do.    Default: []
 %     cfg.rotation  an extra turn about the centre, in degrees. [] is no
 %                   turn at all, which is not the same as 0: with [] the
 %                   rotation step is skipped, and that is what the buttons
@@ -64,11 +65,19 @@ if isempty(cfg.centre) == isempty(cfg.offset)
         ['ielec.placeTarget: say where it goes with cfg.centre, or how far ' ...
          'to move it with cfg.offset - one of the two.']);
 end
+% Three numbers in any orientation - see IELEC.NEWTARGET and item 42. The
+% row is not optional downstream: mean([x y z]) is 1-by-3, so a 3-by-1
+% cfg.offset expands into a 3-by-3, and PLACEPLANNINGGRID then throws
+% MATLAB:sizeDimensionsMustMatch - measured. It does not misplace the grid,
+% it stops it, with an identifier that is not one of ours (rule 5).
 for f = {'centre', 'offset'}
     v = cfg.(f{1});
-    if ~isempty(v) && (~isnumeric(v) || ~isequal(size(v), [1 3]) || ~all(isfinite(v)))
+    if ~isempty(v) && (~isnumeric(v) || numel(v) ~= 3 || ~all(isfinite(v)))
         error('ielec:badOption', ...
             'ielec.placeTarget: cfg.%s must be three numbers, as [x y z].', f{1});
+    end
+    if ~isempty(v)
+        cfg.(f{1}) = v(:)';
     end
 end
 if ~isempty(cfg.rotation) && (~isnumeric(cfg.rotation) || ...

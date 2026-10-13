@@ -1777,8 +1777,8 @@ history to size in 1.020.
 
 ## 42. A cfg read back out of the history cannot always be replayed
 
-**Where:** `encodeHistory` / `decodeHistory`, against `ielec.newTarget:47` and
-`ielec.placeTarget:69`
+**Where:** `encodeHistory` / `decodeHistory`, against `ielec.newTarget:52` and
+`ielec.placeTarget:75`
 
 `docs/API_LAYER.md` names a "save the session as a script" feature as one of
 the things the processing history is for. That does not work yet, and the
@@ -1805,7 +1805,47 @@ The same applies to `default_ielectrodes_options`: its `image_voxdim` is a
 `work.options`. It survives today only because `loading_images_SPM` happens to
 do `voxdim = abs(voxdim(:)')`. Nothing guarantees that for the next consumer.
 
-**Decision needed:** which side moves? Either
+**Answered: (1), the six functions that take a point agree.**
+`ielec.newTarget` and `ielec.placeTarget` check `numel(v) ~= 3` and normalise
+with `(:)'`, which is what `ielec.addCoordinate`, `ielec.removeCoordinate`,
+`ielec.aimTarget` and `ielec.newDepthTarget` already did. Two lines, and the
+six agree about what a point is.
+
+Six, not four: the first draft of this item said four and was simply
+miscounted - `ielec.removeCoordinate` and `ielec.newDepthTarget` were already
+in the normalising half and were left out of the tally.
+
+`ielec.pointLabel` is the seventh function that takes coordinates and it is
+**not** included, deliberately. Its `cfg.coordinate` is an N-by-3 *list*, and
+there a 3-by-1 is ambiguous rather than merely unoriented: one point written
+as a column, or three points of one coordinate each? Guessing would be worse
+than refusing, so it keeps `size(cfg.coordinate, 2) ~= 3`, which is what its
+help has always promised. It is also one of the nine functions that record no
+step, because it only reports - so there is no recorded `ielec.pointLabel`
+cfg to replay, and the replay argument does not reach it.
+
+It is a deliberate behaviour change - the first in this effort - because the
+two functions now accept input they used to refuse. Nothing that worked
+before stops working: the GUI and every test pass 1-by-3, and the count is
+still checked, so two numbers or four are refused as they were. The
+normalisation is not cosmetic in `ielec.placeTarget`: `mean([x y z])` is
+1-by-3, so a 3-by-1 `cfg.offset` expands into a 3-by-3, and
+`placePlanningGrid` then throws `MATLAB:sizeDimensionsMustMatch`. Measured -
+an earlier draft of this item said it would *misplace* the grid, which is
+wrong and the kinder failure of the two. It stops the call, with an
+identifier that is not one of ours.
+
+`tests/test_ielecPlanningGrid.m` now takes a recorded `ielec.newTarget` step
+through `encodeHistory`/`decodeHistory`, confirms its centre comes back
+3-by-1, and replays it - producing the same grid. That is the thing this item
+existed for.
+
+What is left of the original question is about the *rest* of a cfg rather
+than a point: a recorded `cfg.options` carries an `image_voxdim` that also
+comes back a column, and nothing yet promises that every recorded cfg is
+replayable - only that a point is.
+
+**The three ways out, as they were written.** Either
 
 1. the four functions that take a point agree to accept three numbers in any
    orientation, as two of them already do - two lines, and it makes every
@@ -1821,4 +1861,106 @@ do `voxdim = abs(voxdim(:)')`. Nothing guarantees that for the next consumer.
 behaviour change in two layer functions - they would accept input they refuse
 today - so it belongs in a commit that says so, not in the format commit.
 
-**Status: open.** New in v2; there was no history to replay in 1.020.
+**Status: answered for a point; open for a whole cfg.** New in v2; there was no history to replay in 1.020.
+
+## 43. The layer checks that an option is numeric, not that it is a number it can use
+
+**Where:** every `isnumeric` in `src/+ielec/`, measured on
+`ielec.newTarget:52` and `ielec.placeTarget:75`
+
+`isnumeric` is a wider net than the layer wants, and `isfinite` does not
+narrow it the way it looks as though it does. Measured in R2023b:
+
+    isfinite(1+0.5i)          1     % a complex triple passes the guard
+    isnumeric(sparse([1 2 3])) 1    % so does a sparse one
+    isfloat(int32(1))          0
+    isnumeric(int32(1))        1    % and so does an integer one
+
+Driven through `ielec.newTarget` with `cfg.centre` on the example project's
+envelope, 4 by 5 at 10 mm:
+
+    complex(centre, [0 0 0.5])  ACCEPTED  grid shift 0.000 mm  recorded double
+    sparse(centre)              ACCEPTED  grid shift 0.000 mm  recorded double
+    single(centre)              ACCEPTED  grid shift 0.000 mm  recorded SINGLE
+    int32(round(centre))        refused   MATLAB:mtimes:integerNotSupported
+    [true true true]            refused   ielec:badOption
+
+Two different problems, and neither is what you would guess:
+
+**The integer is a rule 5 breach.** An `int32` centre reaches the geometry and
+fails there, so the caller gets `MATLAB:mtimes:integerNotSupported` from
+`ielec.newTarget` and `MATLAB:mixedClasses` from `ielec.placeTarget`. The
+layer promises its own identifiers. Replacing `isnumeric` with `isfloat`
+would turn both into `ielec:badOption`, which is an error becoming a better
+error - nothing that works today stops working, because neither works today.
+
+**The complex number does not misplace anything - it quietly empties the
+record.** The grid it plans is identical to the real-valued one, to 0.000 mm,
+because the geometry discards the imaginary part on the way. The damage shows
+up one save later: `jsonencode` raises
+`MATLAB:json:UnsupportedComplexDataType`, so `encodeHistory` falls back to a
+note and that step comes back as
+
+    "cfg":"<not recorded: Unable to encode complex valued objects of
+     class double as JSON-formatted text.>"
+
+The call succeeded, the grid is right, and the provenance of it is gone. A
+`sparse` centre behaves the same way.
+
+`single` is the mild case: identical grid, but the step records
+`cfg.centre` as `single` where every other step records a double, and JSON
+brings it back as a double - so a replayed step is not the recorded one,
+class for class.
+
+**Why this is written down rather than fixed.** `isfloat` alone is free, but
+`isreal` and `~issparse` are not: a complex or sparse centre *works today* and
+plans the correct grid, so refusing it turns a success into an error. That is
+exactly the change this effort has made by accident before and now checks for
+deliberately. The honest fix is one decision taken once for the whole layer -
+what classes an option may have, applied to all six point-takers and to
+`spacing`, `rotation`, `index`, `tolerance` and the rest - not two conjuncts
+smuggled into a commit about orientation. It wants its own commit and a
+sentence in `docs/API_LAYER.md` saying what a number is.
+
+Nobody reaches any of this from the window: the GUI passes doubles from
+`str2double` and the cursor. It is a script, or a typo in one, that gets here.
+
+**Status: open.** The `isnumeric` guards are v2; the geometry that fails on an
+integer is 1.020's.
+
+## 44. A one-by-one planning grid is a single contact at NaN
+
+**Where:** `ielec.newTarget:58` (the rows and columns check), into
+`newPlanningGrid` / `tangentialGrid`
+
+`ielec.newTarget` requires `cfg.rows` and `cfg.columns` to be positive whole
+numbers, which 1 and 1 are. Measured on the example project:
+
+    rows=1 columns=1   ACCEPTED   1 contact,  x=NaN y=NaN z=NaN
+    rows=1 columns=5   ACCEPTED   5 contacts, no NaN
+    rows=5 columns=1   ACCEPTED   5 contacts, no NaN
+    rows=2 columns=2   ACCEPTED   4 contacts, no NaN
+
+Only the 1-by-1 is degenerate: a single contact has no extent in either
+direction, so there is nothing for the tangent plane to be computed from. The
+grid is created, added to `project.targets`, named, counted and recorded as a
+step like any other - and every coordinate in it is `NaN`.
+
+It is reachable from the planning panel: the rows and columns boxes take any
+positive whole number, so typing 1 in both and pressing the button makes one.
+The frontend would then draw nothing and show a target that cannot be moved,
+turned or exported to anything meaningful.
+
+A single planned contact is not an absurd thing to want - a one-contact depth
+target is what `ielec.newDepthTarget` is for, with two points to orient it.
+What is absurd is a *grid* of one. The two candidate answers are to refuse
+`rows == 1 && columns == 1` with `ielec:badOption`, or to let the geometry
+answer and refuse the result when it comes back non-finite, which would also
+catch whatever else is degenerate that has not been found yet. The second is
+the better guard and the bigger change.
+
+Not fixed here: refusing it is a behaviour change in a function this commit
+is already changing for a different reason, and one commit says one thing.
+
+**Status: open.** Pre-existing - the guard is v2, but the geometry it calls is
+1.020's and takes 1-by-1 the same way.

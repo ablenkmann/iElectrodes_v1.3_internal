@@ -8,8 +8,9 @@ function [project, work, index] = newTarget(cfg, project, work)
 %   not changed.
 %
 %   Options (cfg):
-%     cfg.centre   1-by-3, where the centre of the grid should go - the
-%                  cursor, when the button is pressed. Required.
+%     cfg.centre   three numbers in any orientation, where the centre of
+%                  the grid should go - the cursor, when the button is
+%                  pressed. Required.
 %     cfg.rows     rows of contacts. Required.
 %     cfg.columns  contacts per row. Required.
 %     cfg.spacing  distance between neighbouring contacts, in mm. Required.
@@ -44,11 +45,16 @@ function [project, work, index] = newTarget(cfg, project, work)
 
 cfg = checkCfg(cfg, struct(), {'centre', 'rows', 'columns', 'spacing'}, 'newTarget');
 
-if ~isnumeric(cfg.centre) || ~isequal(size(cfg.centre), [1 3]) || ...
+% Three numbers in any orientation, as IELEC.AIMTARGET and
+% IELEC.ADDCOORDINATE take them. It used to require exactly 1-by-3, which a
+% cfg read back out of project.history cannot be: JSON has no orientation
+% and a JSON array decodes to a column. See docs/OPEN_QUESTIONS.md item 42.
+if ~isnumeric(cfg.centre) || numel(cfg.centre) ~= 3 || ...
         ~all(isfinite(cfg.centre))
     error('ielec:badOption', ...
         'ielec.newTarget: cfg.centre must be one point, as [x y z].');
 end
+cfg.centre = cfg.centre(:)';
 for f = {'rows', 'columns'}
     v = cfg.(f{1});
     if ~isnumeric(v) || ~isscalar(v) || ~isfinite(v) || v < 1 || mod(v, 1) ~= 0
