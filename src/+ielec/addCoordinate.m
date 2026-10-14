@@ -16,10 +16,9 @@ function [project, work] = addCoordinate(cfg, project, work)
 %   With cfg.group 'contacts' the contact joins work.GS, and the point joins
 %   work.brushCrd as a "cluster" of its own with the next free number, so
 %   that a contact added by hand and one found by clustering are the same
-%   kind of thing afterwards: IELEC.INDEXARRAY orders them together and
-%   IELEC.FITARRAY can hold a fit to either. The previous values go to
-%   work.oldGS and the other old fields, which IELEC.UNDOCOORDINATES swaps
-%   back.
+%   kind of thing afterwards: IELEC.INDEXARRAY orders them together. The
+%   previous values go to work.oldGS and the other old fields, which
+%   IELEC.UNDOCOORDINATES swaps back.
 %
 %   The weight is the CT intensity at that voxel, less the lowest in the CT.
 %   It is left in the CT's own class, which is what the button stored: that
@@ -49,10 +48,9 @@ function [project, work] = addCoordinate(cfg, project, work)
 %   are not the same shape of thing, which is the point of separating them.
 %
 %   This is the separation Alejandro's front-end note asks for -
-%   docs/OPEN_QUESTIONS.md item 40. The list exists and can be filled from
-%   here; what still reads it is nothing. IELEC.FITARRAY nails to work.GS as
-%   it always has, and moving it onto work.anchors is a change in what the
-%   Fit button produces, so it is its own commit.
+%   docs/OPEN_QUESTIONS.md item 40. IELEC.FITARRAY nails to work.anchors and
+%   consumes it, so this is how a fit is held to a point: with cfg.group
+%   'anchors'. Contacts in work.GS no longer hold one.
 %
 %   Nothing is drawn and no window is opened. Where the cursor is, and
 %   whether there is an image to put a contact on, belong to the frontend.

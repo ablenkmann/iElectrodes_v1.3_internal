@@ -181,7 +181,9 @@ end
 
 % The options assembly of Fitpushbutton_Callback. The dialogs are replaced by
 % arguments, and the nail table's answers by nailNumbers / nailCoords, which
-% stand for handles.work.uitable_elecNum and handles.work.GS.
+% stand for handles.work.uitable_elecNum and handles.work.GS - work.GS being
+% what the button read then, before item 40 moved the nails onto
+% work.anchors. This is the original code, so it keeps the original reading.
 
 function options = originalFitOptions(allOptions, type, rows, cols, fixM1, fixM1_BF, overlap, nailNumbers, nailCoords)
 switch type

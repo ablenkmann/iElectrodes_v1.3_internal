@@ -21,8 +21,12 @@ function options = gridFitOptions(baseOptions, type, rows, cols, fixM1, fixM1_BF
 %                  for a coordinate left unassigned
 %     NAILCOORDS   optional: the nailed coordinates, one row each
 %
-%   "Nailed" contacts are positions the user has already fixed by clustering;
-%   GridFit keeps those contacts at those positions.
+%   "Nailed" contacts are positions the user has already fixed by hand;
+%   GridFit keeps those contacts at those positions. They used to be the
+%   contacts found by clustering - work.GS - and are now the anchors in
+%   work.anchors, placed deliberately as anchors. The two are separate
+%   lists: see docs/OPEN_QUESTIONS.md item 40. NAILCOORDS is an argument
+%   either way, so nothing here changed but the sentence.
 %
 %   Finally the attraction to the CT voxels, minDef2.Kc, is set with
 %   KC_OPTIMAL from the array's size and spacing.

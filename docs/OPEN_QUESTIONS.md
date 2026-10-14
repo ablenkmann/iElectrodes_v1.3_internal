@@ -855,6 +855,11 @@ restructuring.
 
 **Where:** the Fit button's options, now `src/localization/gridFitOptions.m`
 
+(Read with item 40, which moved the nails: what can be nailed is no longer
+the clustered contacts but the anchors in `work.anchors`. The question this
+item asks - what an unnumbered nail means - is unaffected, and the paragraph
+below describes the toolbox as it was when the item was written.)
+
 Before GridFit runs, contacts found earlier by clustering can be "nailed":
 the user says in a small table which contact number each of those
 coordinates is, and GridFit keeps them there. A coordinate the user leaves
@@ -1749,8 +1754,55 @@ button has no way to be anchored from the window at all, and the nailing
 feature is reachable only from a script. That is a consequence worth writing
 down rather than discovering, and the two buttons are what answers it.
 
-**Status: answered; the list is in, the redirection follows.** The conflation
-is in v1.020 too.
+**Both commits are in.** `ielec.fitArray` reads `work.anchors`, consumes it
+and leaves `work.GS` where it is. Measured: given the same two nail
+coordinates, the array it fits is `isequaln`-identical to the one the Fit
+button's own lines built, so the only thing that changed is where the layer
+reads the nails from.
+
+The main path changes differently for the two kinds of caller, and the two
+must not be run together:
+
+- **from a script**, `cfg.useNailedContacts` true with contacts in `work.GS`
+  and an empty `work.anchors` is refused with `ielec:badOption`. What used to
+  nail a fit now says that it cannot;
+- **from the window**, cluster then Fit *runs unanchored*. The button asks
+  whether there are anchors, finds none, and never asks for nails at all.
+
+`electrodes_gui.m` moved with it, in three places rather than one, and the
+first attempt at this commit moved only the first of them:
+`cfg.useNailedContacts` asks `~isempty(handles.work.anchors)`; the gate
+twenty-seven lines above it, which decides whether the nail-number table
+appears, asks the same thing; and `app/dialogs/electrodeNailNaumber_uitable.m`
+numbers the rows of `work.anchors`. All three have to name one list. With only
+the first moved, clustering still opened the table, the table still numbered
+`work.GS`, a non-empty `cfg.nailNumbers` alone made `ielec.fitArray` ask for
+nails, and the button raised `ielec:badOption` - so the path above read
+"refused" where it should have read "unanchored". `tests/test_ielecFitArray.m`
+now pins all three by reading the files, because reverting any of them passes
+the whole suite otherwise.
+
+The block that refreshed the contact counter after a nailed fit is gone, since
+the fit no longer empties `work.GS`; `addElectrode2structure`, called just
+below it, refreshes the counter and sets `updatePlots.GS` anyway, so those two
+lines were redundant on that path before this commit as well. Every path that
+builds a `work` - `newProject`, `loadProject`, `ielec.startSession` - goes
+through `checkProjectStructure`, so the field is always there to ask about.
+
+**What this leaves open is the interface, and it is the known cost.** No
+button in the window puts anything in `work.anchors`, so the Fit button can
+never be anchored from the window: the nailing feature is reachable only from
+a script until the second of Alejandro's two buttons exists. Nor can the
+window empty the list - the Clear button passes the default group - so a
+`.iel` carrying anchors written by a script would leave the window's Fit
+button nailed to them with no control able to clear them. Both are the same
+missing panel. That is the frontend's job and it is the next thing the
+frontend owes this item - a Localization panel with the two procedures
+separated, (a) clustering + indexing and (b) GridFit with its own Add
+anchor button.
+
+**Status: answered and done in the layer; the two buttons are frontend
+work.** The conflation was in v1.020 too.
 
 ---
 

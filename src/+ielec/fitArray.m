@@ -17,8 +17,8 @@ function [project, work, array] = fitArray(cfg, project, work)
 %                    electrode. [] means the same as cfg.spacing. Default: []
 %     cfg.overlap    1 when the array overlaps itself, 0 when it does
 %                    not. Not used for a depth.                  Default: 0
-%     cfg.useNailedContacts   hold the fit to the contacts already in
-%                    work.GS.                                Default: false
+%     cfg.useNailedContacts   hold the fit to the anchors already in
+%                    work.anchors.                           Default: false
 %     cfg.nailNumbers  which contact of the array each of those is - what
 %                    the Fit button's table asks for. NaN for one that is
 %                    not assigned, and [] for none assigned at all, which
@@ -28,10 +28,17 @@ function [project, work, array] = fitArray(cfg, project, work)
 %   The array is returned rather than put in the project: it is a proposal
 %   until it is accepted, and the caller may still name it or throw it away.
 %
-%   WORK. When nailed contacts are used, the contacts in work.GS are what
-%   they are, so they are consumed: work.GS is emptied and the previous
-%   values are kept in work.oldGS and the other old fields, as the Fit
-%   button did, so that Undo restores them.
+%   WORK. When nailed contacts are used, the anchors in work.anchors are
+%   what they are, so they are consumed: work.anchors is emptied and the
+%   previous values are kept in work.oldanchors and the other old fields, so
+%   that Undo restores them.
+%
+%   The contacts in progress are NOT touched, and that is a change from what
+%   the Fit button did. The anchors used to be work.GS, so clustering and
+%   then fitting held the fit to the clustered contacts; the two lists are
+%   separate now, work.GS belongs to the indexing step, and a fit is held
+%   only by points placed by hand as anchors. That is Alejandro's answer,
+%   recorded in docs/OPEN_QUESTIONS.md item 40.
 %
 %   The name. The algorithm itself is GRIDFIT, in src/localization/. A
 %   function inside the package must not call a plain function of its own
@@ -89,19 +96,23 @@ if ~isnumeric(cfg.spacing) || ~isscalar(cfg.spacing) || ~isfinite(cfg.spacing) |
     error('ielec:badOption', 'ielec.fitArray: cfg.spacing must be a distance in mm.');
 end
 
-% nailed contacts: the ones already in work.GS, each told which contact of
-% the array it is
+% nailed contacts: the anchors already in work.anchors, each told which
+% contact of the array it is - NOT work.GS, which is the indexing step's
+% (docs/OPEN_QUESTIONS.md item 40)
 nailCoords = [];
 if cfg.useNailedContacts || ~isempty(cfg.nailNumbers)
-    nailCoords = fieldOr(work, 'GS', []);
+    nailCoords = fieldOr(work, 'anchors', []);
     if isempty(nailCoords)
         error('ielec:badOption', ...
-            'ielec.fitArray: nailed contacts were asked for, but work.GS is empty.');
+            ['ielec.fitArray: nailed contacts were asked for, but ' ...
+             'work.anchors is empty. Contacts in work.GS do not hold a ' ...
+             'fit - place anchors with ielec.addCoordinate and ' ...
+             'cfg.group ''anchors''.']);
     end
     if ~isempty(cfg.nailNumbers) && numel(cfg.nailNumbers) ~= size(nailCoords, 1)
         error('ielec:badOption', ...
-            ['ielec.fitArray: %d nail numbers for %d contacts in work.GS. ' ...
-             'There must be one number per contact.'], ...
+            ['ielec.fitArray: %d nail numbers for %d anchors in ' ...
+             'work.anchors. There must be one number per anchor.'], ...
             numel(cfg.nailNumbers), size(nailCoords, 1));
     end
 end
@@ -117,15 +128,16 @@ array = electrodeFromGridFit(pos, clusteredCrd, clusteredWeight, clusters, ...
                              cfg.type, cfg.rows, cfg.columns, project.currentSpace, options);
 
 if ~isempty(nailCoords)
-    % the contacts in work.GS have been used as this array's nails
-    work.oldGS          = work.GS;
+    % The anchors in work.anchors have been used as this array's nails, so
+    % they are consumed. The contacts in progress are left where they are:
+    % they are the indexing step's, and a fit no longer touches them.
+    % All five copies move so that one Undo gives back the whole state.
+    work.oldGS          = fieldOr(work, 'GS', []);
     work.oldbrushCrd    = fieldOr(work, 'brushCrd', []);
     work.oldbrushWeight = fieldOr(work, 'brushWeight', []);
     work.oldclusters    = fieldOr(work, 'clusters', []);
-    % the anchors are left alone, but their undo copy moves with the others -
-    % see IELEC.CLUSTER for what happens to one Undo otherwise
     work.oldanchors     = fieldOr(work, 'anchors', []);
-    work.GS             = [];
+    work.anchors        = [];
 end
 
 project = recordStep(project, mfilename, cfg);

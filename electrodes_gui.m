@@ -3111,13 +3111,16 @@ switch type
 end
 
 
-%check if there are some "Nailed electrodes" as previously selected (GS)
-%coordinates
-if ~isempty(handles.work.GS)
+% Are there anchors to nail the fit to? This used to ask about work.GS,
+% which is why clustering made the fit hold to the clustered contacts. The
+% two lists are separate now - docs/OPEN_QUESTIONS.md item 40 - so it has to
+% ask about the list ielec.fitArray actually reads, or the table below would
+% number one list while the fit nailed the other.
+if ~isempty(handles.work.anchors)
     handles.work.uitable_elecNum = [];
 
-    %use GS coordinates as Nailed. The table asks which contact each of them
-    %is; ielec.fitArray takes the coordinates from work.GS and empties it.
+    %use the anchors as Nailed. The table asks which contact each of them
+    %is; ielec.fitArray takes the coordinates from work.anchors and empties it.
     guidata(hObject, handles);     % % Update content in handles structure
     electrodeNailNaumber_uitable (hObject, handles,rows*cols); %use graphical interface. This will change content in handles.
     handles = guidata(hObject); % retrive updated data
@@ -3140,7 +3143,7 @@ cfg.columns            = cols;
 cfg.spacing            = fixM1;
 cfg.firstSecondSpacing = fixM1_BF;
 cfg.overlap            = overlap;
-cfg.useNailedContacts  = ~isempty(handles.work.GS);
+cfg.useNailedContacts  = ~isempty(handles.work.anchors);
 cfg.nailNumbers        = nailNumbers;
 
 disp('/// Starting grid/depth fitting algorithm. This may take some minutes depending on the grid size.')
@@ -3151,11 +3154,15 @@ tic;
     ielec.fitArray(cfg, handles.project, handles.work);
 disp(['GridFit algorithm finished in ' num2str(toc) ' seconds']);
 
-if cfg.useNailedContacts
-    % the nailed contacts were consumed by the fit
-    set(handles.nClusText,'string',num2str(size(handles.work.GS,1)));
-    handles.ui.updatePlots.GS=1;
-end
+% The nails came out of work.anchors and the fit consumed them, so there is
+% nothing to refresh here any more: work.GS is untouched now, and the counter
+% beside this button counts work.GS. The anchors have no counter and no plot
+% of their own yet - that is the second of the two buttons Alejandro's note
+% asks for, and it is the frontend's job. docs/OPEN_QUESTIONS.md item 40.
+%
+% addElectrode2structure, called just below, sets updatePlots.GS and
+% refreshes the counter anyway, so the two lines that used to be here were
+% already redundant on this path - at HEAD as well.
 
 
 % add new electrode to handles

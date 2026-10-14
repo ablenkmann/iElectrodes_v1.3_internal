@@ -35,13 +35,13 @@ function names = workFieldNames()
 %   See also PROJECTFIELDNAMES, LIFTTOWORK, FLATTENPROJECT.
 
 names = { ...
-    ... % contact coordinates that are not yet an accepted electrode array,
-    ... % also used as anchor points ("nailed" contacts) when fitting
+    ... % contact coordinates that are not yet an accepted electrode array.
+    ... % What clustering fills and what the indexing step consumes; it used
+    ... % to hold the fitting anchors as well, and no longer does
     'GS', ...
     ... % points placed by hand to hold the GridFit algorithm, kept apart
     ... % from the contacts in progress - docs/OPEN_QUESTIONS.md item 40.
-    ... % Nothing reads it yet: IELEC.FITARRAY still nails to GS, and moving
-    ... % it onto this list is the behaviour change that follows.
+    ... % IELEC.FITARRAY nails to this and consumes it
     'anchors', ...
     ... % which voxel cluster each selected voxel belongs to
     'clusters', ...

@@ -11,7 +11,8 @@ function electrodeNailNaumber_uitable (hObject, handles,nFit)
 
 % new version using cathegorical selection on electrode number
 
-coords=handles.work.GS;
+% the anchors, not the contacts in progress - docs/OPEN_QUESTIONS.md item 40
+coords=handles.work.anchors;
 N=size(coords,1); % number of selected electrodes
 %elecNumber=zeros(N,1);
 order=1:N;

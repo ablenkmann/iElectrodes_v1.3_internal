@@ -7,8 +7,9 @@ function ok = test_ielecFitArray()
 %   result is compared with the Fit button's original steps, kept verbatim
 %   below, and the contacts have to land on the blobs.
 %
-%   It also checks the nailed contacts: the ones in work.GS are used to hold
-%   the fit and are consumed, with the previous values kept for Undo.
+%   It also checks the nailed contacts: the anchors in work.anchors are used
+%   to hold the fit and are consumed, with the previous values kept for Undo,
+%   and work.GS is left alone - docs/OPEN_QUESTIONS.md item 40.
 %
 %   GridFit takes a little while even for four contacts.
 %
@@ -92,11 +93,19 @@ nFail = nFail + check(max(abs(found(:,1) - want(:,1))) < 1.5, ...
 fprintf('\n--- nailed contacts ------------------------------------------\n');
 
 nailed = work;
-nailed.GS = want([1 4], :);            % the two ends, already found
+nailed.anchors = want([1 4], :);       % the two ends, placed by hand
+nailed.GS      = [7 8 9];              % and something in the contacts, so
+                                       % that "GS is left alone" cannot pass
+                                       % by both sides being empty
 nailNumbers = [1; 4];
 
+% The oracle is handed the nail coordinates as an argument, exactly as the
+% button handed them, so it computes the same fit from the same two points -
+% it never reads work.GS itself. What this commit changed is only where the
+% LAYER reads them from: work.anchors instead of work.GS.
 rng(3);
-expectedNailed = originalFit(project, nailed, 'depth', 1, 4, 4, 4, 0, nailNumbers, nailed.GS);
+expectedNailed = originalFit(project, nailed, 'depth', 1, 4, 4, 4, 0, ...
+                             nailNumbers, nailed.anchors);
 nailCfg = cfg;
 nailCfg.useNailedContacts = true;
 nailCfg.nailNumbers       = nailNumbers;
@@ -106,10 +115,14 @@ rng(3);
 nFail = nFail + check(isequaln(nailedArray, expectedNailed), ...
     'the nailed fit is what the button built', '');
 nFail = nFail + check(isequal(nailedArray.methodParameters.NailElectrodeNumber, nailNumbers) && ...
-        isequal(nailedArray.methodParameters.NailElectrodeCrd, nailed.GS), ...
+        isequal(nailedArray.methodParameters.NailElectrodeCrd, nailed.anchors), ...
     'the nails are recorded with the array', '');
-nFail = nFail + check(isempty(afterNails.GS) && isequal(afterNails.oldGS, nailed.GS), ...
-    'work.GS is consumed and kept for Undo', '');
+nFail = nFail + check(isempty(afterNails.anchors) && ...
+        isequal(afterNails.oldanchors, nailed.anchors), ...
+    'work.anchors is consumed and kept for Undo', '');
+nFail = nFail + check(isequal(afterNails.GS, nailed.GS), ...
+    'and work.GS is left where it was - this is the change', ...
+    sprintf('still %s', mat2str(afterNails.GS)));
 
 % no numbers assigned: the coordinates go in but hold nothing, which is what
 % the button did when the table was closed without a choice. What
@@ -117,7 +130,7 @@ nFail = nFail + check(isempty(afterNails.GS) && isequal(afterNails.oldGS, nailed
 % is again against the button, not against a shape chosen here.
 unnumbered = nailCfg;  unnumbered.nailNumbers = [];
 rng(3);
-expectedUnnumbered = originalFit(project, nailed, 'depth', 1, 4, 4, 4, 0, [], nailed.GS);
+expectedUnnumbered = originalFit(project, nailed, 'depth', 1, 4, 4, 4, 0, [], nailed.anchors);
 rng(3);
 [~, afterUnnumbered, unnumberedArray] = ielec.fitArray(unnumbered, project, nailed);
 nFail = nFail + check(isequaln(unnumberedArray, expectedUnnumbered), ...
@@ -126,7 +139,8 @@ nFail = nFail + check(isequaln(unnumberedArray, expectedUnnumbered), ...
             mat2str(size(unnumberedArray.methodParameters.NailElectrodeCrd))));
 nFail = nFail + check(isempty(unnumberedArray.methodParameters.NailElectrodeNumber), ...
     'and nothing holds the fit', '');
-nFail = nFail + check(isempty(afterUnnumbered.GS), 'work.GS is consumed either way', '');
+nFail = nFail + check(isempty(afterUnnumbered.anchors), ...
+    'work.anchors is consumed either way', '');
 
 %% -------------------------------------------------------------- refusals
 fprintf('\n--- what is refused ------------------------------------------\n');
@@ -142,10 +156,22 @@ nFail = nFail + check(strcmp(errorId(@() ielec.fitArray(setfield(cfg, 'spacing',
     'a spacing that is not a distance', ''); %#ok<SFLD>
 badNails = nailCfg;  badNails.nailNumbers = [1; 2; 3];
 nFail = nFail + check(strcmp(errorId(@() ielec.fitArray(badNails, project, nailed)), ...
-        'ielec:badOption'), 'more nail numbers than contacts in work.GS', '');
+        'ielec:badOption'), 'more nail numbers than anchors in work.anchors', '');
 noContacts = nailCfg;
 nFail = nFail + check(strcmp(errorId(@() ielec.fitArray(noContacts, project, work)), ...
-        'ielec:badOption'), 'nailed contacts asked for with an empty work.GS', '');
+        'ielec:badOption'), 'nailed contacts asked for with an empty work.anchors', '');
+
+% The behaviour change, as a check. Before this commit the same cfg and a
+% work.GS holding two contacts fitted a nailed array, because work.GS WAS
+% the nail list; now the nails are asked for, work.anchors is empty, and the
+% call is refused. Clustering and then pressing Fit runs unanchored -
+% docs/OPEN_QUESTIONS.md item 40, and Alejandro's two procedures.
+clusteredOnly = work;
+clusteredOnly.GS = want([1 4], :);     % as a clustering would have left it
+nFail = nFail + check(strcmp(errorId(@() ielec.fitArray(nailCfg, project, clusteredOnly)), ...
+        'ielec:badOption'), ...
+    'contacts in work.GS no longer hold a fit', ...
+    'the clustered ones are the indexing step''s now');
 nFail = nFail + check(strcmp(errorId(@() ielec.fitArray(setfield(cfg, 'nElec', 4), project, ...
                                                          work)), 'ielec:unknownOption'), ...
     'an unknown option is refused', 'cfg.nElec'); %#ok<SFLD>
@@ -159,6 +185,27 @@ nFail = nFail + check(nargin(@ielec.fitArray) == 3 && nargout(@ielec.fitArray) =
     '[project, work, array] = ielec.fitArray(cfg, project, work)', '');
 nFail = nFail + check(numel(findall(0, 'Type', 'figure')) == figuresBefore, ...
     'no window was opened', '');
+
+% The frontend half of the anchors change has no dynamic coverage:
+% electrodes_gui.m cannot be driven headlessly, and putting the Fit button
+% back on work.GS passes this whole suite. So the wiring is pinned by
+% reading the file. Three lines have to name the same list ielec.fitArray
+% reads, and the reason is what review of this commit caught: the button
+% asked about one list while the nail table numbered another, so pressing
+% Fit after clustering raised ielec:badOption instead of fitting.
+guiCode = fileread(fullfile(repoRoot, 'electrodes_gui.m'));
+nFail = nFail + check(contains(guiCode, ...
+        'cfg.useNailedContacts  = ~isempty(handles.work.anchors);'), ...
+    'the Fit button asks whether there are anchors', ...
+    'not whether there are contacts in progress');
+nFail = nFail + check(contains(guiCode, 'if ~isempty(handles.work.anchors)'), ...
+    'and the nail-number table is gated on the anchors too', ...
+    'or it would appear after a clustering again');
+dialogCode = fileread(fullfile(repoRoot, 'app', 'dialogs', ...
+                               'electrodeNailNaumber_uitable.m'));
+nFail = nFail + check(contains(dialogCode, 'coords=handles.work.anchors;'), ...
+    'and the table numbers the anchors themselves', ...
+    'the same rows the fit will be nailed to');
 
 fprintf('\n');
 ok = (nFail == 0);

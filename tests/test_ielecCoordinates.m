@@ -226,9 +226,10 @@ fprintf('\n--- anchors, kept apart from the contacts --------------------\n');
 % docs/OPEN_QUESTIONS.md item 40. work.anchors holds the points placed by
 % hand to hold a GridFit; work.GS holds the contacts in progress, which is
 % what clustering fills and what the indexing step consumes. This commit
-% gives the layer the second list and a cfg.group to reach it. Nothing reads
-% work.anchors yet - IELEC.FITARRAY still nails to work.GS - so none of
-% these checks look at what a fit produces. That is the next commit.
+% gives the layer the second list and a cfg.group to reach it. What reads
+% work.anchors is IELEC.FITARRAY, which nails to it and consumes it - the
+% commit after this one - so none of these checks look at what a fit
+% produces; tests/test_ielecFitArray.m is where that is checked.
 anchorPoint = mesh2AnatSpace(voxels(1,:), project.S2);
 
 [~, withAnchor] = ielec.addCoordinate(...

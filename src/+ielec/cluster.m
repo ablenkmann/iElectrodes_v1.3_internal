@@ -18,8 +18,10 @@ function [project, work, quality] = cluster(cfg, project, work)
 %   nothing to do with them - but their copy moves so that one Undo after
 %   this gives them back rather than emptying them.
 %   PROJECT gains nothing but the step this records in its history: these are
-%   contacts in progress, not an accepted array. IELEC.GRIDFIT and the Add
-%   button are what make an array of them.
+%   contacts in progress, not an accepted array. IELEC.INDEXARRAY and the Add
+%   button are what make an array of them - not IELEC.FITARRAY, which fits
+%   from the brushed voxels and is held by work.anchors instead
+%   (docs/OPEN_QUESTIONS.md item 40).
 %
 %   Options (cfg):
 %     cfg.nClusters   how many contacts to find.                   required
