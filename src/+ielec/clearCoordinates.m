@@ -8,7 +8,10 @@ function [project, work] = clearCoordinates(cfg, project, work)
 %   untouched - this is the way out of a clustering that went wrong, not a
 %   way to delete an array.
 %
-%   Options (cfg): none. Pass [].
+%   Options (cfg):
+%     cfg.group   which list to empty: 'contacts', the contacts in progress
+%                 and the voxels behind them, or 'anchors', the points that
+%                 hold a GridFit.                      Default: 'contacts'
 %
 %   The previous values go to work.oldGS and the other old fields, so one
 %   press of this can be taken back with IELEC.UNDOCOORDINATES.
@@ -21,7 +24,8 @@ function [project, work] = clearCoordinates(cfg, project, work)
 %
 %   Nothing is drawn and no window is opened.
 %
-%   Errors: those of the cfg check.
+%   Errors: ielec:badOption (a group that is neither list) and those of the
+%   cfg check.
 %
 %   Example
 %       [project, work] = ielec.clearCoordinates([], project, work);
@@ -32,14 +36,22 @@ function [project, work] = clearCoordinates(cfg, project, work)
 %   See also IELEC.UNDOCOORDINATES, IELEC.ADDCOORDINATE,
 %            IELEC.REMOVECOORDINATE, IELEC.CLUSTER.
 
-cfg = checkCfg(cfg, struct(), {}, 'clearCoordinates');
+defaults.group = 'contacts';
+cfg = checkCfg(cfg, defaults, {}, 'clearCoordinates');
+
+field = coordinateField(cfg.group, 'clearCoordinates');
 
 work = keepForUndo(work);
 
-work.GS          = [];
-work.brushCrd    = [];
-work.brushWeight = [];
-work.clusters    = [];
+if strcmp(field, 'GS')
+    work.GS          = [];
+    work.brushCrd    = [];
+    work.brushWeight = [];
+    work.clusters    = [];
+else
+    % the anchors only: there is no clustering behind them to throw away
+    work.anchors = [];
+end
 
 project = recordStep(project, mfilename, cfg);
 end

@@ -124,14 +124,14 @@ Counts below are references in `electrodes_gui.m` as of the v2 restructuring.
 
 ## Cases that need a decision
 
-### 1. Fifteen `work` / `ui` fields are currently saved into `.iel` files
+### 1. Seventeen `work` / `ui` fields are currently saved into `.iel` files
 
 `checkProjectStructure` writes these to the project file even though they are
 not patient data:
 
 `GS`, `oldGS`, `clusters`, `oldclusters`, `brushCrd`, `oldbrushCrd`,
-`brushWeight`, `oldbrushWeight` — unfinished localisation work and its undo
-history · `minValue`, `maxValue` — recomputable CT intensity limits ·
+`brushWeight`, `oldbrushWeight`, `anchors`, `oldanchors` — unfinished
+localisation work and its undo history · `minValue`, `maxValue` — recomputable CT intensity limits ·
 `FileName`, `PathName` — where the file happened to be last time ·
 `wmparcColors`, `AnnotColor_L`, `AnnotColor_R` — colour volumes derived from
 the parcellation and the annotations

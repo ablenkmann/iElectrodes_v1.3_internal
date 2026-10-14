@@ -140,6 +140,23 @@ else
     iel.oldGS=s.oldGS;
 end
 
+% Anchors for the GridFit algorithm - docs/OPEN_QUESTIONS.md item 40. Every
+% file written before this field existed has neither of the two, so both
+% default to empty and an old project opens exactly as it did. The two are
+% checked separately rather than together as GS and oldGS are above: that
+% pair assumes a file with GS always has oldGS, and a file is not something
+% this can promise.
+if  ~isfield(s,'anchors')
+    iel.anchors=[];
+else
+    iel.anchors=s.anchors;
+end
+if  ~isfield(s,'oldanchors')
+    iel.oldanchors=[];
+else
+    iel.oldanchors=s.oldanchors;
+end
+
 if isfield(s, 'brushCrd') && ~isempty(s.brushCrd)
     iel.brushCrd=s.brushCrd;
 else

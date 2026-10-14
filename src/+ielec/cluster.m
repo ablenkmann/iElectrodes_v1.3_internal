@@ -13,7 +13,10 @@ function [project, work, quality] = cluster(cfg, project, work)
 %     work.brushWeight   the weights used
 %
 %   The previous values are kept in work.oldGS, work.oldbrushCrd,
-%   work.oldclusters and work.oldbrushWeight, which is what Undo restores.
+%   work.oldclusters, work.oldbrushWeight and work.oldanchors, which is what
+%   Undo restores. The anchors themselves are not touched - a clustering has
+%   nothing to do with them - but their copy moves so that one Undo after
+%   this gives them back rather than emptying them.
 %   PROJECT gains nothing but the step this records in its history: these are
 %   contacts in progress, not an accepted array. IELEC.GRIDFIT and the Add
 %   button are what make an array of them.
@@ -69,6 +72,16 @@ work.oldGS          = work.GS;
 work.oldbrushCrd    = work.brushCrd;
 work.oldbrushWeight = work.brushWeight;
 work.oldclusters    = work.clusters;
+% The anchors are not touched here, but the copy beside them has to move all
+% the same: IELEC.UNDOCOORDINATES swaps all five pairs, so leaving oldanchors
+% behind would make one Undo after a clustering hand back whatever was in it -
+% nothing, or a stale point - in place of the anchors the user placed.
+% Measured. This file has no local FIELDOR, hence ISFIELD.
+if isfield(work, 'anchors')
+    work.oldanchors = work.anchors;
+else
+    work.oldanchors = [];
+end
 
 work.GS          = [work.GS;          GS];
 work.brushCrd    = [work.brushCrd;    work.selectedVoxels];

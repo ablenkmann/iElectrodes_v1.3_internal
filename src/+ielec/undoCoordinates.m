@@ -29,9 +29,18 @@ function [project, work] = undoCoordinates(cfg, project, work)
 
 cfg = checkCfg(cfg, struct(), {}, 'undoCoordinates');
 
-% four swaps, as the button made them
+% A work built before the anchors existed has neither side of that pair, and
+% the swap below reads both directly. Normalising them to empty here is what
+% CHECKPROJECTSTRUCTURE does for a real project anyway.
+if ~isfield(work, 'anchors'),    work.anchors    = []; end
+if ~isfield(work, 'oldanchors'), work.oldanchors = []; end
+
+% The four swaps the button made, and the anchors with them: KEEPFORUNDO
+% copies all five whichever list was about to change, so one Undo takes back
+% one change wherever it was made.
 for f = {{'GS', 'oldGS'}, {'brushCrd', 'oldbrushCrd'}, ...
-         {'brushWeight', 'oldbrushWeight'}, {'clusters', 'oldclusters'}}
+         {'brushWeight', 'oldbrushWeight'}, {'clusters', 'oldclusters'}, ...
+         {'anchors', 'oldanchors'}}
     current = f{1}{1};
     before  = f{1}{2};
     keep = work.(current);

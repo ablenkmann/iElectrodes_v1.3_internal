@@ -122,6 +122,9 @@ if ~isempty(nailCoords)
     work.oldbrushCrd    = fieldOr(work, 'brushCrd', []);
     work.oldbrushWeight = fieldOr(work, 'brushWeight', []);
     work.oldclusters    = fieldOr(work, 'clusters', []);
+    % the anchors are left alone, but their undo copy moves with the others -
+    % see IELEC.CLUSTER for what happens to one Undo otherwise
+    work.oldanchors     = fieldOr(work, 'anchors', []);
     work.GS             = [];
 end
 

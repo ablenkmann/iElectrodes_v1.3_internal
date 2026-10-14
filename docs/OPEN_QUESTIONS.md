@@ -1664,7 +1664,93 @@ through the layer instead of editing `work` in the frontend, so whichever
 reading is chosen, the change is inside the layer rather than spread across
 four callbacks.
 
-**Status: open, and blocking.** The conflation is in v1.020 too.
+**Answered, and it is neither reading.** Alejandro, by email, 14 October 2026:
+
+> What I would like to do in the new version it to have two separate
+> structures in work:
+>
+> 1. Work.GS: Coordinates selected via clustering or manual approach. These
+>    are later used in the indexing step.
+> 2. Work. Anchors (or any other name that makes sense): manually selected
+>    coordinates (could use the same selections procedure as 1) that are used
+>    in the GridFit algorithm as anchors.
+>
+> That also means that the user interface will have two buttons, one for each
+> procedure (a) clustering + indexing and b) GridFit).
+
+So `work.GS` is not split. It keeps exactly what it holds today - clustered
+and hand-placed together - and feeds the indexing step. A **second** list is
+added beside it, filled by hand only, and the GridFit algorithm anchors to
+that one instead. Both readings above asked which half of `work.GS` the
+anchors are; the answer is that neither half is, and the anchors are a list
+of their own.
+
+It reaches reading (1)'s consequence by a different route. After clustering,
+`work.anchors` is empty, so the Fit button no longer holds the fit to the
+clustered contacts. That is a change on the main path through the program -
+cluster, then fit - and it gets named where it happens.
+
+**Done in two commits,** because the list and the redirection are two
+different things and only the second changes behaviour:
+
+1. *The list exists and the layer can fill it.* `work.anchors` and
+   `work.oldanchors` join `workFieldNames`, `checkProjectStructure` defaults
+   both to empty so that every file written before them opens unchanged, and
+   `ielec.addCoordinate`, `ielec.removeCoordinate` and
+   `ielec.clearCoordinates` take a `cfg.group` of `'contacts'` - the default,
+   so every existing caller gets the behaviour it had - or `'anchors'`.
+   Nothing reads `work.anchors` yet, which is what keeps `work` and the rest
+   of `project` bit-identical for every existing caller.
+
+   One thing is not identical, and it is named rather than undone:
+   **`project.history` gains the group.** `cfg.group` is a defaulted option,
+   so `checkCfg` fills it in and `recordStep` writes what `checkCfg` made -
+   which is the design's own rule about the recorded cfg. Measured against
+   the commit before:
+
+   | function | recorded before | recorded now |
+   |---|---|---|
+   | `ielec.addCoordinate` | `{coordinate}` | `{coordinate, group}` |
+   | `ielec.removeCoordinate` | `{coordinate, tolerance}` | `{coordinate, tolerance, group}` |
+   | `ielec.clearCoordinates` | `{}` | `{group}` |
+   | `ielec.undoCoordinates` | `{}` | `{}` |
+
+   The history is serialised into the `.iel`, so the file contents change for
+   any project those three touch. It is the same thing
+   `ielec.removeCoordinate` already did with its defaulted `cfg.tolerance`,
+   and a replayed step that did not carry the group would have to guess which
+   list it meant - so the group belongs in the record. What it is not is
+   "nothing changed".
+2. *`ielec.fitArray` nails to `work.anchors` instead of `work.GS`.* One named
+   behaviour change, on its own.
+
+Two things the answer settles by implication rather than directly, decided
+here because they are small and the alternative is guessing twice:
+
+- **an anchor is a coordinate and nothing else.** `work.clusters`,
+  `work.brushCrd` and `work.brushWeight` stay the contacts' bookkeeping.
+  `gridFit` is given only the nail positions, and a row in `work.clusters`
+  for an anchor would claim a cluster of brushed voxels that does not exist.
+  So `ielec.removeCoordinate` on an anchor takes the row and nothing with
+  it, where on a contact it still renumbers the clusters above it.
+- **one Undo still covers one change, wherever it was made.** `keepForUndo`
+  copies all five lists whichever one is about to change, rather than keeping
+  a step per list. That is the depth the toolbox has; a deeper undo is a
+  frontend question, as it was before.
+
+The field is `anchors`, lower case, which is what `clusters`, `brushCrd` and
+`options` look like. The email's `Work.Anchors` names the thing rather than
+the field, and the note says any sensible name will do.
+
+**The third part of the answer is frontend work:** two buttons, one per
+procedure. Until those exist the window has one Add coordinate button and it
+writes to the contacts, as it always has - so after the second commit the Fit
+button has no way to be anchored from the window at all, and the nailing
+feature is reachable only from a script. That is a consequence worth writing
+down rather than discovering, and the two buttons are what answers it.
+
+**Status: answered; the list is in, the redirection follows.** The conflation
+is in v1.020 too.
 
 ---
 

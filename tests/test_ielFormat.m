@@ -126,6 +126,65 @@ nFail = nFail + check(isequaln(rmfield(reopened, 'history'), ...
         rmfield(withHistory, 'history')), ...
     'and nothing else in the project moved', '');
 
+%% ------------------------------------- the anchors travel in the file
+fprintf('\n--- work.anchors in a saved project ------------------------\n');
+
+% docs/OPEN_QUESTIONS.md item 40 put work.anchors in WORKFIELDNAMES, so the
+% file carries it. Two directions matter: it comes back as it went in, and a
+% file written before the field existed still opens - which is every .iel
+% file in the world today.
+anchored = work;
+anchored.anchors    = [1 2 3; -4.5 6 7.25];
+anchored.oldanchors = [9 9 9];
+
+anchorFile = fullfile(outFolder, 'anchored.iel');
+ielec.saveProject(struct('file', anchorFile), project, anchored, ui);
+[~, backAnchored] = ielec.openProject(struct('file', anchorFile), [], []);
+
+nFail = nFail + check(isequal(backAnchored.anchors, anchored.anchors), ...
+    'the anchors come back from the file as they went in', ...
+    sprintf('%s %s', mat2str(size(backAnchored.anchors)), ...
+            class(backAnchored.anchors)));
+nFail = nFail + check(isequal(backAnchored.oldanchors, anchored.oldanchors), ...
+    'and so does the undo copy beside them', '');
+
+storedAnchors = readFlat(anchorFile);
+nFail = nFail + check(isfield(storedAnchors, 'anchors') && ...
+        isfield(storedAnchors, 'GS'), ...
+    'the field sits at the top level of the file, beside GS', ...
+    'one variable per field, as the format has always been');
+
+% A v2 save writes the two fields even from a work that has neither:
+% SAVEPROJECT runs CHECKPROJECTSTRUCTURE first and that fills them in. So
+% there is no such thing as a v2 file without them, and the direction that
+% needs testing is reading - which is what every file written before this
+% commit will need.
+withoutAnchors = fullfile(outFolder, 'noAnchors.iel');
+ielec.saveProject(struct('file', withoutAnchors), project, ...
+                  rmfield(anchored, {'anchors', 'oldanchors'}), ui);
+storedWithout = readFlat(withoutAnchors);
+nFail = nFail + check(isfield(storedWithout, 'anchors') && ...
+        isempty(storedWithout.anchors), ...
+    'a save fills the field in even when the work had none', ...
+    'checkProjectStructure runs before the write');
+
+% so the old file is built by hand, the way the cell-shaped history above is
+preAnchors = fullfile(outFolder, 'preAnchors.iel');
+flatOld = rmfield(readFlat(stamped), {'anchors', 'oldanchors'});
+saveFlat(preAnchors, flatOld);
+% This one is a check on the fixture, not on the product: it cannot fail for
+% any change to src/. It is here so that the check below it cannot pass by
+% reading a file that had the field all along.
+nFail = nFail + check(~isfield(readFlat(preAnchors), 'anchors'), ...
+    'and a file genuinely without it can be built, as the old ones are', ...
+    'a check on the fixture, not on the layer');
+[~, backWithout] = ielec.openProject(struct('file', preAnchors), [], []);
+nFail = nFail + check(isfield(backWithout, 'anchors') && ...
+        isempty(backWithout.anchors) && ...
+        isfield(backWithout, 'oldanchors') && isempty(backWithout.oldanchors), ...
+    'and it opens with an empty anchor list rather than failing', ...
+    'which is what every file written before this does');
+
 %% ----------------------------- stored as a string, held as a cell
 fprintf('\n--- the shape on disk and the shape in memory ---------------\n');
 

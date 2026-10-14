@@ -26,7 +26,7 @@ function names = workFieldNames()
 %   listed here, because neither ever arrives flat - they are built at
 %   start-up, not read from a file.
 %
-%   NOTE ON .iel FILES: unlike most working data, twelve of these ARE written
+%   NOTE ON .iel FILES: unlike most working data, fourteen of these ARE written
 %   to the project file today, so FLATTENPROJECT puts them back at the top level
 %   when saving. Whether they should be saved at all is case 1 in
 %   docs/STATE_FIELD_MAPPING.md - a question for the toolbox author, not one
@@ -38,12 +38,17 @@ names = { ...
     ... % contact coordinates that are not yet an accepted electrode array,
     ... % also used as anchor points ("nailed" contacts) when fitting
     'GS', ...
+    ... % points placed by hand to hold the GridFit algorithm, kept apart
+    ... % from the contacts in progress - docs/OPEN_QUESTIONS.md item 40.
+    ... % Nothing reads it yet: IELEC.FITARRAY still nails to GS, and moving
+    ... % it onto this list is the behaviour change that follows.
+    'anchors', ...
     ... % which voxel cluster each selected voxel belongs to
     'clusters', ...
     ... % the currently selected voxels and their CT intensities
     'brushCrd', 'brushWeight', ...
     ... % undo copies, restored by the Undo button
-    'oldGS', 'oldclusters', 'oldbrushCrd', 'oldbrushWeight', ...
+    'oldGS', 'oldclusters', 'oldbrushCrd', 'oldbrushWeight', 'oldanchors', ...
     ... % where the project file came from and where to browse next
     'FileName', 'PathName', ...
     ... % CT intensity limits; recomputed from TAC by checkProjectStructure
