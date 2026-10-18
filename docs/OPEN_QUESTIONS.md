@@ -2178,3 +2178,65 @@ or fetching them from elsewhere.
 
 **Status: open, and it blocks the push rather than the code.** New in v2 -
 there was no example project in 1.020.
+
+---
+
+## 47. The update check reads the published version by byte position, so the version number has exactly five characters to live in
+
+**Where:** `app/config/checkUpdates.m`, the `webread` block
+
+Written down while moving the version from 1.020 to 2.000, because that move
+depends on this and nearly got it wrong.
+
+`checkUpdates` fetches the `version.txt` published on SourceForge and takes
+the version and the date out of it by counting bytes:
+
+    last_version = web_data(1:5);
+    last_date    = web_data(8:end);
+
+That works because the file is written `'%s \n'` twice, so a five-character
+version occupies bytes 1-5, a space and a newline take 6 and 7, and the date
+starts at 8. The banner at the top of the file - `ALWAYS USE X.xxx format` -
+is the whole contract, and it is load-bearing rather than stylistic.
+Measured, writing each candidate and applying the real parse:
+
+    2.000     ->  '2.000'   '18 October 2026'      correct
+    1.020     ->  '1.020'   '12 May 2023'          correct
+    10.00     ->  '10.00'   '18 October 2026'      correct
+    2.0       ->  '2.0 \n'  ' October 2026'        version AND date broken
+    10.000    ->  '10.00'   '\n18 October 2026'    date broken
+
+So **the format cannot carry a major version of ten with three decimals.**
+`10.00` fits and compares correctly (`str2double` gives 10); `10.000` does
+not. There is room for exactly five characters, and nobody reading
+`iElectrodes_version` would guess that from its name.
+
+Two further things the block does not survive, both pre-existing:
+
+- **a short response aborts start-up.** The two index expressions are
+  *outside* the `try`/`catch` that guards `webread`, and `checkUpdates` is
+  called from `electrodes_gui_OpeningFcn` with no guard of its own. A
+  published file of fewer than eight bytes - a truncated response, an error
+  page, a redirect - passes `~isempty` and then throws
+  `MATLAB:badsubscript`, out of the opening function, before the window is
+  built;
+- **a malformed version silently disables the check.** `str2double` of
+  anything with a letter or two dots is `NaN`, and `NaN > x` is false, so the
+  toolbox would report "you have the last version" for ever without saying
+  why.
+
+**What the version move itself changed here, and it is only the message.**
+With the local build at 2.000 and the published file still at 1.020, the
+comparison is `1.02 > 2`, which is false, so the console prints *"You have
+the last version of iElectrodes :-)"* - which is now true in the sense that
+matters and false as a sentence, since this build is ahead of the published
+one. That is the first committed state where the two differ, though the
+comment at the head of that block ("Important for developing new versions")
+shows the author always expected to work ahead of a release. Console only, no
+dialog.
+
+None of this is fixed here. The move needed five characters and it has them;
+reshaping how a version is published is a change to something a released
+1.020 in the field is also reading, which is the author's to make.
+
+**Status: open.** Pre-existing in 1.020, all of it, except the message above.

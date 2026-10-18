@@ -40,10 +40,22 @@ function project = recordStep(project, name, cfg)
 %   tests/test_ielecHistory.m, which fails if a layer function neither
 %   records nor is on that list.
 %
-%   The version is the iElectrodes 2 line, written as the design writes it.
-%   It is not read from version.txt, which still says 1.020 - the last
-%   released version, and the right answer for that file until v2 ships.
-%   When it does, this should read from it.
+%   The version is the iElectrodes 2 line, written as the design writes it -
+%   docs/API_LAYER.md, "Recording each step".
+%
+%   It is deliberately not the toolbox version from
+%   app/config/checkUpdates.m, which now reads 2.000 and is what the Info
+%   button's About box shows. That one is a build number, written in the
+%   X.xxx format the update check parses by byte position, and it moves with
+%   every release; this one marks which line of the toolbox wrote a step, and
+%   a step written today should still say '2.0' after 2.001 ships.
+%
+%   Joining them is possible and is the reason not to. The build number is
+%   within reach - every caller of this function has WORK, which carries it,
+%   and version.txt could be read outright - so the earlier note here was
+%   wrong to say it could not be done. It should not be done: a step's
+%   version would then move with each release, which is the opposite of what
+%   it is for, and thirty-one call sites would have to thread it through.
 %
 %   Private to the ielec package.
 %
