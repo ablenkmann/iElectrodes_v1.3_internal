@@ -2102,3 +2102,79 @@ is already changing for a different reason, and one commit says one thing.
 
 **Status: open.** Pre-existing - the guard is v2, but the geometry it calls is
 1.020's and takes 1-by-1 the same way.
+
+---
+
+## 45. iso2mesh's macOS 64-bit tetgen is a 19-byte stub, not a binary
+
+**Where:** `third_party/iso2mesh_functions/bin/tetgen.mexmaci64`
+
+Found while naming the binary file types in `.gitattributes`, because it was
+the one file matched by `*.mex*` that carries no NUL byte - git would have
+classified it as **text**. Measured:
+
+    tetgen.mexmaci64            19 bytes, plain ASCII: "tetgen1.5.mexmaci64"
+    tetgen1.5.mexmaci64  1,061,392 bytes, a real MEX binary
+    tetgen.mexa64          262,732 bytes   }
+    tetgen.mexglx          908,345 bytes   }  the other platforms are
+    tetgen.mexmac          904,624 bytes   }  all real binaries
+    tetgen.mexmaci         333,756 bytes   }
+
+It is a symbolic link that was committed as a plain file: a clone with
+`core.symlinks=false`, which is what Windows gets by default, writes the link
+target into the file instead of creating the link. Whoever vendored iso2mesh
+did so from Windows, and the one platform whose MEX happens to be a link to
+another file - macOS 64-bit, pointing at the 1.5 build beside it - is the one
+that broke.
+
+**Why it matters now.** Nothing on Windows touches it, which is why it has sat
+there unnoticed. The toolbox is about to be published on GitHub and read on
+macOS, and `iso2mesh` is what builds the meshes - so a macOS user who reaches
+tetgen gets a 19-byte file where a binary should be. The author of the toolbox
+works on a Mac.
+
+No attribute can fix this; `.gitattributes` only stops git from mangling the
+stub further. The fix is either to commit a real symlink (which needs
+`core.symlinks` and a filesystem that supports it), to copy
+`tetgen1.5.mexmaci64` over it, or to leave it and say so in the README. Which
+one is a question for the author, since it is his vendored copy.
+
+**Status: open, and it wants asking before the GitHub move.** Pre-existing;
+the same stub is in the vendored tree as it arrived.
+
+---
+
+## 46. The two example projects would be published for the first time, and they are images of a head
+
+**Where:** `examples/exampleNativeSpace.iel`, `examples/exampleMNIspace.iel`
+
+Checked before the GitHub move rather than after it. The metadata is clean -
+there is no name anywhere in either file:
+
+    exampleNativeSpace.iel   46.9 MB   FileName 'exampleNativeSpace.iel'
+                                       PathName '/data/Images/electrodes/electrodes_gui/'
+                                       currentSpace 'Native'
+    exampleMNIspace.iel      34.1 MB   no FileName, no PathName
+                                       currentSpace 'MNI'
+
+Every other field is numeric or a channel label. The one string that is not
+generated is a development path with no identity in it.
+
+**But the metadata is not the sensitive part.** Those 81 MB are a CT and an
+MRI of somebody's head, and a head MRI can be re-identified by reconstructing
+the face from it unless it has been defaced. Neither file is in the 1.020 tree
+beside this one, so pushing this repository publishes them for the first time.
+
+This is not a question the restructuring can answer. What is needed is the
+author's confirmation that these two volumes are cleared for public release -
+whether they are already published with the 2017 paper, whether the MRI was
+defaced, and whose consent covers it. If the answer is no, leaving them out of the public
+tree is not free: **40 files reference them and none checks that the file is
+there**, so they would error rather than skip. Measured - the only skip guards
+in the suite are for the 1.020 copy and one case in
+`tests/test_ielecReorder.m`. Replacing the volumes with a defaced or synthetic
+pair would cost nothing; removing them would mean teaching the suite to skip,
+or fetching them from elsewhere.
+
+**Status: open, and it blocks the push rather than the code.** New in v2 -
+there was no example project in 1.020.

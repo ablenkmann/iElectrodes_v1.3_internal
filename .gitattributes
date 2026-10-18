@@ -1,0 +1,86 @@
+# Line endings, decided by the repository rather than by each machine.
+#
+# Text is stored as LF and checked out as LF everywhere, Windows included, so
+# that a file does not change shape when it crosses machines. This matters now
+# because the toolbox is about to move to GitHub, where it will be read on
+# Linux and macOS as well.
+#
+# Until this file existed, core.autocrlf on whichever machine was in use
+# decided, which is why every commit printed a wall of "LF will be replaced by
+# CRLF" warnings. Measured before writing this: 618 files are text, and the
+# index already holds LF for the 617 of them git detects as text - every one of
+# those blobs is pure LF, none holds a CR. So nothing stored changes here. What
+# changes is the working copy of 40 .m files, which stop being checked out as
+# CRLF the next time git writes them.
+#
+# There is deliberately no blanket exception for third_party/. Marking it
+# -text was tried and is wrong twice over. -text means "store the bytes
+# verbatim", so renormalising would have rewritten 21 vendored files from LF to
+# CRLF in the index - the opposite of the intent - and because their working
+# copies are CRLF while the index is LF, git reported all 21 as modified. A
+# commit WOULD have cleared that, by storing the CRLF permanently, which is the
+# one outcome this file exists to prevent.
+
+* text=auto eol=lf
+
+# One vendored file is frozen, and the difference from the rule above is the
+# point. iso2mesh's Content.txt is already stored verbatim, CRLFs and all,
+# because git calls it non-text: it holds three lone CR bytes, and a CR not
+# followed by LF is enough for that. Its index and working copy therefore
+# already agree, so -text here freezes what is stored instead of changing it -
+# which is exactly what -text could not do for the 21 files above. Without it,
+# deleting those three bytes would silently reclassify a 111 kB vendored
+# document and rewrite its other 61 line endings.
+
+third_party/iso2mesh_functions/Content.txt -text
+
+# Binary, named rather than detected. Auto-detection would get nearly all of
+# these right, but nearly is not what one wants on a patient project file: a
+# .iel IS a project, a .fig is the window's own layout, a .mat holds an atlas
+# or a baseline, a .nii an image. Naming them also stops git trying to show a
+# diff for them.
+#
+# One file proves the rule earns its keep rather than merely restating
+# detection. third_party/iso2mesh_functions/bin/tetgen.mexmaci64 is 19 bytes
+# of plain ASCII reading "tetgen1.5.mexmaci64" - a symlink committed as text by
+# a clone with core.symlinks=false - so git would call it TEXT, and *.mex* is
+# the only thing holding it still. (That file is also broken for macOS users,
+# which no attribute can fix - see docs/OPEN_QUESTIONS.md.)
+#
+# The volume and surface formats are named because the toolbox reads them,
+# counted across the sources: .img 281, .hdr 272, .pial 28, .gz 26, .annot 12,
+# .mgz 6, .nii.gz 5. None is tracked today, so none of these can catch a text
+# file by mistake, and *.nii does not match .nii.gz - hence *.gz. GIFTI is
+# deliberately absent: .gii is XML, which is text.
+
+*.iel   binary
+*.fig   binary
+*.mat   binary
+*.nii   binary
+*.gz    binary
+*.img   binary
+*.hdr   binary
+*.mgz   binary
+*.annot binary
+*.pial  binary
+*.white binary
+*.exe   binary
+*.dll   binary
+*.mex*  binary
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+
+# Readable diffs for 586 MATLAB files: git's built-in matlab driver makes a
+# hunk header name the enclosing function instead of whatever assignment
+# happened to be three lines up. Verified on this git - "function out =
+# importantThing(a, b)" where the default gives "z = 3;". It changes nothing
+# that is stored or checked out.
+
+*.m diff=matlab
+
+# A caveat for the move rather than a rule: the patterns above are matched
+# case-insensitively here only because this clone has core.ignorecase=true. A
+# Linux or macOS clone would not protect assets/X.MAT. No uppercase-extension
+# file is tracked, so there is nothing to fix today; it is worth knowing if one
+# is ever added.
