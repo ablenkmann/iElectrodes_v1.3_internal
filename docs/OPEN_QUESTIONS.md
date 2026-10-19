@@ -1801,8 +1801,22 @@ frontend owes this item - a Localization panel with the two procedures
 separated, (a) clustering + indexing and (b) GridFit with its own Add
 anchor button.
 
-**Status: answered and done in the layer; the two buttons are frontend
-work.** The conflation was in v1.020 too.
+**The shape of the panel is decided too,** 19 October 2026, so that the
+frontend has it written down rather than inferred: the Localization panel
+becomes **two labelled sections**, one per procedure, each with its own Add
+button and its own counter - "clustering + indexing" filling `work.GS`, and
+"GridFit" filling `work.anchors`. The layer needs nothing for it:
+`ielec.addCoordinate`, `ielec.removeCoordinate` and `ielec.clearCoordinates`
+already take `cfg.group`, and `ielec.undoCoordinates` already covers both, so
+every one of the eight controls is a button over a call that exists.
+
+Alejandro's front-end note still shows "Add coordinate" under both panels with
+"(same function and variable)" beside it. That note predates his answer here
+and is out of date on exactly that point - the function is the same, the
+variable is not.
+
+**Status: answered, done in the layer, and the panel is specified.** The
+conflation was in v1.020 too.
 
 ---
 
@@ -2139,8 +2153,24 @@ stub further. The fix is either to commit a real symlink (which needs
 `tetgen1.5.mexmaci64` over it, or to leave it and say so in the README. Which
 one is a question for the author, since it is his vendored copy.
 
-**Status: open, and it wants asking before the GitHub move.** Pre-existing;
-the same stub is in the vendored tree as it arrived.
+**Measured afterwards: nothing in iElectrodes reaches it.** tetgen is called
+only from iso2mesh's `s2m`, `surf2mesh`, `meshrefine` and `getintersecttri`,
+and this toolbox calls none of them - it uses `meshresample` (9 call
+sites), `meshcheckrepair` (2) and `vol2surf` (1), and `vol2surf` goes to `binsurface`,
+`cgalsurf` and `vol2restrictedtri`. So no user on any platform reached the
+stub, which is why it sat there unnoticed, and the earlier wording here -
+"would find a stub where a mesher should be" - was true of the file and
+misleading about the consequence.
+
+**Fixed anyway,** because a vendored library should be whole and the next
+person to reach for tetgen should not have to find this out: the 19-byte stub
+is replaced by a copy of the `tetgen1.5.mexmaci64` beside it, 1,061,392 bytes,
+a real Mach-O 64-bit binary. A repository-wide scan for the same shape - every
+tracked file under 200 bytes whose content is a file name - found this one and
+no other.
+
+**Status: answered and fixed.** Pre-existing; the stub was in the vendored
+tree as it arrived.
 
 ---
 
@@ -2176,8 +2206,25 @@ in the suite are for the 1.020 copy and one case in
 pair would cost nothing; removing them would mean teaching the suite to skip,
 or fetching them from elsewhere.
 
-**Status: open, and it blocks the push rather than the code.** New in v2 -
-there was no example project in 1.020.
+**Answered: the example data is already public, and has been since 2017.**
+SourceForge hosts it as its own download beside the toolbox:
+
+    example_datasets/example_datasets_03_Feb_2017.zip
+    example_datasets/example_datasets_23_Mar_2017.zip
+    example_datasets/example_datasets_16_Feb_2018.zip   (143 downloads)
+    example_datasets/Cutting_EEG_2025/
+
+So publishing a project built from that data releases nothing that is not
+already released. What was not verified, because it would have meant
+downloading some 100 MB of imaging to compare: whether these two `.iel` files
+are the same subject as those archives rather than merely of the same kind.
+They carry the v2 schema, so they are at least a re-export rather than the
+archived files themselves. The toolbox's author knows which, and one sentence
+closes it.
+
+**Status: answered; it no longer blocks the push.** New in v2 - there was no
+example project inside the 1.020 tree, though the data was published beside
+it.
 
 ---
 
@@ -2239,4 +2286,30 @@ None of this is fixed here. The move needed five characters and it has them;
 reshaping how a version is published is a change to something a released
 1.020 in the field is also reading, which is the author's to make.
 
-**Status: open.** Pre-existing in 1.020, all of it, except the message above.
+**Answered, and the reading end is fixed.** The decision was taken with the
+author: the published format stays as it is - it has to, because every 1.020
+in the field parses it by byte position, which was confirmed by reading that
+release's own `checkUpdates.m:29-30` - and the new toolbox stops reading it
+that way. `app/config/checkUpdates.m` now splits the response on newlines
+instead of counting bytes, so the five-character ceiling binds only what is
+PUBLISHED, and it also stops two silences:
+
+- a response too short to index used to throw `MATLAB:badsubscript` from
+  outside the try that guards `webread`, and so out of
+  `electrodes_gui_OpeningFcn` before the window was built. Driven with eight
+  shaped responses, including the four-byte one that used to do it: none
+  throws now;
+- a version string that does not parse used to make `str2double` give `NaN`,
+  and `NaN > x` is false, so the toolbox said "you have the last version" for
+  ever without having read one. It warns and names the string it could not
+  read.
+
+And the message this item complained about is gone: with the local build
+ahead of the published one, the console says so instead of claiming to be up
+to date.
+
+This is also the back-end TODO "when opening the toolbox, check the latest
+version (reuse old code or improve)", answered on the improve side.
+
+**Status: answered; the five-character ceiling remains, on the published file
+only.** Pre-existing in 1.020, all of it.
