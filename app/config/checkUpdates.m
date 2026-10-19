@@ -48,10 +48,38 @@ catch
     warning('Unable to check last version on-line' );
 end
 if ~isempty(web_data)
-    last_version=web_data(1:5);
-    last_date=web_data(8:end);
+    % The published file is two lines, the version then the date, each
+    % written '%s \n'. This reads them by splitting on the newline rather
+    % than by counting bytes. web_data(1:5) and web_data(8:end) were correct
+    % only while the version is exactly five characters, and they threw
+    % MATLAB:badsubscript on anything shorter than eight bytes - a truncated
+    % download, an error page, a redirect - from outside the try above and
+    % so out of electrodes_gui_OpeningFcn, before the window was built.
+    % docs/OPEN_QUESTIONS.md item 47.
+    %
+    % What is PUBLISHED still has to be five characters, because every
+    % iElectrodes 1.020 in the field reads it by byte position too. This
+    % changes only the reading end, so that it survives what it is handed.
+    published = strsplit(strtrim(char(web_data(:)')), newline);
+    last_version = strtrim(published{1});
+    if numel(published) > 1
+        last_date = strtrim(published{2});
+    else
+        last_date = '(no date)';
+    end
 
-if str2double(last_version)>str2double(handles.work.iElectrodes_version)
+newest = str2double(last_version);
+if isnan(newest)
+    % Silence used to be the answer here: str2double of a version with a
+    % letter or two dots is NaN, NaN > x is false, and the toolbox reported
+    % "you have the last version" for ever without ever having read one.
+    warning('Could not read the published version number (''%s'').', last_version);
+elseif newest < str2double(handles.work.iElectrodes_version)
+    % Only while this build is ahead of the release, which is a development
+    % state and cancels itself the moment the new version is published.
+    fprintf('You are running iElectrodes %s, newer than the published %s.\n', ...
+        handles.work.iElectrodes_version, last_version);
+elseif newest>str2double(handles.work.iElectrodes_version)
     
     % Construct a questdlg with 2 options
     choice = questdlg( {'Would you like to download the last version?';
@@ -74,6 +102,8 @@ if str2double(last_version)>str2double(handles.work.iElectrodes_version)
     end
     
 else
-    disp('You have the last version of iElectrodes :-)');
+    % The author's own sentence, with the number it never used to say.
+    fprintf('You have the last version of iElectrodes %s :-)\n', ...
+        handles.work.iElectrodes_version);
 end
 end
