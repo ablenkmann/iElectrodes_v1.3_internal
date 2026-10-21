@@ -4,7 +4,7 @@ The backend separation took every scientific algorithm out of the GUI. The GUI
 still talks to the backend directly, though: it knows which of the ~130
 functions in `src/` to call, in what order, with which arguments in which
 position, where the default settings live, and how to put each result into
-the project. Alejandro's proposal after the separation: put one layer between
+the project. The proposal after the separation was to put one layer between
 the two, so that the frontend talks only to that layer.
 
 This document sets the rules of that layer. It is written before most of the
@@ -84,8 +84,8 @@ Those two still return their own shape - one array, and a structure with
 `.right` and `.left` - rather than a `ui` whose fields are the names the
 frontend files them under (`wmparcColors`, `AnnotColor_R`, `AnnotColor_L`).
 Making them match would let the frontend absorb any such output with one
-function instead of unwrapping each by hand. **For Alejandro:** worth doing,
-or is the third output free to be whatever the function produced?
+function instead of unwrapping each by hand. **Open:** should they match, or
+is the third output free to be whatever the function produced?
 
 **2. The window never enters.** An ielec function opens no window, no dialog
 and no figure, never calls `guidata`, and never reads a control. What the
@@ -263,15 +263,20 @@ Rules for it:
   `schemaVersion` (2). **That half is done.** v2 opens a v1.020 file with an
   empty history, and v1.020 opens a v2 file: `tests/test_ielFormat.m` runs
   1.020's own reading code on a file written here, in a MATLAB of its own
-  because its folders would shadow ours - 77 of the 406 function names under
-  its `priv` are also names in our `src`, `checkProjectStructure` among them,
-  and the rest are the SPM it carries, which would shadow ours in
-  `third_party`. It gets back every electrode array and every planning
+  because its folders would shadow this one's - 77 of the 406 function names
+  under its `priv` are also names in `src/` here, `checkProjectStructure`
+  among them, and the rest are the SPM it carries, which would shadow the copy
+  in `third_party`. It gets back every electrode array and every planning
   target, compared by content and not by count. It ignores the new fields
   because its structure check asks `isfield` for the fields it wants and
   never enumerates what it was given - which is also why a v2 file saved
   again from v1.020 loses its history: the history does not survive being
-  read by it, so it cannot be written back out. Measured, not assumed.
+  read by it, so it cannot be written back out.
+
+  That check needs a 1.020 copy beside the repository - `../iElectrodes_v1.020`
+  or one level further up. Without one it skips, and the suite still reports a
+  pass, so a clean run is not on its own evidence that the compatibility still
+  holds.
 - Nothing reads `schemaVersion` yet. It is written so that a later version can
   tell what it is looking at; refusing a file from a *future* version would be
   a new behaviour and is not part of this.
