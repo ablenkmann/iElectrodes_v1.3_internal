@@ -290,8 +290,17 @@ nFail = nFail + check(isequal(anchorBack.anchors, withAnchors.anchors), ...
 % move work.oldanchors with the other four. IELEC.UNDOCOORDINATES swaps all
 % five pairs, so one that forgot would make the next Undo hand back whatever
 % was in oldanchors instead of the anchors the user placed: empty, or a stale
-% point. Measured on IELEC.ACCEPTARRAY, which needs no brushed voxels, with a
-% stale value planted so that an empty result cannot pass for a correct one.
+% point. A stale value is planted each time, so that an empty result cannot
+% pass for a correct one.
+%
+% All three are covered, and it took a deliberate mutation to find out they
+% were not: deleting the oldanchors block from IELEC.CLUSTER left this file
+% passing, because the sentence above named three functions and the check
+% below drove one. IELEC.ACCEPTARRAY is driven here because it needs no
+% voxels; IELEC.CLUSTER is driven here too, on a hand-built selection, since
+% that is all it asks for; IELEC.FITARRAY is driven in
+% tests/test_ielecFitArray.m, which checks work.oldanchors after a nailed
+% fit and needs the whole fitting fixture to do it.
 oneArray = checkElectrodeStructure();
 oneArray = oneArray{1};
 oneArray.Name        = 'G';
@@ -312,6 +321,25 @@ nFail = nFail + check(isequal(acceptedWork.anchors, withAnchors.anchors), ...
 nFail = nFail + check(isequal(afterAccept.anchors, withAnchors.anchors), ...
     'and Undo after it gives them back, not what was in the copy', ...
     mat2str(afterAccept.anchors));
+
+% And the same for IELEC.CLUSTER, which is the one the mutation caught. It
+% asks for nothing but a selection, so a hand-built one is enough: six voxels
+% in two obvious groups, clustered into two contacts.
+clustering = withAnchors;
+clustering.oldanchors     = [99 99 99];        % planted, as above
+clustering.selectedVoxels = [0 0 0; 1 0 0; 0 1 0; 20 0 0; 21 0 0; 20 1 0];
+clustering.selectedWeights = ones(6, 1);
+warnBefore = warning('off', 'all');
+[clusteredProject, clusteredWork] = ielec.cluster(struct('nClusters', 2), ...
+                                                  project, clustering);
+warning(warnBefore);
+nFail = nFail + check(isequal(clusteredWork.anchors, withAnchors.anchors), ...
+    'clustering leaves the anchors where they were', ...
+    mat2str(clusteredWork.anchors));
+[~, afterCluster] = ielec.undoCoordinates([], clusteredProject, clusteredWork);
+nFail = nFail + check(isequal(afterCluster.anchors, withAnchors.anchors), ...
+    'and Undo after it gives them back too', ...
+    mat2str(afterCluster.anchors));
 
 % A work from before the field existed. CHECKPROJECTSTRUCTURE makes it for
 % every real project, but a hand-built one need not have it, and neither
@@ -339,6 +367,12 @@ refusals = {
   @() ielec.removeCoordinate(struct('coordinate', [0 0 0], 'tolerance', -1), ...
       project, inProgress), ...
       'ielec:badOption', 'a tolerance that is not a distance'
+  @() ielec.removeCoordinate(struct('coordinate', [0 0 0], 'tolerance', NaN), ...
+      project, inProgress), ...
+      'ielec:badOption', 'a tolerance of NaN, which used to delete nothing'
+  @() ielec.removeCoordinate(struct('coordinate', [0 0 0], 'tolerance', Inf), ...
+      project, inProgress), ...
+      'ielec:badOption', 'and one of Inf, which used to delete the furthest'
   @() ielec.clearCoordinates(struct('all', true), project, work), ...
       'ielec:unknownOption', 'an option Clear does not have'
   @() ielec.undoCoordinates(struct('steps', 2), project, work), ...

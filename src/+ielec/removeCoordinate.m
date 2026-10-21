@@ -58,7 +58,13 @@ if ~isnumeric(cfg.coordinate) || numel(cfg.coordinate) ~= 3
     error('ielec:badOption', ...
         'ielec.removeCoordinate: cfg.coordinate must be three numbers, as [x y z].');
 end
-if ~isnumeric(cfg.tolerance) || ~isscalar(cfg.tolerance) || cfg.tolerance <= 0
+% ~isfinite is the conjunct every sibling guard has - IELEC.NEWTARGET,
+% IELEC.FITARRAY, IELEC.NEWDEPTHTARGET - and this one was written without it.
+% NaN <= 0 is false, so a NaN tolerance passed, and then nearest < NaN is false
+% for every contact, so Delete returned removed = false having touched nothing
+% and raised nothing. Inf passed too, and made every contact near enough.
+if ~isnumeric(cfg.tolerance) || ~isscalar(cfg.tolerance) || ...
+        ~isfinite(cfg.tolerance) || cfg.tolerance <= 0
     error('ielec:badOption', ...
         'ielec.removeCoordinate: cfg.tolerance must be a distance in mm.');
 end

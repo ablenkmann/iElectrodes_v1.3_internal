@@ -90,8 +90,23 @@ nFail = nFail + check(max(abs(abs(vprm(7:9)) - 1)) < 1e-9, 'cfg.voxdim is used',
     sprintf('%g %g %g mm', abs(vprm(7:9))));
 
 cfg = []; cfg.mri = string(mriFile);
-nFail = nFail + check(isequaln(ielec.newProject(cfg, [], before.work), project), ...
+% Modulo the history, like its neighbour below, and for the reason the
+% nameContacts check had: both sides are layer calls, each records a step of
+% its own, and RECORDSTEP writes the date to the second - so compared whole
+% this passed or failed on whether the two calls fell in the same clock
+% second. It failed once in a suite run and passed alone, which is what that
+% looks like from the outside.
+%
+% What the whole-project comparison was asserting by accident is checked
+% outright instead: CHECKCFG turns a scalar string into a char, so the step a
+% string path records is the same step a char path records, and nothing of
+% class string reaches the .iel file.
+fromString = ielec.newProject(cfg, [], before.work);
+nFail = nFail + check(isequaln(withoutHistory(fromString), withoutHistory(project)), ...
     'a string works as well as a char', '');
+nFail = nFail + check(ischar(fromString.history{end}.cfg.mri), ...
+    'and the step it records holds a char, not a string', ...
+    class(fromString.history{end}.cfg.mri));
 
 p2 = ielec.newProject(struct('mri', mriFile), [], []);
 nFail = nFail + check(isequaln(withoutHistory(p2), withoutHistory(project)), ...
