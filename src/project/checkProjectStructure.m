@@ -77,6 +77,14 @@ end
 % mask
 if  ~isfield(s,'mask')
     iel.mask=[];
+elseif isempty(s.mask)
+    % As the TAC block above does. Without this, an empty mask fell into the
+    % old-mat-structure branch below, which builds a struct from the T1 and
+    % puts the empty into its img - so a project with no mask came back with
+    % a mask that is not empty and has a 0x0 image. Nothing noticed while
+    % ielec.loadCT always loaded a mask alongside the CT; now that the mask
+    % is ielec.loadMask, a project with a CT and no mask is ordinary.
+    iel.mask=[];
 else
     if ~isstruct(s.mask)   % not new SPM type (old mat structure)
 %         temp=s.T1;         % take as a base structure. Assuming same dimensions

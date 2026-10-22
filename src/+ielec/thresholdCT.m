@@ -28,7 +28,8 @@ function [project, work] = thresholdCT(cfg, project, work)
 %
 %   Nothing is drawn and no window is opened.
 %
-%   Errors: ielec:noCT (no CT or no mask), and those of the cfg check.
+%   Errors: ielec:noCT (no CT), ielec:noMask (no mask, or one with no
+%   image in it), and those of the cfg check.
 %
 %   Example
 %       cfg = [];
@@ -39,12 +40,25 @@ function [project, work] = thresholdCT(cfg, project, work)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
-%   See also THRESHOLDCTVOXELS, IELEC.SELECTVOXELS, IELEC.LOADCT.
+%   See also THRESHOLDCTVOXELS, IELEC.SELECTVOXELS, IELEC.LOADCT,
+%   IELEC.LOADMASK.
 
-if ~isfield(project, 'TAC') || isempty(project.TAC) || ...
-        ~isfield(project, 'mask') || isempty(project.mask)
+% The CT and the mask arrive separately, so say which one is missing - the
+% old message named one function for both and left the caller to work out
+% which half had not happened.
+if ~isfield(project, 'TAC') || isempty(project.TAC)
     error('ielec:noCT', ...
-        'ielec.thresholdCT: load a CT and a brain mask first (ielec.loadCT).');
+        'ielec.thresholdCT: load a CT first (ielec.loadCT).');
+end
+% Structural, as ielec.export's own check is: a mask can arrive as a
+% struct with nothing in it from an older file, and isempty() says such a
+% thing is present. Then THRESHOLDCTVOXELS fails on the size mismatch with
+% a raw MATLAB identifier, which rule 5 exists to prevent.
+if ~isfield(project, 'mask') || isempty(project.mask) || ...
+        ~isstruct(project.mask) || ~isfield(project.mask, 'img') || ...
+        isempty(project.mask.img)
+    error('ielec:noMask', ...
+        'ielec.thresholdCT: load a brain mask first (ielec.loadMask).');
 end
 
 defaults.denoiseKernel    = 1;
@@ -62,7 +76,7 @@ end
 opt.excludeCoordinates = [];
 if cfg.excludeLocalized
     for j = 1:numel(project.electrodes)
-        opt.excludeCoordinates = [opt.excludeCoordinates; project.electrodes{j}.brushCrd]; %#ok<AGROW>
+        opt.excludeCoordinates = [opt.excludeCoordinates; project.electrodes{j}.brushCrd];
     end
 end
 

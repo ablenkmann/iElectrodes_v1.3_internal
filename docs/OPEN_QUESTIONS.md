@@ -1084,6 +1084,40 @@ CT. Then the mask would have to become optional everywhere that reads it.
 
 **Status: FIXED in the Load CT button.** Present in v1.020.
 
+**Later:** the author asked for `ielec.loadCT` to be split, because it was
+reading two files into two fields. It is now `ielec.loadCT` and
+`ielec.loadMask`, so the layer no longer enforces the pairing that fixed
+this.
+
+What fixed it is kept, and moved: the Load CT button still answers both
+dialogs before it calls either function, so cancelling the mask still loads
+nothing. That guarantee is `electrodes_gui.m`'s now, not the layer's - and
+the new window does not make it, because it offers Load CT and Load brain
+mask as two menu items, which is a CT with no mask as a first-class action.
+
+So the state has to be safe rather than merely allowed, and the first
+version of this note said it already was. It was not. Writing a CT-only
+project and opening it again came back with a mask that was not empty and
+had a 0x0 image, because `checkProjectStructure` took an empty mask for an
+old-style one and built a struct around it. `isempty` then said a mask was
+present, `ielec.thresholdCT`'s guard passed, and the threshold died inside
+`thresholdCTVoxels` with a raw MATLAB identifier - in the one place this
+note called the guard that matters.
+
+Both ends are fixed in the same commit as the split: `checkProjectStructure`
+leaves an empty mask empty, as it already did for an empty CT, and
+`ielec.thresholdCT` looks inside the mask rather than trusting that a struct
+is a mask. It also raises `ielec:noMask` rather than `ielec:noCT`, so which
+half is missing is something a frontend can act on and not only read.
+`tests/test_ielecLoadCT.m` saves a CT-only project, opens it again, and
+requires `ielec:noMask`.
+
+What the split does leave behind: a step recorded by the old `ielec.loadCT`
+carries `cfg.mask`, which the new one refuses as an unknown option. Nothing
+replays histories today, so nothing is broken - but `docs/API_LAYER.md`
+treats replayability as a property worth keeping, and this is the first
+place it has been given up.
+
 ---
 
 ## 27. Remove leaves the previous array's name in the name box
@@ -2363,6 +2397,68 @@ Line 124 asserts the set of ielview functions the frontend calls is *exactly*
 the moment the test is pointed at the new window, which calls three of them.
 
 Neither is wrong yet. Both are a trap set for whoever finishes the frontend,
-and the second one looks like a rule when it is a snapshot.
+and the second one looks like a rule when it is a snapshot. The new window
+calls four ielview functions, not two.
+
+A third thing surfaced when the scanner was pointed at the new window by
+hand. `tests/test_frontendUsesLayer.m:23-24` says character strings are left
+alone, "so a function name inside one would count - none does today". One did:
+the control label `'Inclusion distance (mm)'` matched the call pattern on
+`distance (`, and `src/localization/distance.m` exists, so the scanner
+reported a backend call that was a caption. The label was reworded to
+`'Inclusion distance, mm'`, which dodges it - but the weakness is in the
+scanner, and the next label with a bracket after a word will do it again.
 
 **Status: open, and it belongs with the frontend work rather than before it.**
+
+---
+
+## 50. `ielec.openProject` lets MATLAB's own error out when the file is not a MAT-file
+
+**Where:** `src/+ielec/openProject.m`
+
+Its help promises `ielec:notAProject` for a file that cannot be read as a
+project, and it delivers that for a `.mat` whose contents are wrong. A file
+that is not a MAT-file at all is a different path: `load` raises
+`MATLAB:load:notBinaryFile` and that is what reaches the caller.
+
+Found by pointing the new window's Project > Open at `version.txt`. The
+window catches and reports, so nothing breaks - but what it reports is
+
+    Unable to read MAT-file ... Not a binary MAT-file. Try load -ASCII ...
+
+which tells the user about MAT-files when what happened is that they picked
+the wrong file. Rule 5 says the layer's errors carry `ielec:` identifiers so
+a frontend can tell them apart; this one does not, and a frontend cannot.
+
+One `try` around the `load` would make every unreadable file arrive as
+`ielec:notAProject` with the file name in the message.
+
+**Status: open.** Small, and in the layer the author is currently reviewing,
+so it is written down rather than changed in passing.
+
+---
+
+## 51. `checkProjectStructure` writes the mask's file name onto the project
+
+**Where:** `src/project/checkProjectStructure.m`, the old-mat-structure
+branch of the mask block
+
+```matlab
+iel.mask=iel.T1;      % take as a base structure
+iel.mask.img=s.mask;  % replace img
+iel.fname='mask.nii';
+```
+
+The third line sets `fname` on the **project**, not on `iel.mask`. The
+project gains a stray field called `fname` that nothing reads, and the mask
+keeps the T1's file name.
+
+The intent is plain enough - the two lines above it both write to
+`iel.mask`. It is left alone because the branch only runs for a mask stored
+as a bare array by a version old enough to predate the SPM structures, and
+changing it changes what such a project looks like after it is opened.
+
+Found while fixing the empty-mask case beside it (item 26).
+
+**Status: open.** Present in v1.020.

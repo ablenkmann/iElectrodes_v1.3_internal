@@ -1,13 +1,13 @@
 # The ielec layer
 
 The layer the frontend talks to, so that it never calls the backend
-directly. Forty functions; what each one does, how it is called, and
+directly. Forty-one functions; what each one does, how it is called, and
 what it takes.
 
 The text comes from the help of each function, so it stays with the
 code. `help ielec.cluster` at the MATLAB prompt gives any one of them in
 full, with an example. `docs/API_LAYER.md` beside this is the design -
-the rules these forty obey, and why.
+the rules these forty-one obey, and why.
 
 ## They all have one shape
 
@@ -104,14 +104,23 @@ What a project is built on: the CT, the atlas, the cortical surfaces.
 
 ### `ielec.loadCT`  →  `project`, `work`
 
-Reads the CT named in cfg.ct and the mask named in cfg.mask, reslices both onto the MRI's grid, and puts them in the project.
+Reads the CT named in cfg.ct, reslices it onto the MRI's grid, and puts it in the project as project.TAC.
 
 | | | |
 |---|---|---|
 | `ct` | path of the CT, a NIfTI file | required |
+| `interpolation` | interpolation, as SPM numbers it | default `4` |
+
+Errors: `ielec:noMRI`, `ielec:noSuchFile`
+
+### `ielec.loadMask`  →  `project`, `work`
+
+Reads the mask named in cfg.mask, reslices it onto the MRI's grid, and puts it in the project as project.mask.
+
+| | | |
+|---|---|---|
 | `mask` | path of the brain mask, a NIfTI file | required |
-| `interpolation` | interpolation for the CT, as SPM numbers it | default `4` |
-| `maskInterpolation` | interpolation for the mask. It is a mask, so the default is trilinear | default `1` |
+| `interpolation` | interpolation, as SPM numbers it. It is a mask, so the default is trilinear | default `1` |
 
 Errors: `ielec:noMRI`, `ielec:noSuchFile`
 
@@ -179,7 +188,7 @@ Finds the voxels of the CT between two intensities and inside the brain mask.
 | `maxCount` | keep at most this many voxels, chosen at random, and warn. [] keeps all of them | default `[]` |
 | `excludeLocalized` | leave out the voxels of the arrays already localized in the project | default `false` |
 
-Errors: `ielec:noCT`
+Errors: `ielec:noCT`, `ielec:noMask`
 
 ### `ielec.selectVoxels`  →  `project`, `work`
 

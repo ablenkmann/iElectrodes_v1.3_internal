@@ -45,7 +45,8 @@ ctFile   = writeVolume(folder, 'tinyCT.nii',   ct);
 maskFile = writeVolume(folder, 'tinyMask.nii', ones(dim));
 
 [project, work] = ielec.newProject(struct('mri', mriFile, 'voxdim', [1 1 1]), [], []);
-[project, work] = ielec.loadCT(struct('ct', ctFile, 'mask', maskFile), project, work);
+[project, work] = ielec.loadCT(struct('ct', ctFile), project, work);
+[project, work] = ielec.loadMask(struct('mask', maskFile), project, work);
 
 low  = 0.5 * (double(work.maxValue) - double(work.minValue)) + double(work.minValue);
 high = 2   *  double(work.maxValue);

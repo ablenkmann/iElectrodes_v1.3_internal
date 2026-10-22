@@ -493,15 +493,20 @@ if TACfile~=0
     % Removed with Alejandro's agreement; see docs/OPEN_QUESTIONS.md item 9.
 
     %load mask file. The mask decides which voxels the thresholding may
-    %select, so the CT is only useful with it: both are read together, and
-    %nothing is loaded if this dialog is cancelled - see OPEN_QUESTIONS 26.
+    %select, so the CT is only useful with it. The two are loaded by two
+    %layer calls now, but both dialogs are answered first, so nothing is
+    %loaded if this one is cancelled - see OPEN_QUESTIONS 26.
     [maskfile,maskPath]=uigetfile('*.nii', 'Load mask file',PathName);
     
     if maskfile~=0
-        cfg = [];
-        cfg.ct   = [PathName, TACfile];
-        cfg.mask = [maskPath, maskfile];
-        [handles.project, handles.work] = ielec.loadCT(cfg, handles.project, handles.work);
+        % Two files, two layer calls. Both dialogs are answered before
+        % either call is made, so cancelling the mask still loads nothing -
+        % which is what OPEN_QUESTIONS item 26 fixed, now kept here rather
+        % than by the layer taking both files at once.
+        [handles.project, handles.work] = ielec.loadCT( ...
+            struct('ct', [PathName, TACfile]), handles.project, handles.work);
+        [handles.project, handles.work] = ielec.loadMask( ...
+            struct('mask', [maskPath, maskfile]), handles.project, handles.work);
         disp (['Loaded CT from ' PathName, TACfile])
         disp (['Loaded Mask from ' maskPath, maskfile])
         PathName = maskPath;

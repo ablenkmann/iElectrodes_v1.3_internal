@@ -287,7 +287,7 @@ Because it changes the file, the format came in two commits of its own - the
 fields, and then the string the history is stored as. **The functions record
 now.**
 
-Thirty-one of the forty record a step; nine do not, and
+Thirty-two of the forty-one record a step; nine do not, and
 `tests/test_ielecHistory.m` names those nine with a reason each and fails if a
 layer function neither records nor appears there. The nine are the three kinds
 of function that produce nothing: one that reports (`projectionState`,
@@ -320,9 +320,9 @@ characters - twenty times a typical one - and `options.image_voxdim` is a
 1-by-3 row, which JSON brings back as a column, so that one step does not
 survive the file unchanged. The window never reaches it (the Config button
 passes `cfg = []`, recorded as twelve characters); a script does. And every
-function that takes a file name records it as given: `loadCT`, `newProject`,
-`loadSurfaces`, `loadTargets` and `importLabels` put the full path in the
-history, which from this commit travels inside a shared `.iel`. The bullet
+function that takes a file name records it as given: `loadCT`, `loadMask`,
+`newProject`, `loadSurfaces`, `loadTargets` and `importLabels` put the full
+path in the history, which from this commit travels inside a shared `.iel`. The bullet
 below has always said paths need care when a project is shared; it now
 applies to the history as well as to the fields it was written about.
 
@@ -343,7 +343,8 @@ about them.
 | `ielec.openProject` | `readIelFile` and the project/work split in the Open button | the Open button |
 | `ielec.saveProject` | `writeIelFile` with the GUI's colour caches | the Save button |
 | `ielec.colourCaches` | computing the colour caches for a new project | the New button |
-| `ielec.loadCT` | the CT and the mask in the Load CT button | the Load CT button |
+| `ielec.loadCT` | the CT in the Load CT button | the Load CT button |
+| `ielec.loadMask` | the mask in the Load CT button | the Load CT button |
 | `ielec.thresholdCT` | the threshold block of `updatePlot` | the Localize panel |
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |

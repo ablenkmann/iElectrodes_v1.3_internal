@@ -37,7 +37,8 @@ for on top of it, and none of it is blocked by the layer any more.
   response. `docs/OPEN_QUESTIONS.md` item 47 has the measurements and the one
   constraint that remains.
 - **Trimming the images.** Not started. It touches `ielec.newProject` and
-  `ielec.loadCT`, both of which already own the reslicing, so it has a home.
+  `ielec.loadCT` and `ielec.loadMask`, which own the reslicing between
+  them, so it has a home.
   Worth deciding first whether the trim is stored or recomputed, because a
   trimmed image changes every voxel coordinate in a project and the `.iel`
   file holds coordinates in anatomical space.

@@ -46,7 +46,8 @@ groups = {
     {'startSession','setOptions','newProject','openProject','saveProject','colourCaches'}
  'Images and surfaces', ...
     'What a project is built on: the CT, the atlas, the cortical surfaces.', ...
-    {'loadCT','loadAnatomy','loadSurfaces','loadAnnotations','buildEnvelope'}
+    {'loadCT','loadMask','loadAnatomy','loadSurfaces','loadAnnotations', ...
+     'buildEnvelope'}
  'Localizing contacts', ...
     ['From a thresholded CT to an array in the project, in the order the ' ...
      'workflow runs.'], ...
@@ -84,13 +85,16 @@ L = {};
 L = add(L, '# The ielec layer');
 L = add(L, '');
 L = add(L, 'The layer the frontend talks to, so that it never calls the backend');
-L = add(L, 'directly. Forty functions; what each one does, how it is called, and');
+n = spellOut(numel(onDisk));
+L = add(L, sprintf(['directly. %s functions; what each one does, how it is ' ...
+                   'called, and'], [upper(n(1)) n(2:end)]));
 L = add(L, 'what it takes.');
 L = add(L, '');
 L = add(L, 'The text comes from the help of each function, so it stays with the');
 L = add(L, 'code. `help ielec.cluster` at the MATLAB prompt gives any one of them in');
 L = add(L, 'full, with an example. `docs/API_LAYER.md` beside this is the design -');
-L = add(L, 'the rules these forty obey, and why.');
+L = add(L, sprintf('the rules these %s obey, and why.', ...
+                   spellOut(numel(onDisk))));
 L = add(L, '');
 L = add(L, '## They all have one shape');
 L = add(L, '');
@@ -306,5 +310,25 @@ if numel(t) > 96
     sp = find(t == ' ', 1, 'last');
     if ~isempty(sp), t = t(1:sp-1); end
     t = [t '...'];
+end
+end
+
+% ---------------------------------------------------------------------
+function word = spellOut(n)
+%SPELLOUT  A small number in words, so the prose reads like prose.
+%
+%   Counted, never typed. This file's own help is about a document that
+%   says "forty functions" and is wrong within a month while looking right
+%   from the outside - and it said exactly that, about forty-one.
+words = {'one','two','three','four','five','six','seven','eight','nine', ...
+         'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen', ...
+         'seventeen','eighteen','nineteen','twenty'};
+tens  = {'twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'};
+if n <= 20
+    word = words{n};
+elseif mod(n, 10) == 0
+    word = tens{floor(n/10) - 1};
+else
+    word = [tens{floor(n/10) - 1} '-' words{mod(n,10)}];
 end
 end

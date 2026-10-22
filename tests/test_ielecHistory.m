@@ -16,7 +16,7 @@ function ok = test_ielecHistory()
 %   was nothing to do records nothing either.
 %
 %   The dynamic half drives the functions that need no image and no file -
-%   ten of the thirty-one. The other twenty-one are covered statically only:
+%   ten of the thirty-two. The other twenty-two are covered statically only:
 %   the scan proves the call is there, in the right shape, but not that it
 %   runs. Driving them needs an MRI, a CT, a parcellation, a pair of
 %   surfaces or a label file, which is what the tests of those functions
