@@ -58,9 +58,9 @@ nFail = nFail + check(isequal(size(ielview.voxelFromPlaneClick(1, 0, [0 0])), [1
 
 fprintf('\n--- what it refuses ------------------------------------------\n');
 nFail = nFail + check(threw(@() ielview.voxelFromPlaneClick(4, 1, [1 2]), ...
-    'voxelFromPlaneClick:badPlane'), 'a plane that is not 1, 2 or 3', '');
+    'ielview:badPlane'), 'a plane that is not 1, 2 or 3', '');
 nFail = nFail + check(threw(@() ielview.voxelFromPlaneClick(1, 1, [1 2 3]), ...
-    'voxelFromPlaneClick:badValues'), 'three in-plane values instead of two', '');
+    'ielview:badValues'), 'three in-plane values instead of two', '');
 
 fprintf('\n');
 ok = (nFail == 0);

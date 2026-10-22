@@ -2313,3 +2313,56 @@ version (reuse old code or improve)", answered on the improve side.
 
 **Status: answered; the five-character ceiling remains, on the published file
 only.** Pre-existing in 1.020, all of it.
+
+---
+
+## 48. The rule 8 test checks calls, not direct writes, and `project.currentSpace` is only ever written directly
+
+**Where:** `tests/test_frontendUsesLayer.m`, and every place that assigns
+`project.currentSpace`
+
+No `ielec` function sets `project.currentSpace`. Native and MNI are assigned
+straight into the structure, in `electrodes_gui.m` (seven places: lines 972,
+989, 1151, 1186, 1269, 1292 and the loader beside them) and in
+`app/config/defaultGuiVariables.m:61`, as a side effect of loading MNI or
+native resources.
+
+So a frontend cannot switch space through the layer. The new window's
+"Space: native or MNI..." menu item is the one item left pointing at nothing,
+for exactly this reason.
+
+`tests/test_frontendUsesLayer.m` cannot see it. The test lists backend
+*functions the frontend calls*; this is a *field the frontend writes*. Rule 8
+is met to the letter and the project state is still being changed from
+outside the layer.
+
+Two separate things to decide:
+
+- whether a layer function should own it - `ielec.setSpace`, say, with the
+  reslicing and the resource loading that go with a space change;
+- whether the test should also look for `handles.project.*` and
+  `handles.work.*` on the left of an assignment in the frontend, which is the
+  only way this class of thing gets caught at all.
+
+**Status: open.** Found while reviewing the naming of menus and functions,
+and not a naming question.
+
+---
+
+## 49. `tests/test_frontendUsesLayer.m` pins the ielview call set, and reads only the GUIDE window
+
+**Where:** `tests/test_frontendUsesLayer.m:76` and `:124`
+
+Line 76 reads `electrodes_gui.m` and nothing else, so the App Designer window
+in `app/ui/` is not checked against rule 8 at all - and that is where the new
+drawing calls live.
+
+Line 124 asserts the set of ielview functions the frontend calls is *exactly*
+`{'mixImages', 'voxelFromPlaneClick'}`. It passes today only because of line
+76. It will fail the moment the GUIDE window calls `ielview.sliceView`, or
+the moment the test is pointed at the new window, which calls three of them.
+
+Neither is wrong yet. Both are a trap set for whoever finishes the frontend,
+and the second one looks like a rule when it is a snapshot.
+
+**Status: open, and it belongs with the frontend work rather than before it.**

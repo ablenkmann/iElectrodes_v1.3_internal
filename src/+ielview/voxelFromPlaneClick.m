@@ -29,12 +29,12 @@ function voxel = voxelFromPlaneClick(plane, throughPlane, inPlaneValues)
 %
 %   See also MESH2ANATSPACE, ANATSPACE2MESH.
 
-if ~ismember(plane, [1 2 3])
-    error('voxelFromPlaneClick:badPlane', ...
+if ~isscalar(plane) || ~ismember(plane, [1 2 3])
+    error('ielview:badPlane', ...
         'PLANE must be 1, 2 or 3, not %s.', num2str(plane));
 end
 if numel(inPlaneValues) ~= 2
-    error('voxelFromPlaneClick:badValues', ...
+    error('ielview:badValues', ...
         'INPLANEVALUES must hold two coordinates, not %d.', numel(inPlaneValues));
 end
 
