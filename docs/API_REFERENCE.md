@@ -381,7 +381,10 @@ Labels the contacts of every array in the project, and of the planning targets, 
 
 | | | |
 |---|---|---|
-| `space` | 'Native' or 'MNI' | default `project.currentSpace, which is the space the stored coordinates are in (RESOLVESPACE).` |
+| `space` | 'Native' or 'MNI' | default `project.currentSpace, the space the stored coordinates are in (RESOLVESPACE).` |
+| `radius` | how far around a contact to look, in millimetres. 0 looks at the contact's own voxel only | default `work.options.atlasLabelingRadio` |
+| `mode` | 'mode' reports the most common region in that radius, 'prob' reports every region with the... | default `work.options.atlasLabelingMode` |
+| `minProbability` | in 'prob', the smallest share worth reporting | default `work.options.atlasLabelingMinProb` |
 
 Errors: `ielec:badOption`, `ielec:noAtlas`
 
@@ -391,8 +394,9 @@ Says what the atlas calls the place a coordinate is in. Nothing is changed: the 
 
 | | | |
 |---|---|---|
-| `coordinate` | the point, or several, as N-by-3 in the space the project is currently in. Required | required |
-| `lookAround` | ask what is most common in a small cube around the point rather than what is in the one voxel... | default `true` |
+| `radius` | how far around the point to look, in millimetres | default `work.options.atlasLabelingRadio` |
+| `mode` | 'mode' for the most common region in that radius, 'prob' for every region with its share | default `work.options.atlasLabelingMode` |
+| `minProbability` | in 'prob', the smallest share worth reporting | default `work.options.atlasLabelingMinProb` |
 
 Errors: `ielec:badOption`, `ielec:noAtlas`
 

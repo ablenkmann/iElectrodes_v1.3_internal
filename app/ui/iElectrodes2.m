@@ -2156,7 +2156,12 @@ switch name
         items = {'contacts', 'projection'};
     case 'anatomySpace'                      % ielec.label, cfg.space
         items = {'Native', 'MNI'};
-    case 'inclusionMode'                     % work.options, in ielec.label
+    case 'inclusionMode'
+        % Readable here, two short strings in the layer: ielec.label takes
+        % cfg.mode as 'mode' or 'prob'. Whoever wires this maps
+        % 'most probable' -> 'mode' and 'probabilistic' -> 'prob'; the
+        % layer refuses anything else, so a wrong mapping cannot pass
+        % quietly.
         items = {'most probable', 'probabilistic'};
     case 'arrayType'                         % ielec.fitArray, cfg.type
         items = {'Grid', 'Strip', 'Depth'};

@@ -2525,4 +2525,32 @@ then the recorded step still does not say what was used.
 The first is what the author's sentence asks for, and it is the only one of
 the three that lets a frontend set a value for one call.
 
-**Status: open, and the next thing to settle on the layer.**
+**Done for the labelling pair.** `ielec.label` and `ielec.pointLabel` now
+take `cfg.radius`, `cfg.mode` and `cfg.minProbability`. A call that gives
+none of them behaves exactly as before - the session's settings - and the
+values are resolved into cfg before the work is done, so `recordStep` writes
+what was used either way. `src/+ielec/private/resolveLabelling.m` does the
+resolving for both, and refuses the three in MNI space, where the atlas is
+probabilistic and has no radius to look within.
+
+The same measurement, after:
+
+    LABELS identical: 0                 the results still differ
+    HISTORY STEPS IDENTICAL: 0          and now the records do too
+      A cfg: radius=0 mode=prob minProb=0.2 space=Native
+      B cfg: radius=5 mode=prob minProb=0.2 space=Native
+    DEFAULTED cfg records the session value: radius=2
+    AFTER REOPEN the step still says radius=5
+
+The last line is the one that was impossible before: the value now survives
+the file, because it travels in the history rather than in `work.options`.
+
+`tests/test_ielecLabelOptions.m` is that measurement as a test.
+
+**Still to do, the same way:** `ielec.fitArray` (through `gridFitOptions`),
+`ielec.indexArray` (`indexing_projection_method`), `ielec.buildEnvelope`
+(the smoothing settings), `ielec.projectArrays` and `ielec.fitTarget`. Each
+needs the same two moves - name the options in cfg, resolve them before the
+work - and each has its own set of values to name.
+
+**Status: open for five functions; answered in shape and done for two.**

@@ -7,6 +7,19 @@ function [project, work, report] = pointLabel(cfg, project, work)
 %   output.
 %
 %   Options (cfg):
+%     cfg.radius          how far around the point to look, in millimetres.
+%                         Default: work.options.atlasLabelingRadio
+%     cfg.mode            'mode' for the most common region in that radius,
+%                         'prob' for every region with its share.
+%                         Default: work.options.atlasLabelingMode
+%     cfg.minProbability  in 'prob', the smallest share worth reporting.
+%                         Default: work.options.atlasLabelingMinProb
+%
+%   The three are native labelling's, as in IELEC.LABEL, and are refused in
+%   a project whose space is MNI. They used to be read straight out of
+%   work.options, so a caller could not ask for one answer at one radius and
+%   another at another - see docs/OPEN_QUESTIONS.md item 51.
+%
 %     cfg.coordinate  the point, or several, as N-by-3 in the space the
 %                     project is currently in.                     Required
 %     cfg.lookAround  ask what is most common in a small cube around the
@@ -59,8 +72,16 @@ function [project, work, report] = pointLabel(cfg, project, work)
 %
 %   See also ANATOMICLABEL, ANATOMICLABELFS, IELEC.LABEL, IELEC.LOADANATOMY.
 
-defaults.lookAround = true;
+defaults.lookAround     = true;
+defaults.radius         = [];
+defaults.mode           = '';
+defaults.minProbability = [];
 cfg = checkCfg(cfg, defaults, {'coordinate'}, 'pointLabel');
+
+options = fieldOr(work, 'options', default_ielectrodes_options([]));
+cfg.space = project.currentSpace;          % only so the check below can see it
+[cfg, labelOpt] = resolveLabelling(cfg, options, 'pointLabel');
+cfg = rmfield(cfg, 'space');
 
 if ~isnumeric(cfg.coordinate) || isempty(cfg.coordinate) || ...
         size(cfg.coordinate, 2) ~= 3 || ~all(isfinite(cfg.coordinate(:)))
@@ -88,9 +109,7 @@ if strcmp(project.currentSpace, 'MNI')
                                   work.MNIlabels, work.MNIprob);
 
 elseif ~isempty(fieldOr(project, 'wmparc', []))
-    opt.radio   = work.options.atlasLabelingRadio;
-    opt.mode    = work.options.atlasLabelingMode;
-    opt.minProb = work.options.atlasLabelingMinProb;
+    opt = labelOpt;
 
     report.source = 'parcellation';
     report.label  = anatomicLabelFS(cfg.coordinate, [], ...
