@@ -493,23 +493,42 @@ if TACfile~=0
     % Removed with Alejandro's agreement; see docs/OPEN_QUESTIONS.md item 9.
 
     %load mask file. The mask decides which voxels the thresholding may
-    %select, so the CT is only useful with it. The two are loaded by two
-    %layer calls now, but both dialogs are answered first, so nothing is
-    %loaded if this one is cancelled - see OPEN_QUESTIONS 26.
+    %select, so the CT is of little use without one - but not of none, and
+    %a mask is not always ready when the images are. Cancelling this dialog
+    %now offers a mask that selects everything instead of loading nothing;
+    %see OPEN_QUESTIONS 26 and ielec.dummyMask.
     [maskfile,maskPath]=uigetfile('*.nii', 'Load mask file',PathName);
-    
-    if maskfile~=0
-        % Two files, two layer calls. Both dialogs are answered before
-        % either call is made, so cancelling the mask still loads nothing -
-        % which is what OPEN_QUESTIONS item 26 fixed, now kept here rather
-        % than by the layer taking both files at once.
+
+    useDummyMask = false;
+    if maskfile==0
+        answer = questdlg({'No brain mask chosen.', '', ...
+            ['A mask decides which voxels the threshold may select. ' ...
+             'Without one, the threshold returns the skull as well as ' ...
+             'the contacts, and the brushing step has to throw it away.'], ...
+            '', 'Load the CT anyway, with a mask that selects everything?'}, ...
+            'Load CT', 'Load it anyway', 'Cancel', 'Cancel');
+        useDummyMask = strcmp(answer, 'Load it anyway');
+    end
+
+    if maskfile~=0 || useDummyMask
+        % Two files, two layer calls. Both answers are given before either
+        % call is made, so a cancelled mask loads nothing unless the user
+        % asked for the mask of ones - which is what OPEN_QUESTIONS item 26
+        % fixed, kept here rather than by the layer taking both at once.
         [handles.project, handles.work] = ielec.loadCT( ...
             struct('ct', [PathName, TACfile]), handles.project, handles.work);
-        [handles.project, handles.work] = ielec.loadMask( ...
-            struct('mask', [maskPath, maskfile]), handles.project, handles.work);
-        disp (['Loaded CT from ' PathName, TACfile])
-        disp (['Loaded Mask from ' maskPath, maskfile])
-        PathName = maskPath;
+        if useDummyMask
+            [handles.project, handles.work] = ielec.dummyMask( ...
+                [], handles.project, handles.work);
+            disp (['Loaded CT from ' PathName, TACfile])
+            disp ('No mask: using one that selects every voxel.')
+        else
+            [handles.project, handles.work] = ielec.loadMask( ...
+                struct('mask', [maskPath, maskfile]), handles.project, handles.work);
+            disp (['Loaded CT from ' PathName, TACfile])
+            disp (['Loaded Mask from ' maskPath, maskfile])
+            PathName = maskPath;
+        end
         
         % arbitrary thresholds to start
         set(handles.sliderThrMin,'Value',0.9);

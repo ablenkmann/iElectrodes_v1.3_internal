@@ -1,13 +1,13 @@
 # The ielec layer
 
 The layer the frontend talks to, so that it never calls the backend
-directly. Forty-one functions; what each one does, how it is called, and
+directly. Forty-two functions; what each one does, how it is called, and
 what it takes.
 
 The text comes from the help of each function, so it stays with the
 code. `help ielec.cluster` at the MATLAB prompt gives any one of them in
 full, with an example. `docs/API_LAYER.md` beside this is the design -
-the rules these forty-one obey, and why.
+the rules these forty-two obey, and why.
 
 ## They all have one shape
 
@@ -123,6 +123,12 @@ Reads the mask named in cfg.mask, reslices it onto the MRI's grid, and puts it i
 | `interpolation` | interpolation, as SPM numbers it. It is a mask, so the default is trilinear | default `1` |
 
 Errors: `ielec:noMRI`, `ielec:noSuchFile`
+
+### `ielec.dummyMask`  →  `project`, `work`
+
+Puts a mask of ones in the project, on the MRI's grid, so that a CT can be thresholded by someone who has no mask to hand.
+
+Errors: `ielec:noMRI`
 
 ### `ielec.loadAnatomy`  →  `project`, `work`, `colours`
 

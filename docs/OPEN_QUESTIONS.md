@@ -2439,26 +2439,90 @@ so it is written down rather than changed in passing.
 
 ---
 
-## 51. `checkProjectStructure` writes the mask's file name onto the project
+## 51. What a result depends on is in `work.options`, so it is not in `cfg` and not in the history
 
-**Where:** `src/project/checkProjectStructure.m`, the old-mat-structure
-branch of the mask block
+**Where:** `ielec.label`, `ielec.pointLabel`, `ielec.fitArray`, `ielec.indexArray`,
+`ielec.buildEnvelope`, `ielec.projectArrays`, `ielec.fitTarget`
 
-```matlab
-iel.mask=iel.T1;      % take as a base structure
-iel.mask.img=s.mask;  % replace img
-iel.fname='mask.nii';
-```
+The toolbox author, reading the design document:
 
-The third line sets `fname` on the **project**, not on `iel.mask`. The
-project gains a stray field called `fname` that nothing reads, and the mask
-keeps the T1's file name.
+> I found it a bit strange how work.options and cfg store and pass
+> information. Maybe I misunderstood, but cfg should carry all the low-level
+> configuration options a method needs to run. I have the feeling that some
+> of that is taken from work.options
 
-The intent is plain enough - the two lines above it both write to
-`iel.mask`. It is left alone because the branch only runs for a mask stored
-as a bare array by a version old enough to predate the SPM structures, and
-changing it changes what such a project looks like after it is opened.
+He is right, and `ielec.label` is the clearest case. Its `cfg` takes one
+option, `cfg.space`. What the labels actually are is decided by three values
+it reads out of `work.options`: `atlasLabelingRadio` (how far around a
+contact to look), `atlasLabelingMode` (the most probable region, or all of
+them with their probabilities) and `atlasLabelingMinProb`.
 
-Found while fixing the empty-mask case beside it (item 26).
+Measured on `examples/exampleNativeSpace.iel`, changing only the radius:
 
-**Status: open.** Present in v1.020.
+    labels at radius 0: [1 20]       one label per contact
+    labels at radius 5: [20 3]       three per contact, with probabilities
+    LABELS identical: 0
+
+and the two recorded steps:
+
+    STEP A: ielec.label   cfg fields: space
+    STEP B: ielec.label   cfg fields: space
+    HISTORY STEPS IDENTICAL: 1
+
+So two runs that produce differently shaped results leave records that cannot
+be told apart. `recordStep` writes the cfg, and the cfg does not contain what
+made the difference.
+
+It does not survive the file either. `work.options` is not stored in the
+`.iel` - `ielec.openProject` fills it from `default_ielectrodes_options`
+when it is absent, which is always. Saving the radius-5 project and opening
+it again:
+
+    RADIUS AFTER REOPEN: 2  (it was 5 when the labels were made)
+
+Two means the configuration file's default, which may itself have been
+edited since.
+
+**Why this matters beyond tidiness.** `docs/API_LAYER.md` says the history is
+what a "save the session as a script" feature would read, and item 42 was
+about exactly this property. A history that records `ielec.label` with the
+space and nothing else cannot reproduce the labels in the project it is
+stored in.
+
+**The same shape elsewhere.** Fourteen of the forty-two layer functions read
+`work.options`. Most are legitimate - `ielec.setOptions` and
+`ielec.startSession` write it, `ielec.openProject` and `ielec.newProject`
+fill it, and the look-up table file is a session-wide resource. These are
+the ones where a per-call decision is taken from a session-wide setting:
+
+| function | taken from `work.options` | what it decides |
+|---|---|---|
+| `ielec.label`, `ielec.pointLabel` | `atlasLabelingRadio`, `atlasLabelingMode`, `atlasLabelingMinProb` | what the anatomical labels are |
+| `ielec.fitArray` | all of them, through `gridFitOptions` | how the model grid is fitted |
+| `ielec.indexArray` | `indexing_projection_method` | how contacts are ordered |
+| `ielec.buildEnvelope` | the smoothing settings, through `buildSCE` | the shape of the envelope |
+| `ielec.projectArrays`, `ielec.fitTarget` | the whole struct | where contacts are projected to |
+
+**It is already visible in the frontend.** The new window's Anatomy step has
+an "Inclusion distance, mm" spinner and an "Inclusion mode" dropdown, because
+the design notes ask for them. There is no way to pass either to
+`ielec.label`. A frontend with those controls has to call `ielec.setOptions`
+to change a session-wide setting every time the user moves a spinner, and
+then the recorded step still does not say what was used.
+
+**Decision needed.** The shape of the fix is the author's to choose:
+
+- **cfg wins:** each function takes the values it needs as cfg options,
+  defaulting to `work.options` when not given. Nothing breaks - an unchanged
+  caller gets what it gets today - and a caller that passes them gets them
+  recorded. The cost is a wider cfg on seven functions.
+- **record what was used:** `recordStep` writes the resolved values rather
+  than the cfg as given. Smaller, but it makes the history a record of
+  effects rather than of calls, which is a different thing from what the
+  other thirty-two steps hold.
+- **both:** cfg options, and the resolved values recorded.
+
+The first is what the author's sentence asks for, and it is the only one of
+the three that lets a frontend set a value for one call.
+
+**Status: open, and the next thing to settle on the layer.**

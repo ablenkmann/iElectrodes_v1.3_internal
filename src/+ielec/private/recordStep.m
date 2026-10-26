@@ -14,8 +14,8 @@ function project = recordStep(project, name, cfg)
 %   were filled in - which is the whole point: a threshold of 2500 recorded
 %   as 2500, not as an empty cfg that happened to default to it.
 %
-%   Callers pass MFILENAME rather than their own name spelled out. Thirty-two
-%   functions call this; a spelled-out name is thirty-two chances to typo one
+%   Callers pass MFILENAME rather than their own name spelled out. A
+%   spelled-out name is one chance per call site to typo one
 %   and one more thing to forget when a function is renamed.
 %
 %   It is called where the change is COMMITTED, not at the top. A function
@@ -55,7 +55,7 @@ function project = recordStep(project, name, cfg)
 %   and version.txt could be read outright - so the earlier note here was
 %   wrong to say it could not be done. It should not be done: a step's
 %   version would then move with each release, which is the opposite of what
-%   it is for, and thirty-two call sites would have to thread it through.
+%   it is for, and every call site would have to thread it through.
 %
 %   Private to the ielec package.
 %

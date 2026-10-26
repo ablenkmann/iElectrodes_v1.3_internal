@@ -287,7 +287,7 @@ Because it changes the file, the format came in two commits of its own - the
 fields, and then the string the history is stored as. **The functions record
 now.**
 
-Thirty-two of the forty-one record a step; nine do not, and
+Thirty-three of the forty-two record a step; nine do not, and
 `tests/test_ielecHistory.m` names those nine with a reason each and fails if a
 layer function neither records nor appears there. The nine are the three kinds
 of function that produce nothing: one that reports (`projectionState`,
@@ -345,6 +345,7 @@ about them.
 | `ielec.colourCaches` | computing the colour caches for a new project | the New button |
 | `ielec.loadCT` | the CT in the Load CT button | the Load CT button |
 | `ielec.loadMask` | the mask in the Load CT button | the Load CT button |
+| `ielec.dummyMask` | new: a mask of ones, when there is no real one | the Load CT button |
 | `ielec.thresholdCT` | the threshold block of `updatePlot` | the Localize panel |
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
