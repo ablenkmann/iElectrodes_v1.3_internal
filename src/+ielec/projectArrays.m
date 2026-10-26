@@ -40,8 +40,26 @@ function [project, work] = projectArrays(cfg, project, work)
 
 defaults.space          = '';
 defaults.recalculateAll = false;
+defaults.method         = '';
 cfg   = checkCfg(cfg, defaults, {}, 'projectArrays');
 space = resolveSpace(cfg.space, project, 'projectArrays');
+
+% Which way the contacts are carried onto the envelope. Different methods
+% put a contact in different places, so it is the call's to choose and is
+% recorded with the step - item 51. Only a value the caller gives is
+% checked; the session's goes through as it always did.
+if ~isempty(cfg.method)
+    cfg.method = char(cfg.method);
+    known = {'CEPA', 'closestPoint', 'springs', 'normal', 'normal-SCE', ...
+             'realistic'};
+    if ~ismember(cfg.method, known)
+        error('ielec:badOption', ...
+            'ielec.projectArrays: cfg.method is one of: %s.', ...
+            strjoin(known, ', '));
+    end
+else
+    cfg.method = fieldOr(work.options, 'SCE_projection_method', 'CEPA');
+end
 
 arrays = fieldOr(project, 'electrodes', {});
 [projectable, alreadyDone] = arrayProjectionState(arrays);
@@ -66,8 +84,11 @@ if isempty(vertices)
          'Load or generate one first.'], space);
 end
 
+projectOptions = work.options;
+projectOptions.SCE_projection_method = cfg.method;
+
 project.electrodes = electrodes2hullCorrection(arrays, vertices, faces, ...
-                                               work.options, alreadyDone);
+                                               projectOptions, alreadyDone);
 
 project = recordStep(project, mfilename, cfg);
 end

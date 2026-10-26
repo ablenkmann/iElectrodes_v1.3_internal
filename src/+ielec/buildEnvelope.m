@@ -28,10 +28,46 @@ function [project, work] = buildEnvelope(cfg, project, work)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
+%   Options (cfg):
+%     cfg.resample  how many vertices the envelope is reduced to. [] keeps
+%                   every one of them.                      Default: 15000
+%     cfg.radius    the radius, in millimetres, of the sphere rolled over
+%                   the pial surface to enclose it. A vector asks for a
+%                   weighted average over several radii.
+%                   Default: work.options.buildSCEradius
+%
+%   The radius is what the envelope's shape comes from, so it is the call's
+%   to set and is recorded with the step. It used to be read out of
+%   work.options where it was used, which meant the project could not say
+%   which radius had made the envelope it holds - see
+%   docs/OPEN_QUESTIONS.md item 51.
+%
 %   See also BUILDSCE, IELEC.LOADSURFACES, IELEC.PROJECTARRAYS.
 
-cfg = checkCfg(cfg, struct('resample', 15000), {}, 'buildEnvelope');
+defaults.resample = 15000;
+defaults.radius   = [];
+cfg = checkCfg(cfg, defaults, {}, 'buildEnvelope');
 checkSurfaceOptions(cfg, 'buildEnvelope');
+
+% The radius that encloses the pial surface is what shapes the envelope, so
+% it travels in cfg and is recorded with the step - see
+% docs/OPEN_QUESTIONS.md item 51. Given nothing, the session's is used, and
+% written into cfg so that the record says which it was. Only a value the
+% caller gives is checked; one from work.options goes through as it always
+% did.
+if ~isempty(cfg.radius)
+    if ~isnumeric(cfg.radius) || isempty(cfg.radius) || ...
+            ~all(isfinite(cfg.radius)) || any(cfg.radius <= 0)
+        error('ielec:badOption', ...
+            ['ielec.buildEnvelope: cfg.radius is one radius in millimetres, ' ...
+             'or several for a weighted average envelope. All above zero.']);
+    end
+else
+    cfg.radius = fieldOr(work.options, 'buildSCEradius', 50);
+end
+
+options = work.options;
+options.buildSCEradius = cfg.radius;
 
 if isempty(fieldOr(project, 'verticesL', [])) || isempty(fieldOr(project, 'verticesR', []))
     error('ielec:noSurfaces', ...
@@ -40,8 +76,8 @@ if isempty(fieldOr(project, 'verticesL', [])) || isempty(fieldOr(project, 'verti
 end
 
 % left first, then right, as the button built them
-[vL, fL] = buildSCE(project.verticesL, project.facesL, work.options);
-[vR, fR] = buildSCE(project.verticesR, project.facesR, work.options);
+[vL, fL] = buildSCE(project.verticesL, project.facesL, options);
+[vR, fR] = buildSCE(project.verticesR, project.facesR, options);
 
 if ~isempty(cfg.resample)
     [vR, fR, vL, fL] = resampleSurfacePair(vR, fR, vL, fL, cfg.resample);

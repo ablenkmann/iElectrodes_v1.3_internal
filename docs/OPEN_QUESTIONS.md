@@ -2547,10 +2547,41 @@ the file, because it travels in the history rather than in `work.options`.
 
 `tests/test_ielecLabelOptions.m` is that measurement as a test.
 
-**Still to do, the same way:** `ielec.fitArray` (through `gridFitOptions`),
-`ielec.indexArray` (`indexing_projection_method`), `ielec.buildEnvelope`
-(the smoothing settings), `ielec.projectArrays` and `ielec.fitTarget`. Each
-needs the same two moves - name the options in cfg, resolve them before the
-work - and each has its own set of values to name.
+**The other five, the same way.** Each names its decision in cfg, resolves
+it before the work, and writes the resolved value back so that `recordStep`
+holds it:
 
-**Status: open for five functions; answered in shape and done for two.**
+| function | option | what it decides |
+|---|---|---|
+| `ielec.projectArrays` | `cfg.method` | which way a contact is carried onto the envelope |
+| `ielec.indexArray` | `cfg.projectionMethod` | how a grid's contacts are ordered |
+| `ielec.buildEnvelope` | `cfg.radius` | the shape of the envelope |
+| `ielec.fitTarget` | `cfg.springs` | where a planned grid comes to rest |
+| `ielec.fitArray` | `cfg.gridFit` | how the model is fitted |
+
+The last two take a struct that is merged over the session's set field by
+field, so a call can change one setting without naming the rest, and a
+setting that does not exist is refused by name rather than ignored.
+
+Measured on the example project:
+
+    PROJECT two methods differ by up to 1.000 mm
+    PROJECT recorded: closestPoint and springs
+    PROJECT defaulted records CEPA (session says CEPA)
+    INDEX defaulted records sphereFit (session says sphereFit)
+    ENVELOPE recorded radius 30 ... defaulted records 50
+    fitArray: the step records the GridFit settings it used - 8 settings
+    fitTarget: the step records the springs it used
+
+**One thing deliberately not done.** A value that comes from `work.options`
+is not checked; only a value the caller gives is. Checking the session's
+would turn a configuration file that has been working - or failing quietly -
+into one that refuses to start, and a guard that turns a success into an
+error is the kind this layer must not add. `resolveLabelling.m` says so
+where it does it.
+
+`tests/test_ielecOptionsInCfg.m` covers the five; the two slow ones have
+their recording checked inside their own tests, which already pay for a real
+fit.
+
+**Status: answered and done, for all seven.**

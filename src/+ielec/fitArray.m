@@ -24,6 +24,18 @@ function [project, work, array] = fitArray(cfg, project, work)
 %                    not assigned, and [] for none assigned at all, which
 %                    records them with the array without holding the fit to
 %                    them, as the button did.                   Default: []
+%     cfg.gridFit    a struct of GridFit settings to change for this call,
+%                    merged field by field over the set work.options keeps
+%                    for this kind of array - gridFit_grids, gridFit_strips
+%                    or gridFit_depth. struct('DCT', 1) changes one and
+%                    leaves the rest.
+%                            Default: the session's set for cfg.type, as is
+%
+%   The GridFit set decides how the model is fitted, so the merged set is
+%   recorded with the step: the project says which settings produced the
+%   array it holds. They used to be read out of work.options where they were
+%   used, and work.options does not reach the .iel - see
+%   docs/OPEN_QUESTIONS.md item 51.
 %
 %   The array is returned rather than put in the project: it is a proposal
 %   until it is accepted, and the caller may still name it or throw it away.
@@ -70,6 +82,7 @@ defaults.firstSecondSpacing = [];
 defaults.overlap            = 0;
 defaults.useNailedContacts  = false;
 defaults.nailNumbers        = [];
+defaults.gridFit            = [];
 cfg = checkCfg(cfg, defaults, {'type', 'rows', 'columns', 'spacing'}, 'fitArray');
 
 if ~isfield(work, 'selectedVoxels') || isempty(work.selectedVoxels) || ...
@@ -117,7 +130,36 @@ if cfg.useNailedContacts || ~isempty(cfg.nailNumbers)
     end
 end
 
-options = gridFitOptions(work.options, cfg.type, cfg.rows, cfg.columns, ...
+% GridFit is configured per kind of array - work.options holds one set for
+% grids, one for strips and one for depths. The set decides how the model is
+% fitted, so what the caller wants changed travels in cfg, is merged over
+% the session's set field by field, and the merged set is written back into
+% cfg - which is what RECORDSTEP writes. See docs/OPEN_QUESTIONS.md item 51.
+baseOptions = work.options;
+setName     = ['gridFit_' struct('grid','grids','strip','strips', ...
+                                 'depth','depth').(cfg.type)];
+baseSet     = fieldOr(baseOptions, setName, struct());
+
+if ~isempty(cfg.gridFit)
+    if ~isstruct(cfg.gridFit) || ~isscalar(cfg.gridFit)
+        error('ielec:badOption', ...
+            ['ielec.fitArray: cfg.gridFit is a struct of GridFit settings ' ...
+             'to change, such as struct(''DCT'', 1).']);
+    end
+    unknown = setdiff(fieldnames(cfg.gridFit), fieldnames(baseSet));
+    if ~isempty(unknown)
+        error('ielec:badOption', ...
+            'ielec.fitArray: GridFit has no setting called ''%s''.', ...
+            unknown{1});
+    end
+    for f = fieldnames(cfg.gridFit)'
+        baseSet.(f{1}) = cfg.gridFit.(f{1});
+    end
+end
+cfg.gridFit             = baseSet;
+baseOptions.(setName)   = baseSet;
+
+options = gridFitOptions(baseOptions, cfg.type, cfg.rows, cfg.columns, ...
                          cfg.spacing, cfg.firstSecondSpacing, cfg.overlap, ...
                          cfg.nailNumbers, nailCoords);
 

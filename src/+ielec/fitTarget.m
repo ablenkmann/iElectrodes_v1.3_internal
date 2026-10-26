@@ -41,10 +41,24 @@ function [project, work] = fitTarget(cfg, project, work)
 %
 %   iElectrodes 2 - RITMO / FRONT Neurolab, University of Oslo
 %
+%   Options (cfg):
+%     cfg.index    which planning target to fit.                   required
+%     cfg.springs  a struct of springs settings to change for this call,
+%                  merged over work.options.SCE_springs_projection_planning
+%                  field by field - struct('meshReduceL', 60) changes one
+%                  and leaves the rest.
+%                  Default: the session's planning springs, unchanged
+%
+%   The springs decide where the contacts come to rest, so they are the
+%   call's to set and the merged set is recorded with the step. They used to
+%   be read out of work.options where they were used, so the project could
+%   not say which settings had produced the fit it holds - see
+%   docs/OPEN_QUESTIONS.md item 51.
+%
 %   See also ELECTRODES2HULLCORRECTION, IELEC.NEWTARGET, IELEC.PLACETARGET,
 %            IELEC.PROJECTARRAYS.
 
-cfg = checkCfg(cfg, struct(), {'index'}, 'fitTarget');
+cfg = checkCfg(cfg, struct('springs', []), {'index'}, 'fitTarget');
 
 targets = fieldOr(project, 'targets', {});
 if ~isnumeric(cfg.index) || ~isscalar(cfg.index) || mod(cfg.index, 1) ~= 0 || ...
@@ -79,10 +93,34 @@ if isempty(vertices)
          '(ielec.buildEnvelope, ielec.loadSurfaces).']);
 end
 
-% the planning settings, for this call only
+% The planning settings, for this call only. The springs decide where the
+% contacts come to rest, so they travel in cfg and are recorded with the
+% step - docs/OPEN_QUESTIONS.md item 51. What the caller gives is merged
+% over the session's planning springs, field by field, so a call can change
+% one of them without naming the rest; the merged set is written back into
+% cfg, which is what RECORDSTEP writes.
+base = fieldOr(work.options, 'SCE_springs_projection_planning', struct());
+if ~isempty(cfg.springs)
+    if ~isstruct(cfg.springs) || ~isscalar(cfg.springs)
+        error('ielec:badOption', ...
+            ['ielec.fitTarget: cfg.springs is a struct of settings to ' ...
+             'change, such as struct(''meshReduceL'', 60).']);
+    end
+    unknown = setdiff(fieldnames(cfg.springs), fieldnames(base));
+    if ~isempty(unknown)
+        error('ielec:badOption', ...
+            'ielec.fitTarget: cfg.springs has no setting called ''%s''.', ...
+            unknown{1});
+    end
+    for f = fieldnames(cfg.springs)'
+        base.(f{1}) = cfg.springs.(f{1});
+    end
+end
+cfg.springs = base;
+
 options = work.options;
 options.SCE_projection_method  = 'springs';
-options.SCE_springs_projection = options.SCE_springs_projection_planning;
+options.SCE_springs_projection = cfg.springs;
 
 fitted = electrodes2hullCorrection({target}, vertices, faces, options);
 

@@ -173,6 +173,8 @@ Wraps each hemisphere's pial surface in a smooth envelope and keeps the pair in 
 | | | |
 |---|---|---|
 | `resample` | thin both hemispheres towards this many vertices, for drawing speed. [] keeps them whole | default `15000` |
+| `resample` | how many vertices the envelope is reduced to. [] keeps every one of them | default `15000` |
+| `radius` | the radius, in millimetres, of the sphere rolled over the pial surface to enclose it. A vector... | default `work.options.buildSCEradius` |
 
 Errors: `ielec:badOption`, `ielec:noSurfaces`
 
@@ -230,6 +232,7 @@ Fits a grid, a strip or a depth electrode of the given size and spacing to the v
 | `overlap` | 1 when the array overlaps itself, 0 when it does not. Not used for a depth | default `0` |
 | `useNailedContacts` | hold the fit to the anchors already in work.anchors | default `false` |
 | `nailNumbers` | which contact of the array each of those is - what the Fit button's table asks for. NaN for one... | default `[]` |
+| `gridFit` | a struct of GridFit settings to change for this call, merged field by field over the set... | default `the session's set for cfg.type, as is` |
 
 Errors: `ielec:badOption`, `ielec:noSelection`
 
@@ -460,6 +463,8 @@ Fits one of the project's planning grids to the smooth cortical envelope and sto
 | | | |
 |---|---|---|
 | `index` | which planning target. Required | required |
+| `index` | which planning target to fit | required |
+| `springs` | a struct of springs settings to change for this call, merged over... | default `the session's planning springs, unchanged` |
 
 Errors: `ielec:badOption`, `ielec:noSurfaces`
 

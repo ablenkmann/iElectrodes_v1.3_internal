@@ -52,35 +52,47 @@ if strcmp(cfg.space, 'MNI')
     return
 end
 
-if isempty(cfg.radius)
+% WHAT IS CHECKED AND WHAT IS NOT
+%
+% Only what the caller gave. A value that comes from work.options goes
+% through as it is, because that is what happened before these options
+% existed: the configuration file's value was handed to the backend
+% unchecked. Checking it here would turn a session that has been working -
+% or failing quietly - into one that refuses to start, and a guard that
+% turns a success into an error is the one kind this layer must not add.
+
+if ~isempty(cfg.radius)
+    if ~isnumeric(cfg.radius) || ~isscalar(cfg.radius) || ...
+            ~isfinite(cfg.radius) || cfg.radius < 0
+        error('ielec:badOption', ...
+            ['ielec.%s: cfg.radius must be a distance in millimetres, ' ...
+             '0 or more.'], caller);
+    end
+else
     cfg.radius = options.atlasLabelingRadio;
 end
-if isempty(cfg.mode)
+
+if ~isempty(cfg.mode)
+    cfg.mode = char(cfg.mode);
+    if ~ismember(cfg.mode, {'mode', 'prob'})
+        error('ielec:badOption', ...
+            ['ielec.%s: cfg.mode is ''mode'' for the most common region ' ...
+             'or ''prob'' for every region with its share.'], caller);
+    end
+else
     cfg.mode = options.atlasLabelingMode;
 end
-if isempty(cfg.minProbability)
+
+if ~isempty(cfg.minProbability)
+    if ~isnumeric(cfg.minProbability) || ~isscalar(cfg.minProbability) || ...
+            ~isfinite(cfg.minProbability) || ...
+            cfg.minProbability < 0 || cfg.minProbability > 1
+        error('ielec:badOption', ...
+            'ielec.%s: cfg.minProbability is a share, between 0 and 1.', ...
+            caller);
+    end
+else
     cfg.minProbability = options.atlasLabelingMinProb;
-end
-
-if ~isnumeric(cfg.radius) || ~isscalar(cfg.radius) || ...
-        ~isfinite(cfg.radius) || cfg.radius < 0
-    error('ielec:badOption', ...
-        'ielec.%s: cfg.radius must be a distance in millimetres, 0 or more.', ...
-        caller);
-end
-
-cfg.mode = char(cfg.mode);
-if ~ismember(cfg.mode, {'mode', 'prob'})
-    error('ielec:badOption', ...
-        ['ielec.%s: cfg.mode is ''mode'' for the most common region or ' ...
-         '''prob'' for every region with its share.'], caller);
-end
-
-if ~isnumeric(cfg.minProbability) || ~isscalar(cfg.minProbability) || ...
-        ~isfinite(cfg.minProbability) || ...
-        cfg.minProbability < 0 || cfg.minProbability > 1
-    error('ielec:badOption', ...
-        'ielec.%s: cfg.minProbability is a share, between 0 and 1.', caller);
 end
 
 opt.radio   = cfg.radius;

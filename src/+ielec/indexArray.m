@@ -63,10 +63,26 @@ function [project, work, array] = indexArray(cfg, project, work)
 %   See also INDEXDEPTHELECTRODES, INDEXGRIDELECTRODES, MAKEADJMAT,
 %            IELEC.ACCEPTARRAY, IELEC.FITARRAY.
 
-defaults.rows    = [];
-defaults.columns = [];
-defaults.index   = [];
+defaults.rows             = [];
+defaults.columns          = [];
+defaults.index            = [];
+defaults.projectionMethod = '';
 cfg = checkCfg(cfg, defaults, {'shape'}, 'indexArray');
+
+% How a grid's contacts are laid flat before they are numbered. It decides
+% the order, so it travels in cfg and is recorded - item 51. Only a value
+% the caller gives is checked; the session's goes through as it always did.
+if ~isempty(cfg.projectionMethod)
+    cfg.projectionMethod = char(cfg.projectionMethod);
+    if ~ismember(cfg.projectionMethod, {'sphereFit', 'PCA', 'skip'})
+        error('ielec:badOption', ...
+            ['ielec.indexArray: cfg.projectionMethod is ''sphereFit'', ' ...
+             '''PCA'' or ''skip''.']);
+    end
+else
+    cfg.projectionMethod = fieldOr(work.options, ...
+        'indexing_projection_method', 'sphereFit');
+end
 
 if ~ischar(cfg.shape) || ~ismember(cfg.shape, {'depth', 'grid'})
     error('ielec:badOption', ...
@@ -117,8 +133,10 @@ switch cfg.shape
     case 'depth'
         [array, order] = indexDepthElectrodes(coordinates, 'depth');
     case 'grid'
+        indexOptions = work.options;
+        indexOptions.indexing_projection_method = cfg.projectionMethod;
         [array, order] = indexGridElectrodes(coordinates, cfg.rows, cfg.columns, ...
-                                             'grid', work.options);
+                                             'grid', indexOptions);
 end
 
 if isempty(cfg.index)
@@ -135,8 +153,7 @@ if isempty(cfg.index)
     array.brushWeight  = work.brushWeight;
     array.space        = project.currentSpace;      % 'Native' or 'MNI'
     array.method       = 'clustering';
-    array.methodParameters.indexing_projection_method = ...
-        work.options.indexing_projection_method;
+    array.methodParameters.indexing_projection_method = cfg.projectionMethod;
 else
     before = previous.clusters;
     for i = 1:numel(order)
