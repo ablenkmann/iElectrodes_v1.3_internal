@@ -41,7 +41,7 @@ cfgOpen.file = fullfile(repoRoot, 'examples', 'exampleNativeSpace.iel');
 
 folder = tempname;
 mkdir(folder);
-cleanup = onCleanup(@() removeFolder(folder)); %#ok<NASGU>
+cleanup = onCleanup(@() removeFolder(folder));
 
 % the example's own envelope, written out as the pair of files a button
 % would be given. It is small enough to read back quickly.
@@ -300,16 +300,6 @@ count  = abs(size(a,1) - size(b,1)) / size(b,1);
 
 same = box < tolerance && centre < tolerance && count <= 0.05;
 how  = sprintf('box %.2f mm, centre %.2f mm, count %.1f%%', box, centre, 100*count);
-end
-
-function [vertices, faces] = smallSphere(centre)
-% a closed surface small enough for BUILDSCE to wrap in a second
-[x, y, z] = sphere(20);
-mesh = surf2patch(15*x + centre(1), 15*y + centre(2), 15*z + centre(3), 'triangles');
-[vertices, ~, back] = unique(round(mesh.vertices, 6), 'rows', 'stable');
-faces = back(mesh.faces);
-faces(faces(:,1) == faces(:,2) | faces(:,2) == faces(:,3) | ...
-      faces(:,1) == faces(:,3), :) = [];     % the poles collapse to slivers
 end
 
 function v = surfaceOf(project, target)

@@ -96,18 +96,31 @@ nFail = nFail + check(strcmp(d2.history{end}.cfg.projectionMethod, ...
 %% ----------------------------------------------------- buildEnvelope
 fprintf('\n--- ielec.buildEnvelope: the shape of the envelope ----------\n');
 
-[e1, ew] = ielec.buildEnvelope(struct('radius', 30, 'resample', 2000), ...
-    project, work);
-nFail = nFail + check(e1.history{end}.cfg.radius == 30, ...
+% What is being tested here is that cfg.radius reaches the step and that the
+% session's radius is used when none is given. BUILDSCE's cost is set by the
+% space the surface covers and by the closing radius, so on the example's own
+% brain at radius 30 and 50 these four builds took around eight minutes -
+% more than the rest of the suite together. A pair of small spheres and a
+% small session radius exercise the same two decisions in seconds, which is
+% what test_ielecSurfaces already does for the same reason.
+small = project;
+[small.verticesR, small.facesR] = smallSphere([ 25 0 0]);
+[small.verticesL, small.facesL] = smallSphere([-25 0 0]);
+envWork = work;
+envWork.options.buildSCEradius = 6;
+
+[e1, ew] = ielec.buildEnvelope(struct('radius', 4, 'resample', 1500), ...
+    small, envWork);
+nFail = nFail + check(e1.history{end}.cfg.radius == 4, ...
     'the step records the radius it was given', '');
 nFail = nFail + check(~isempty(e1.vertices_SCE_R) && ...
     ~isempty(e1.vertices_SCE_L), 'and an envelope was built', ...
     sprintf('%d vertices', size(e1.vertices_SCE_R, 1)));
-nFail = nFail + check(isequaln(ew, work), 'work is not changed', '');
+nFail = nFail + check(isequaln(ew, envWork), 'work is not changed', '');
 
-[e2, ~] = ielec.buildEnvelope(struct('resample', 2000), project, work);
+[e2, ~] = ielec.buildEnvelope(struct('resample', 1500), small, envWork);
 nFail = nFail + check(isequaln(e2.history{end}.cfg.radius, ...
-    work.options.buildSCEradius), ...
+    envWork.options.buildSCEradius), ...
     'and the session''s when it is not', ...
     sprintf('%g', e2.history{end}.cfg.radius));
 

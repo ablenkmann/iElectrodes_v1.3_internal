@@ -2563,13 +2563,14 @@ The last two take a struct that is merged over the session's set field by
 field, so a call can change one setting without naming the rest, and a
 setting that does not exist is refused by name rather than ignored.
 
-Measured on the example project:
+Measured on the example project, except the envelope row, which is measured
+on the small-sphere fixture the last paragraph explains:
 
     PROJECT two methods differ by up to 1.000 mm
     PROJECT recorded: closestPoint and springs
     PROJECT defaulted records CEPA (session says CEPA)
     INDEX defaulted records sphereFit (session says sphereFit)
-    ENVELOPE recorded radius 30 ... defaulted records 50
+    ENVELOPE recorded radius 4 ... defaulted records 6
     fitArray: the step records the GridFit settings it used - 8 settings
     fitTarget: the step records the springs it used
 
@@ -2582,6 +2583,85 @@ where it does it.
 
 `tests/test_ielecOptionsInCfg.m` covers the five; the two slow ones have
 their recording checked inside their own tests, which already pay for a real
-fit.
+fit. The envelope check is made on a pair of small spheres with a small
+closing radius, as `tests/test_ielecSurfaces.m` makes its own: on the
+example's own brain at radius 30 and 50 those four builds cost around eight
+minutes, more than the whole rest of the suite, and what is under test is
+which radius reaches the step, not how well BUILDSCE wraps a brain.
 
 **Status: answered and done, for all seven.**
+
+---
+
+## 52. The cursor's anatomical label crashes within the look-around radius of the image edge
+
+**Where:** `src/labeling/anatomicLabelFS.m` line 91, reached from
+`electrodes_gui>updateTAC` through `ielec.pointLabel`
+
+Scrolling the wheel over a 2-D view until the slider reaches the end of the
+volume throws, repeatedly, once per scroll click:
+
+    Index in position 1 is invalid. Array indices must be positive integers
+    Error in anatomicLabelFS (line 91)
+        valMat=atlas.img(posMat(1,i)-opt.radio:posMat(1,i)+opt.radio, ...
+
+`lookAround` labelling cuts a cube of `+/- opt.radio` voxels around the
+point and takes the most probable region inside it. The cube is cut without
+being clipped to the volume, so a point within `opt.radio` voxels of any
+face indexes at zero or past the end.
+
+Measured on `examples/exampleNativeSpace.iel`, parcellation 175x256x256,
+`options.atlasLabelingRadio` = 2. Each row names a voxel and passes that
+voxel's millimetre coordinate, since both callers take millimetres:
+
+    voxel            ielec.pointLabel             anatomicLabelFS direct
+    [1 1 1]          THROWS MATLAB:badsubscript   THROWS MATLAB:badsubscript
+    [2 2 2]          THROWS MATLAB:badsubscript   THROWS MATLAB:badsubscript
+    [3 3 3]          ok: unknown                  ok: unknown
+    [4 4 4]          ok: unknown                  ok: unknown
+    [175 256 256]    THROWS MATLAB:badsubscript   (not asked)
+
+**Not the layer's.** `anatomicLabelFS.m` is byte-identical to 1.020's copy in
+`priv/backend/` - both md5 `16fc83b9221de2ca8664c5ee9b16651d` - and the second
+column above is that function called with exactly the argument list 1.020's
+window used. 1.020 passes `handles.cursor`, this window passes
+`handles.ui.cursor`, and neither clamps. `ielec.pointLabel` is a bystander -
+it refuses a coordinate that is not finite, and a coordinate one voxel inside
+the image is a perfectly good one.
+
+**How far the cursor can get, exactly.** The scroll handlers are strict at
+both ends - `if x>0 && x < dim(1)`, at `electrodes_gui.m:342`, `354`, `366`
+and 1.020's `318`, `330`, `342` - so the wheel reaches voxel 1 to `dim-1`
+and never `dim` itself. That is enough on its own: with `radio` = 2, `dim-1`
+already asks for `dim+1`, which is the crash reported above at the top of
+the wheel's travel. The last voxel is reachable as well, by two other
+routes that test nothing: the sliders are built `'Min',1,'Max',dim`
+(`electrodes_gui.m:434-436`) and `sliderX_Callback` has no bounds test, and
+the 3-D pick writes the slider values straight through
+(`electrodes_gui.m:274-276`).
+
+**What it looks like to a user.** `updateTAC` throws before it reaches the
+crosshair update below the labelling block, so the views stop following the
+slider at the end of its travel and the contacts appear frozen. That is what
+was reported as "the electrodes do not move at all when the sliders are
+dragged to the bottom" - the drawing never ran.
+
+**The new window does not have this yet**, only because it has no anatomical
+label beside its coordinate box; it never calls `ielec.pointLabel`. It will
+inherit this the moment that readout is wired, which is why this is written
+down now rather than when it bites twice.
+
+Three places it could be fixed, and they are not equivalent:
+
+- in `anatomicLabelFS`, by clipping the cube to the volume. This is where
+  the fault is, and it would fix every caller, including the labelling of a
+  contact that sits near the edge of a trimmed image. It is also a published
+  function of the toolbox, so the change is the author's to make.
+- in `ielec.pointLabel`, by clamping what it passes. The layer would then be
+  deciding something about the science - how to label a point whose
+  neighbourhood runs off the image - which is not its job.
+- in each window, by keeping the cursor `opt.radio` voxels inside the image.
+  Cheapest, and wrong: it would make the corner of the image unreachable.
+
+**Status: open, for Alejandro.** A 1.020 fault, in his own function, and the
+first option changes behaviour for everyone who labels near an edge.
