@@ -1,13 +1,13 @@
 # The ielec layer
 
 The layer the frontend talks to, so that it never calls the backend
-directly. Forty-two functions; what each one does, how it is called, and
+directly. Forty-three functions; what each one does, how it is called, and
 what it takes.
 
 The text comes from the help of each function, so it stays with the
 code. `help ielec.cluster` at the MATLAB prompt gives any one of them in
 full, with an example. `docs/API_LAYER.md` beside this is the design -
-the rules these forty-two obey, and why.
+the rules these forty-three obey, and why.
 
 ## They all have one shape
 
@@ -177,6 +177,17 @@ Wraps each hemisphere's pial surface in a smooth envelope and keeps the pair in 
 | `radius` | the radius, in millimetres, of the sphere rolled over the pial surface to enclose it. A vector... | default `work.options.buildSCEradius` |
 
 Errors: `ielec:badOption`, `ielec:noSurfaces`
+
+### `ielec.trimImages`  →  `project`, `work`, `report`
+
+Crops every volume in the project - the MRI, the CT, the brain mask and the parcellation - to a box around everything the project holds in space, and moves each image-to-world transformation so that nothing moves.
+
+| | | |
+|---|---|---|
+| `margin` | how much room to leave around it, in millimetres | default `10` |
+| `box` | a box in voxels, [lo; hi], instead of one worked out from the project. The margin is not added... | default `[]` |
+
+Errors: `ielec:badOption`, `ielec:emptyBox`, `ielec:noMRI`
 
 ---
 

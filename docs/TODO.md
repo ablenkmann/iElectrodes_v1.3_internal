@@ -36,12 +36,20 @@ for on top of it, and none of it is blocked by the layer any more.
   cannot parse, and no longer throws out of the opening function on a short
   response. `docs/OPEN_QUESTIONS.md` item 47 has the measurements and the one
   constraint that remains.
-- **Trimming the images.** Not started. It touches `ielec.newProject` and
-  `ielec.loadCT` and `ielec.loadMask`, which own the reslicing between
-  them, so it has a home.
-  Worth deciding first whether the trim is stored or recomputed, because a
-  trimmed image changes every voxel coordinate in a project and the `.iel`
-  file holds coordinates in anatomical space.
+- **Trimming the images: done.** `ielec.trimImages` cuts the MRI, the CT,
+  the brain mask and the parcellation down to a box around everything the
+  project holds, and moves each image-to-world transformation by the same
+  amount. The question of whether a trim is stored or recomputed turned out
+  not to arise: the `.iel` holds coordinates in millimetres, so moving the
+  transformation leaves every one of them meaning the same place, and the
+  smaller images are simply what is stored.
+
+  Taking "to the brain" literally would have cut the brain. Measured on the
+  example project, the pial surfaces reach outside the brain mask in every
+  direction, so the box is the union of the mask, the surfaces, the
+  contacts and the planned targets, plus a margin. That keeps 44 per cent
+  of the example's volume - 43.8 MB down to 19.4 MB per volume, and the
+  file from 44.8 MB to 35.6 MB.
 - **The PDF report.** Not started, and the largest of these. The author sent
   a page of what he means: one depth electrode (HD 1-8) in four panels -
   axial, coronal, sagittal and a 3-D view - with each pair of contacts named

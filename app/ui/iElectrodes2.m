@@ -1117,6 +1117,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 'Load surfaces...',         'ielec.loadSurfaces'
                 'Load annotations...',      'ielec.loadAnnotations'
                 'Build the envelope',       'ielec.buildEnvelope'
+                'Trim the images...',       'ielec.trimImages'
                 '---',                      ''
                 'Space: native or MNI...',  ''
                 'Processing history...',    ''});

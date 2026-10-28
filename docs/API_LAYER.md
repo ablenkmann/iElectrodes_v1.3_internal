@@ -346,6 +346,7 @@ about them.
 | `ielec.loadCT` | the CT in the Load CT button | the Load CT button |
 | `ielec.loadMask` | the mask in the Load CT button | the Load CT button |
 | `ielec.dummyMask` | new: a mask of ones, when there is no real one | the Load CT button |
+| `ielec.trimImages` | new: the volumes cut down to what the project holds | nothing yet |
 | `ielec.thresholdCT` | the threshold block of `updatePlot` | the Localize panel |
 | `ielec.selectVoxels` | what the Clus button took from the brushed plot | the Clus button |
 | `ielec.cluster` | the Clus button's clustering and the contacts it adds | the Clus button |
