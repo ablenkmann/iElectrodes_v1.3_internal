@@ -401,6 +401,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 app.plotArray2D(ax, targets{k}, pl, v, inPlane, ...
                     c.target2D, c.targetMarker2D);
             end
+
+            % The contacts being built, which are not an array yet, and the
+            % anchors beside them. The old window shows these only in the
+            % 3-D threshold view; on the planes is where you can see whether
+            % a contact landed on the metal, so they are here too, in the
+            % theme's own colours so they are not taken for an accepted
+            % array.
+            t = app.Theme;
+            app.plotPoints2D(ax, fieldOrNumeric(app.Work, 'GS'), ...
+                pl, v, inPlane, t.dot, 'o');
+            app.plotPoints2D(ax, fieldOrNumeric(app.Work, 'anchors'), ...
+                pl, v, inPlane, t.dotSel, 's');
         end
 
         function drawAtlas(app, ax, pl, v, voxdim)
@@ -443,23 +455,36 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 'PickableParts', 'none');
         end
 
-        function plotArray2D(app, ax, array, pl, v, inPlane, col, marker)
-            if ~isfield(array, 'x') || isempty(array.x), return, end
-            [px, py, pz] = app.contactCoords(array);
-            m = AnatSpace2Mesh([px(:) py(:) pz(:)], app.Project.S2);
+        function plotPoints2D(app, ax, pts, pl, v, inPlane, col, marker)
+            %PLOTPOINTS2D  Points on one plane, near it or all of them.
+            %
+            %   PTS is N-by-3 in anatomical millimetres. Which of them are
+            %   drawn is the "All contacts, not just this slice" box: off,
+            %   only those within a voxel of the slice; on, every one of
+            %   them flattened onto it, which is what the old window's
+            %   Collapse does.
+            if isempty(pts), return, end
+            m = AnatSpace2Mesh(pts, app.Project.S2);
+
             if app.checked('collapse')
-                % "Collapse to the current view": every contact of the
-                % array, whatever slice it is on, flattened onto this one.
                 near = true(size(m,1), 1);
             else
                 near = abs(m(:,pl) - v) < 1;
             end
             if ~any(near), return, end
+
             % PickableParts none so that clicking a contact moves the
             % cursor there rather than being swallowed by the marker
             line(ax, m(near, inPlane(1)), m(near, inPlane(2)), ...
                 'Marker', marker, 'Color', col, 'LineStyle', 'none', ...
                 'MarkerSize', 7, 'LineWidth', 1.2, 'PickableParts', 'none');
+        end
+
+        function plotArray2D(app, ax, array, pl, v, inPlane, col, marker)
+            if ~isfield(array, 'x') || isempty(array.x), return, end
+            [px, py, pz] = app.contactCoords(array);
+            app.plotPoints2D(ax, [px(:) py(:) pz(:)], pl, v, inPlane, ...
+                col, marker);
         end
 
         function fillContactTable(app)
@@ -577,6 +602,19 @@ classdef iElectrodes2 < matlab.apps.AppBase
             % keeps a box for this; the design notes do not, which is how
             % a view ends up full of green that reads as electrodes sitting
             % off the brain when it is a plan.
+            % the contacts being built, before they are an array
+            t = app.Theme;
+            gs = fieldOrNumeric(app.Work, 'GS');
+            if ~isempty(gs)
+                app.drawContacts3D(ax, gs(:,1), gs(:,2), gs(:,3), t.dot);
+                shown = shown + 1;
+            end
+            an = fieldOrNumeric(app.Work, 'anchors');
+            if ~isempty(an)
+                app.drawContacts3D(ax, an(:,1), an(:,2), an(:,3), t.dotSel);
+                shown = shown + 1;
+            end
+
             targets = fieldOrEmpty(app.Project, 'targets');
             if app.checked('planned')
                 for k = 1:numel(targets)
@@ -1082,6 +1120,101 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.draw3D();
         end
 
+        function clusterPressed(app)
+            %CLUSTERPRESSED  Split the selected voxels into contacts.
+            if ~app.hasProject(), return, end
+            n = app.Controls.nContacts.Value;
+            try
+                [app.Project, app.Work, quality] = ielec.cluster( ...
+                    struct('nClusters', n), app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            % what the layer hands back about the fit, for the user to judge
+            said = sprintf('%d contacts in progress', ...
+                size(app.Work.GS, 1));
+            if isstruct(quality) && isfield(quality, 'meanDistance')
+                said = sprintf('%s, %.1f mm apart on average', said, ...
+                    quality.meanDistance);
+            end
+            app.showMessage([said '.']);
+            app.redrawAll();
+        end
+
+        function addHere(app, group, word)
+            %ADDHERE  Put a contact or an anchor where the cursor is.
+            if ~app.hasProject(), return, end
+            mm = mesh2AnatSpace(app.Voxel, app.Project.S2);
+            try
+                [app.Project, app.Work] = ielec.addCoordinate( ...
+                    struct('coordinate', mm, 'group', group), ...
+                    app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            app.showMessage(sprintf('%s added at x %.1f  y %.1f  z %.1f.', ...
+                [upper(word(1)) word(2:end)], mm));
+            app.redrawAll();
+        end
+
+        function removeHere(app)
+            %REMOVEHERE  Take out the contact nearest the cursor.
+            if ~app.hasProject(), return, end
+            mm = mesh2AnatSpace(app.Voxel, app.Project.S2);
+            try
+                [app.Project, app.Work, gone] = ielec.removeCoordinate( ...
+                    struct('coordinate', mm), app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            if gone
+                app.showMessage('Contact removed.');
+            else
+                % the layer reports rather than raises, so say so plainly
+                app.showMessage('Nothing within 2 mm of the cursor.');
+            end
+            app.redrawAll();
+        end
+
+        function clearHere(app)
+            if ~app.hasProject(), return, end
+            try
+                [app.Project, app.Work] = ielec.clearCoordinates( ...
+                    [], app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            app.showMessage('Cleared. Undo brings them back.');
+            app.redrawAll();
+        end
+
+        function undoHere(app)
+            if ~app.hasProject(), return, end
+            try
+                [app.Project, app.Work] = ielec.undoCoordinates( ...
+                    [], app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            % Undo is a swap: pressing it again puts them back as they were
+            app.showMessage(sprintf('Undone - %d contacts in progress.', ...
+                size(fieldOrNumeric(app.Work, 'GS'), 1)));
+            app.redrawAll();
+        end
+
+        function yes = hasProject(app)
+            yes = ~isempty(app.Mixed);
+            if ~yes
+                app.showMessage('Open a project first.');
+            end
+        end
+
         function remix(app)
             %REMIX  Blend the volumes again and redraw - the slider moved.
             if isempty(app.Mixed), return, end
@@ -1455,11 +1588,11 @@ classdef iElectrodes2 < matlab.apps.AppBase
                             'Denoise (voxels)',           'spin',  'denoise'
                             'Brush to select voxels',     'state', 'selectVoxels'}
                         'cluster',   'Clustering and indexing', {
-                            'Contacts to find',           'spin'
-                            'Cluster',                    'accent'
-                            'Add contact by hand',        'button'
-                            'Delete / Clear / Undo',      'triple'
-                            'Index the contacts',         'button'}
+                            'Contacts to find',           'spin',   'nContacts'
+                            'Cluster',                    'accent', 'clusterNow'
+                            'Add contact by hand',        'button', 'addByHand'
+                            'Delete / Clear / Undo',      'triple', 'editContacts'
+                            'Index the contacts',         'button', 'indexNow'}
                         'gridfit',   'Fit a grid model (GridFit)', {
                             'Type',                       'segment', 'arrayType'
                             'Rows / Columns / Spacing',   'numbers', ''
@@ -1552,6 +1685,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     app.Controls.selectVoxels.ValueChangedFcn = ...
                         @(src,~) app.selectVoxelsPressed(src);
                     app.Controls.denoise.Limits = [1 5];   % as the old slider
+
+                    app.Controls.nContacts.Limits = [1 Inf];
+                    app.Controls.clusterNow.ButtonPushedFcn = ...
+                        @(~,~) app.clusterPressed();
+                    app.Controls.addByHand.ButtonPushedFcn = ...
+                        @(~,~) app.addHere('contacts', 'contact');
+
+                    % Delete, Clear and Undo, left to right
+                    edit = app.Controls.editContacts;
+                    edit(1).ButtonPushedFcn = @(~,~) app.removeHere();
+                    edit(2).ButtonPushedFcn = @(~,~) app.clearHere();
+                    edit(3).ButtonPushedFcn = @(~,~) app.undoHere();
             end
 
             % the view block belongs to no step, so it is wired once, the
@@ -2228,6 +2373,17 @@ for k = 1:numel(arrays)
     if isfield(arrays{k}, 'x')
         n = n + numel(arrays{k}.x);
     end
+end
+end
+
+function v = fieldOrNumeric(s, name)
+% an N-by-3 of points, or empty. fieldOrEmpty gives {} for a missing field,
+% which is right for a list of arrays and wrong for a list of coordinates.
+if isstruct(s) && isfield(s, name) && isnumeric(s.(name)) && ...
+        size(s.(name), 2) == 3
+    v = s.(name);
+else
+    v = [];
 end
 end
 
