@@ -79,6 +79,8 @@ classdef iElectrodes2 < matlab.apps.AppBase
         Thr         double = []     % the thresholds in the CT's own units
         DenoiseK    double = 1      % and the denoise kernel beside them
         SurfaceAlpha double = 0.5  % the old AlphaSlider's own default
+        FrameNext   logical = true  % the next 3-D draw places the camera
+        SavedSteps  double = 0      % history length when last opened or saved
         MixValue    double = 0.5   % 0 the MRI alone, 1 the CT alone
         Mixed       = []        % the blended volume IELVIEW.MIXIMAGES makes
         Voxel       double = [] % where the cursor is, in voxels
@@ -110,6 +112,13 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
     properties (Constant, Access = private)
         STEPS = {'Localize', 'Arrays', 'Anatomy', 'Planning', 'Export'}
+
+        % The two panel heights the folding sizers also write. They were
+        % numbers in three places, and changing the two in the building
+        % code left the sizers putting the old ones back the first time a
+        % panel was folded and unfolded.
+        FOOTHEIGHT  = 120      % the strip under the views
+        TABLEHEIGHT = 200      % the contact table
     end
 
     methods (Access = public)
@@ -129,7 +138,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
             app.UIFigure.Visible = 'on';
             registerApp(app, app.UIFigure);
-            app.UIFigure.CloseRequestFcn = @(~,~) delete(app);
+            app.UIFigure.CloseRequestFcn = @(~,~) app.closeRequested();
             if nargout == 0, clear app, end
         end
 
@@ -189,6 +198,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.PickPoint = [];
             app.Scatter   = [];
             app.Thr       = [];
+            app.FrameNext = true;     % a new brain is framed afresh
 
             app.Mixed = app.blendVolumes();
             D = size(app.Project.T1.img);
@@ -205,6 +215,11 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 cla(app.Views.voxels.axes);
                 app.Views.voxels.caption.Text = 'no CT loaded';
             end
+            % Before the drawing, not after: a draw that throws would
+            % otherwise leave the count describing the previous project.
+            % Opening ends by thresholding the CT, which records a step -
+            % STEPSWORTHSAVING is what leaves those out.
+            app.SavedSteps = app.stepsWorthSaving();
             app.draw3D();
         end
 
@@ -270,6 +285,107 @@ classdef iElectrodes2 < matlab.apps.AppBase
             end
         end
 
+        function saveProject(app, file)
+            %SAVEPROJECT  Write the project to a .iel file.
+            if isempty(app.Mixed)
+                app.showMessage('There is no project to save.');
+                return
+            end
+            if nargin < 2 || isempty(file)
+                % the folder it came from, not whatever the current one
+                % happens to be - IELEC.OPENPROJECT records both
+                suggestion = 'project.iel';
+                if isfield(app.Work, 'FileName') && ~isempty(app.Work.FileName)
+                    suggestion = app.Work.FileName;
+                    if isfield(app.Work, 'PathName') && ~isempty(app.Work.PathName)
+                        suggestion = fullfile(app.Work.PathName, suggestion);
+                    end
+                end
+                [f, d] = uiputfile('*.iel', 'Save the project', suggestion);
+                if isequal(f, 0), return, end
+                file = fullfile(d, f);
+            end
+            try
+                % the caches go with it, so that a large parcellation is
+                % not computed again for a file that already holds it
+                % isempty of a struct with no fields is false, so a
+                % fieldless Caches would be passed as if it held the
+                % colours and the writer would look for fields that are
+                % not there. Hand it over only when there is something in
+                % it; without it the layer computes them.
+                if isempty(fieldnames(app.Caches))
+                    [app.Project, app.Work] = ielec.saveProject( ...
+                        struct('file', file), app.Project, app.Work);
+                else
+                    [app.Project, app.Work] = ielec.saveProject( ...
+                        struct('file', file), app.Project, app.Work, app.Caches);
+                end
+            catch err
+                app.showMessage(['Could not save it: ' err.message]);
+                return
+            end
+            app.SavedSteps = app.stepsWorthSaving();
+            [~, name, ext] = fileparts(file);
+            app.FileLabel.Text = [name ext];
+            app.showMessage(sprintf('Saved %s', [name ext]));
+        end
+
+        function yes = unsaved(app)
+            %UNSAVED  Has anything been done since the project was opened?
+            %
+            %   Every layer call that produces something records a step, so
+            %   the length of the history is what has happened to this
+            %   project. Nine of the layer's functions record nothing, but
+            %   those are the ones that only report - they change nothing
+            %   there would be anything to save.
+            yes = ~isempty(app.Mixed) && ...
+                app.stepsWorthSaving() ~= app.SavedSteps;
+        end
+
+        function n = stepsWorthSaving(app)
+            %STEPSWORTHSAVING  History steps that are not just the view.
+            %
+            %   IELEC.THRESHOLDCT records a step like every other call that
+            %   produces something, and this window calls it whenever a
+            %   threshold moves - including once on the first visit to the
+            %   Localize step, before the user has done anything. Counted,
+            %   a window would ask to save a project nobody had touched.
+            %   What it produces lives in work, not in the project, so
+            %   leaving it out costs the file nothing.
+            n = 0;
+            for s = fieldOrEmpty(app.Project, 'history')
+                step = s{1};
+                if isstruct(step) && isfield(step, 'function') && ...
+                        strcmp(step.function, 'ielec.thresholdCT')
+                    continue
+                end
+                n = n + 1;
+            end
+        end
+
+        function closeRequested(app)
+            %CLOSEREQUESTED  Ask before throwing work away.
+            if ~app.unsaved()
+                delete(app);
+                return
+            end
+            answer = uiconfirm(app.UIFigure, ...
+                'This project has changes that have not been saved.', ...
+                'Close iElectrodes 2', ...
+                'Options', {'Save and close', 'Close without saving', 'Cancel'}, ...
+                'DefaultOption', 1, 'CancelOption', 3, 'Icon', 'warning');
+            switch answer
+                case 'Save and close'
+                    app.saveProject();
+                    % a save that was cancelled, or failed, leaves the
+                    % changes where they are - so do not close over them
+                    if app.unsaved(), return, end
+                    delete(app);
+                case 'Close without saving'
+                    delete(app);
+            end
+        end
+
         function delete(app)
             delete(app.UIFigure);
         end
@@ -291,7 +407,9 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
             app.Body = uigridlayout(app.Root, [1 2]);
             app.Body.Layout.Row    = 2;
-            app.Body.ColumnWidth   = {'1.4x', '1x'};
+            % the views take what the panels do not need: they are the
+            % work, and the boxes beside them are what is said about it
+            app.Body.ColumnWidth   = {'2.4x', '1x'};
             app.Body.RowHeight     = {'1x'};
             app.Body.Padding       = [0 0 0 0];
             app.Body.ColumnSpacing = 10;
@@ -396,10 +514,16 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     col, c.electrodesMarker2D);
             end
 
-            targets = fieldOrEmpty(app.Project, 'targets');
-            for k = 1:numel(targets)
-                app.plotArray2D(ax, targets{k}, pl, v, inPlane, ...
-                    c.target2D, c.targetMarker2D);
+            % The same box that governs them in space. It said "Planned
+            % targets" and governed only the 3-D view, so a project with a
+            % plan filled the planes with green crosses that nothing could
+            % turn off. 1.020 has a box for this overlay too, ticked.
+            if app.checked('planned')
+                targets = fieldOrEmpty(app.Project, 'targets');
+                for k = 1:numel(targets)
+                    app.plotArray2D(ax, targets{k}, pl, v, inPlane, ...
+                        c.target2D, c.targetMarker2D);
+                end
             end
 
             % The contacts being built, which are not an array yet, and the
@@ -549,6 +673,20 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function draw3D(app)
             %DRAW3D  The surfaces and the contacts, in space.
             ax = app.Views.threeD.axes;
+
+            % Where the camera is now, before the drawing throws it away.
+            % A redraw happens for every checkbox, every added contact and
+            % every move of the cursor; none of those is a reason to undo
+            % a view the user turned or zoomed by hand.
+            keep = [];
+            if ~app.FrameNext && ~isempty(ax.Children)
+                keep = struct('pos', ax.CameraPosition, ...
+                              'tgt', ax.CameraTarget, ...
+                              'up',  ax.CameraUpVector, ...
+                              'va',  ax.CameraViewAngle, ...
+                              'x',   ax.XLim, 'y', ax.YLim, 'z', ax.ZLim);
+            end
+
             cla(ax);
             if isempty(app.Mixed)
                 app.Views.threeD.caption.Text = 'nothing to show';
@@ -590,6 +728,20 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 end
                 [cx, cy, cz] = app.contactCoords(a);
                 app.drawContacts3D(ax, cx, cy, cz, col);
+
+                % The lines between neighbouring contacts, which is what
+                % makes an array read as an array rather than as loose
+                % dots: a grid comes out as a lattice and a depth
+                % electrode as its own shaft. The old window draws these
+                % and this one did not, which is most of why its contacts
+                % could not be made out. Same function, same colours.
+                if strcmp(a.Type, 'grid')
+                    lineCol = c.cylColorGrid;
+                else
+                    lineCol = c.cylColorDepth;
+                end
+                app.latticeFor(ax, [cx(:) cy(:) cz(:)], a, lineCol);
+
                 if app.checked('contactLabels') && isfield(a, 'ch_label')
                     text(ax, cx, cy, cz, a.ch_label, ...
                         'Color', c.labelsColor, 'FontSize', c.labelsFontSize);
@@ -622,6 +774,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     if ~isfield(t, 'x') || isempty(t.x), continue, end
                     [tx, ty, tz] = app.contactCoords(t);
                     app.drawContacts3D(ax, tx, ty, tz, c.target3D);
+                    app.latticeFor(ax, [tx(:) ty(:) tz(:)], t, c.cylColorTargets);
                     shown = shown + 1;
                 end
             end
@@ -632,18 +785,45 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 return
             end
 
-            axis(ax, 'image');
             ax.Clipping = 'on';
             ax.XTick = []; ax.YTick = []; ax.ZTick = [];
-            app.aimAtContacts(ax);
 
-            % AXIS IMAGE fits everything in, and what is furthest out is
-            % usually a planned array sitting well clear of the head, so
-            % the brain ends up small in the middle of its own view. Frame
-            % on the surfaces instead: a cube around them, which puts the
-            % brain the same size in the view whichever surface is drawn,
-            % and leaves what is outside the cube outside.
-            app.frameOnSurfaces(ax);
+            if isempty(keep)
+                % AXIS IMAGE fits everything in, and what is furthest out
+                % is usually a planned array sitting well clear of the
+                % head, so the brain ends up small in the middle of its own
+                % view. Frame on the surfaces instead: a box around them,
+                % which puts the brain the same size in the view whichever
+                % surface is drawn, and leaves what is outside it outside.
+                axis(ax, 'image');
+
+                % The old window's own opening view, and now this one's.
+                % Aiming the camera at the middle of the contacts was
+                % tried instead and was worse in practice: on a patient
+                % whose arrays sit forward it opens looking at the front
+                % of the head, where the brain is at its narrowest and
+                % fills least of the view.
+                view(ax, -135, 25);
+
+                % Only a draw that actually framed counts as one. With no
+                % surface drawn there is no box to frame on, and clearing
+                % the flag anyway would keep the limits AXIS IMAGE left -
+                % so a hemisphere switched on afterwards would be clipped
+                % to a box that was measured without it.
+                if app.frameOnSurfaces(ax)
+                    app.FrameNext = false;
+                end
+            else
+                % and put back the one the user left. The aspect ratio goes
+                % first: it is what keeps the shape honest, and the limits
+                % mean something different without it.
+                ax.DataAspectRatio = [1 1 1];
+                ax.XLim = keep.x; ax.YLim = keep.y; ax.ZLim = keep.z;
+                ax.CameraPosition  = keep.pos;
+                ax.CameraTarget    = keep.tgt;
+                ax.CameraUpVector  = keep.up;
+                ax.CameraViewAngle = keep.va;
+            end
 
             % Perspective, because a brain under parallel projection reads
             % as a diagram of a brain: the far side comes out the same size
@@ -824,11 +1004,16 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function a = surfaceOpacity(app)
             %SURFACEOPACITY  How see-through the surfaces are, 0 to 1.
             %
-            %   It starts at 0.5, which is where the old window's alpha
-            %   slider starts, and it has to be a control rather than a
-            %   constant: an opaque surface hides every depth contact
-            %   inside it, and a see-through one is harder to read the
-            %   shape of. Neither is right for both jobs.
+            %   It starts at 0.5, where the old window's slider starts,
+            %   and it has to be a control rather than a constant: an
+            %   opaque surface hides every depth contact inside it, and a
+            %   see-through one is harder to read the shape of. Neither is
+            %   right for both jobs.
+            %
+            %   Opaque was tried as the default and put back. Half
+            %   transparency on its own is not what made this window's
+            %   contacts hard to read - the missing lines between them
+            %   were, and 1.020 is half transparent too.
             a = app.SurfaceAlpha;
             if isfield(app.Controls, 'opacity') && isvalid(app.Controls.opacity)
                 a = app.Controls.opacity.Value;
@@ -900,24 +1085,6 @@ classdef iElectrodes2 < matlab.apps.AppBase
             end
         end
 
-        function middle = brainMiddle(app)
-            %BRAINMIDDLE  The centre of the brain surfaces, in millimetres.
-            lo = [ inf  inf  inf];
-            hi = [-inf -inf -inf];
-            for f = {'verticesR', 'verticesL', ...
-                     'vertices_SCE_R', 'vertices_SCE_L'}
-                if isfield(app.Project, f{1}) && ~isempty(app.Project.(f{1}))
-                    V  = app.Project.(f{1});
-                    lo = min(lo, min(V, [], 1));
-                    hi = max(hi, max(V, [], 1));
-                end
-            end
-            if any(~isfinite([lo hi]))
-                middle = [0 0 0];
-            else
-                middle = (lo + hi) / 2;
-            end
-        end
 
         function bb = brainVoxelBox(app)
             %BRAINVOXELBOX  The voxels the brain surface spans, as [lo; hi].
@@ -1007,52 +1174,47 @@ classdef iElectrodes2 < matlab.apps.AppBase
             n = 1;
         end
 
-        function aimAtContacts(app, ax)
-            %AIMATCONTACTS  Open the view looking at the electrodes.
+
+        function latticeFor(~, ax, pts, array, col)
+            %LATTICEFOR  The lines between neighbouring contacts.
             %
-            %   The old window opens at a fixed three-quarter view, which
-            %   for half of patients is the side the electrodes are not on,
-            %   and the first thing to do is turn the brain round. Here the
-            %   camera starts on the side they are: the direction from the
-            %   middle of the brain to the middle of the contacts.
+            %   PLOTELECTRODESLINES has two branches. A grid it reshapes by
+            %   rows and columns, so a layout that does not account for
+            %   every contact makes it raise; that is worth refusing, and
+            %   refusing it is the only thing this guard is for. A single
+            %   row or column it joins in order and never looks at the
+            %   layout at all, so a chain is drawn whatever the two numbers
+            %   say - as the old window draws it.
             %
-            %   MATLAB's azimuth is measured round z from the -y axis, and
-            %   the elevation above the xy plane, which is what the two
-            %   ATAN2D below are. The elevation is held back from straight
-            %   overhead, because a brain seen from directly above is a
-            %   shape nobody recognises.
-            %
-            %   With no contacts yet - a new project, which is where this
-            %   window will usually start - it is the old window's view.
-            pts    = [];
-            arrays = fieldOrEmpty(app.Project, 'electrodes');
-            for k = 1:numel(arrays)
-                if ~isfield(arrays{k}, 'x') || isempty(arrays{k}.x), continue, end
-                [cx, cy, cz] = app.contactCoords(arrays{k});
-                pts = [pts; cx(:) cy(:) cz(:)]; %#ok<AGROW>
-            end
-            if isempty(pts)
-                view(ax, -135, 25);
+            %   An array can also reach here with no layout to speak of. A
+            %   planning file is put into the project as it was read
+            %   (IELEC.LOADTARGETS does not normalise), and
+            %   CHECKELECTRODESTRUCTURE only fills rows in when the field
+            %   is absent, so an empty one survives. Those are drawn as
+            %   dots alone rather than stopping the whole redraw.
+            if ~isfield(array, 'rows') || ~isfield(array, 'columns')
                 return
             end
-
-            % the brain's own middle, from the surfaces rather than from
-            % the axes: the aiming happens before the framing, so that the
-            % zoom is applied at the viewpoint it will be seen from
-            middle = app.brainMiddle();
-            d      = mean(pts, 1) - middle;
-            if norm(d) < eps
-                view(ax, -135, 25);
+            r = array.rows; k = array.columns;
+            if ~isnumeric(r) || ~isscalar(r) || ~isnumeric(k) || ~isscalar(k)
                 return
             end
-
-            az = atan2d(d(1), -d(2));
-            el = atan2d(d(3), hypot(d(1), d(2)));
-            el = max(min(el, 45), -25);
-            view(ax, az, el);
+            if r < 1 || k < 1, return, end
+            if min(r, k) ~= 1 && r * k ~= size(pts, 1), return, end
+            plotElectrodesLines(pts, r, k, col, ax);
         end
 
-        function frameOnSurfaces(~, ax)
+        function reframe3D(app)
+            %REFRAME3D  Put the camera back round the brain.
+            %
+            %   The toolbar's own restore button would give back the view
+            %   the axes was born with, which is the view before anything
+            %   was drawn. This gives the one DRAW3D would choose today.
+            app.FrameNext = true;
+            app.draw3D();
+        end
+
+        function framed = frameOnSurfaces(~, ax)
             %FRAMEONSURFACES  Put the camera round what is drawn as a surface.
             %
             %   The surfaces' own box, not a cube around it: a cube is as
@@ -1060,6 +1222,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             %   that width, which leaves the brain small with air above and
             %   below it. The equal data aspect ratio is what keeps the
             %   shape honest; the limits only say what to look at.
+            framed = false;
             h = findobj(ax, 'Type', 'patch');
             if isempty(h), return, end
 
@@ -1071,6 +1234,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 hi = max(hi, max(V, [], 1));
             end
             if any(~isfinite([lo hi])), return, end
+            framed = true;
 
             middle = (lo + hi) / 2;
             half   = (hi - lo) / 2 * 1.04;       % a little air round it
@@ -1241,7 +1405,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.menuItems(m, {
                 'New project',              'ielec.newProject'
                 'Open project...',          '@open'
-                'Save project',             'ielec.saveProject'
+                'Save project',             '@save'
                 '---',                      ''
                 'Load CT...',               'ielec.loadCT'
                 'Load brain mask...',       'ielec.loadMask'
@@ -1275,6 +1439,11 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     item.Enable = 'on';
                     item.MenuSelectedFcn = @(~,~) app.openProject();
                     rows{k,2} = 'ielec.openProject';
+                end
+                if strcmp(rows{k,2}, '@save')
+                    item.Enable = 'on';
+                    item.MenuSelectedFcn = @(~,~) app.saveProject();
+                    rows{k,2} = 'ielec.saveProject';
                 end
                 if k > 1 && strcmp(rows{k-1,1}, '---')
                     item.Separator = 'on';
@@ -1338,7 +1507,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function buildLeft(app)
             app.LeftCol = uigridlayout(app.Body, [2 1]);
             app.LeftCol.Layout.Column = 1;
-            app.LeftCol.RowHeight   = {'1x', 150};
+            app.LeftCol.RowHeight   = {'1x', app.FOOTHEIGHT};
             app.LeftCol.ColumnWidth = {'1x'};
             app.LeftCol.Padding     = [0 0 0 0];
             app.LeftCol.RowSpacing  = 10;
@@ -1372,9 +1541,26 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 g.RowSpacing  = 2;
                 ax = uiaxes(g);
                 ax.Layout.Row = 1;
-                ax.Toolbar.Visible = 'off';
-                disableDefaultInteractivity(ax);
                 ax.XTick = []; ax.YTick = [];
+
+                % The two views in space are turned, the three planes are
+                % clicked. A plane that rotates under the pointer is a
+                % plane that cannot be clicked accurately, so they keep
+                % their toolbars off; the views in space need theirs, or
+                % the only way to turn the brain is to guess that dragging
+                % works.
+                if ismember(spec{k,1}, {'voxels', 'threeD'})
+                    tb = axtoolbar(ax, {'rotate', 'pan', 'zoomin', 'zoomout'});
+                    if strcmp(spec{k,1}, 'threeD')
+                        home = axtoolbarbtn(tb, 'push');
+                        home.Icon    = 'restoreview';
+                        home.Tooltip = 'Frame on the brain again';
+                        home.ButtonPushedFcn = @(~,~) app.reframe3D();
+                    end
+                else
+                    ax.Toolbar.Visible = 'off';
+                    disableDefaultInteractivity(ax);
+                end
                 cap = uilabel(g, 'Text', spec{k,5});
                 cap.Layout.Row = 2;
                 cap.FontSize = 10;
@@ -1412,7 +1598,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function buildRight(app)
             app.RightCol = uigridlayout(app.Body, [3 1]);
             app.RightCol.Layout.Column = 2;
-            app.RightCol.RowHeight   = {240, '1x', 'fit'};
+            app.RightCol.RowHeight   = {app.TABLEHEIGHT, '1x', 'fit'};
             app.RightCol.ColumnWidth = {'1x'};
             app.RightCol.Padding     = [0 0 0 0];
             app.RightCol.RowSpacing  = 10;
@@ -1444,7 +1630,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
         function sizeContactsPanel(app, open)
             if open
-                app.RightCol.RowHeight{1} = 240;
+                app.RightCol.RowHeight{1} = app.TABLEHEIGHT;
             else
                 app.RightCol.RowHeight{1} = 46;
             end
@@ -1495,7 +1681,8 @@ classdef iElectrodes2 < matlab.apps.AppBase
             % What is different is how it is drawn, not what is shown:
             % spheres rather than flat markers, no axes box, three fixed
             % lights rather than a headlight, and a camera framed on the
-            % surfaces and aimed at the electrodes.
+            % surfaces - from the view the old window opens at, which this
+            % one opens at too.
             app.Controls.pial.Value         = true;
             app.Controls.planned.Value      = true;
             app.Controls.model3d.Value      = 'Spheres';
@@ -1512,11 +1699,12 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.Controls.slicePlanes.Value = false;
 
             for n = {'slicePlanes', 'pial', 'atlasSurface', ...
-                     'contactLabels', 'envelope3d', 'pickSlice', 'planned'}
+                     'contactLabels', 'envelope3d', 'pickSlice'}
                 app.Controls.(n{1}).ValueChangedFcn = @(~,~) app.draw3D();
             end
-            % this one moves the contacts in both the 2-D and the 3-D views
+            % these two change what is on the planes as well as in space
             app.Controls.projected.ValueChangedFcn = @(~,~) app.redrawAll();
+            app.Controls.planned.ValueChangedFcn   = @(~,~) app.redrawAll();
             app.Controls.model3d.ValueChangedFcn = @(~,~) app.draw3D();
             app.Controls.opacity.ValueChangedFcn = @(~,~) app.draw3D();
 
@@ -2136,7 +2324,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             % short when both are folded
             open = app.Sections.cursor.open || app.Sections.messages.open;
             if open
-                app.LeftCol.RowHeight{2} = 150;
+                app.LeftCol.RowHeight{2} = app.FOOTHEIGHT;
             else
                 app.LeftCol.RowHeight{2} = 46;
             end

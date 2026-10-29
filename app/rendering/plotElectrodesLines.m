@@ -1,4 +1,7 @@
-function c=plotElectrodesLines(X,rows,columns,color)
+function c=plotElectrodesLines(X,rows,columns,color,ax)
+% plotElectrodesLines(X,rows,columns,color,ax) draws into AX. Without it the
+% lines go to GCA, as every caller before the new window relied on - a
+% uiaxes is never GCA, so the window has to say where.
 % plot lines (as small cylinders) between neighbor electrodes
 % X : electrodes coordinates (electrodes x 3)
 % color : [r g b] format
@@ -22,6 +25,8 @@ function c=plotElectrodesLines(X,rows,columns,color)
 % end
 
 
+if nargin < 5 || isempty(ax); ax = gca; end
+
 if min(rows,columns)~=1 % if is a grid
     ind=reshape(1:size(X,1),columns,rows)';
     %horizontal
@@ -33,7 +38,7 @@ if min(rows,columns)~=1 % if is a grid
     %[c1,~,~]=Cyl(X(indH1,:),X(indH2,:),.3,6,color,1,0);
     for i=1:size(s,1)
         l=[s(i,:);e(i,:)];
-        c1(i)=line(l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);
+        c1(i)=line(ax,l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);
     end
     %vertical
     indV1=ind(1:end-1,:);
@@ -43,7 +48,7 @@ if min(rows,columns)~=1 % if is a grid
     %[c2,~,~]=Cyl(X(indV1,:),X(indV2,:),.3,6,color,1,0);
     for i=1:size(s,1)
         l=[s(i,:);e(i,:)];        
-        c2(i)=line(l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);    
+        c2(i)=line(ax,l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);    
     end
     c=[c1 c2];
     
@@ -53,7 +58,7 @@ else %depth or strip
     %[c,~,~]=Cyl(X(1:end-1,:),X(2:end,:),.3,6,color,1,0);
     for i=1:size(s,1)
         l=[s(i,:);e(i,:)];        
-        c(i)=line(l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);
+        c(i)=line(ax,l(:,1),l(:,2),l(:,3),'Color',color,'LineWidth',2);
     end
 end
 

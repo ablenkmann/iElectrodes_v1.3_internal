@@ -122,3 +122,98 @@ three of the four are answered as of 19 October 2026 - items 40, 45, 46 and
 The repository is ready to move to GitHub: line endings are settled, the
 example data was already published in 2017, and the vendored tree no longer
 carries a broken macOS binary.
+
+---
+
+## What the new window got wrong, from using it (28-30 October 2026)
+
+Emir's six, after driving `app/ui/iElectrodes2.m`. All six are done. The
+record below is what each one turned out to be, which in two cases is not
+what was guessed first, and in one case is not what was guessed second
+either - the answer came from putting his screenshot of 1.020 next to one
+of this window.
+
+1. **The plots were too small and the panels too wide.** *Done.* The body
+   splits 2.4 to 1 rather than 1.4 to 1, the foot strip is 120 and the
+   contact table 200. The folding sizers wrote the old numbers back the
+   first time a panel was folded; both are constants now, in one place.
+
+2. **The 3-D brain looked bad**, and 4. **the contacts looked like they
+   were floating.** *Done, and the cause was neither of the first two
+   guesses.*
+
+   The first guess was a coarse mesh. Measured, the file carries the full
+   pial surface - 114 637 and 116 003 vertices - so the mesh was never it.
+
+   The second guess was the half transparency 1.020 starts at, and the
+   planning targets being drawn by default. Both were changed, and both
+   were then put back: his screenshot of 1.020 shows a half-transparent
+   brain *with* the planning targets, and that is the picture he called
+   clear and high quality.
+
+   What was actually missing is the lines between neighbouring contacts.
+   1.020 draws them with `plotElectrodesLines`, which this repository
+   already carries in `app/rendering/`; the old window calls it at
+   `electrodes_gui.m:1982` and the new window never did. Without them an
+   array is a scatter of identical dots and nothing says which dot belongs
+   to which electrode. With them a grid reads as a lattice and a depth
+   electrode as its own shaft. That one call is most of the difference
+   between the two screenshots.
+
+   Measured, for the record: the grid sits 1.4 mm outside the pial surface
+   on average and the strip 2.3 mm, which is correct and is what the
+   brain-shift projection exists for.
+
+3. **It zoomed in on itself after any operation.** *Done.* `draw3D` framed
+   the camera on every pass, so every checkbox, every added contact and
+   every move of the cursor threw away a view that had been turned by
+   hand. The camera is taken before the clear and put back after; framing
+   happens when a project is opened and when the button in the view's own
+   toolbar asks for it. A draw that had no surface to frame on no longer
+   counts as a framing draw - it used to leave the limits measured without
+   the surface, and clip the brain when it came back.
+
+   The opening view is 1.020's fixed `view(-135, 25)` again. Aiming the
+   camera at the middle of the contacts was tried instead and was worse in
+   practice: it opened on the front of the head, where the brain is
+   narrowest and fills least of the view.
+
+5. **The brain could not be turned with the mouse.** *Done.* It could -
+   `draw3D` sets the rotate and zoom interactions - but every view is built
+   with its toolbar hidden, so nothing said so, and (3) undid any turn on
+   the next redraw. The two views in space now carry a toolbar with rotate,
+   pan and zoom; the three planes do not, because a plane that rotates
+   under the pointer cannot be clicked accurately.
+
+6. **Closing did not ask whether to save.** *Done.* Save is wired to
+   `ielec.saveProject`, and closing asks when the project has changed.
+   Whether it has is the length of `project.history`, leaving out
+   `ielec.thresholdCT`: that one records a step every time a threshold
+   moves, including once on the first visit to the Localize step, so
+   counting it asked the user to save a project nobody had touched.
+
+**Still open, found on the way.**
+
+- The voxel view resets its camera the same way the 3-D view used to -
+  `drawVoxels` calls `view` and `axis image` on every pass, so a cloud
+  turned to line up a region snaps back when a threshold moves. The fix is
+  the one already written for the 3-D view.
+- 1.020 can switch the lattice off - `PlotConnCheckbox`, gating both
+  `electrodes_gui.m:1963` and `:2104` - and the new window draws it
+  unconditionally. A dense plan is a lot of lines: the example's 8x8
+  planning grid alone is 112 of the 285. The drawing already falls back
+  from spheres to dots past 600 contacts for the same reason, so the box
+  this wants is the one 1.020 has.
+- Contacts are drawn 4 mm across whatever they are. Measured from the
+  contacts themselves, the example's arrays are 10 mm apart for the grid
+  and strip and 5 mm for the two depth electrodes - subdural and SEEG. A
+  subdural contact's exposed face is about 2.3 mm and an SEEG contact is a
+  cylinder about 0.8 mm across and 2 mm long, so one 4 mm sphere for both
+  is wrong in different directions. The project structure carries no
+  contact dimensions (`checkElectrodeStructure.m`), so the size would have
+  to come from the type and the measured spacing.
+
+The 1.020 window asks none of these questions of itself, so there is
+nothing to be faithful to here; this is the one piece of the frontend being
+designed rather than ported - which is also why being faithful to it where
+it *has* an answer, as in 2 and 4, turned out to be the right instinct.
