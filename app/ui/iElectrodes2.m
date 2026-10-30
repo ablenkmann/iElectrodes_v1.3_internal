@@ -1404,6 +1404,21 @@ classdef iElectrodes2 < matlab.apps.AppBase
             for i = 1:numel(kinds)
                 kinds(i).Value = kinds(i) == src;
             end
+            app.showRowsBox();
+        end
+
+        function showRowsBox(app)
+            %SHOWROWSBOX  Rows is a grid's question, and only a grid's.
+            %
+            %   A strip and a depth are one row, which both buttons force
+            %   - IELEC.FITARRAY and IELEC.INDEXARRAY each refuse anything
+            %   else. A box that is read for one kind and overwritten for
+            %   the other two should not look the same in all three.
+            if ~isfield(app.Controls, 'gridSize'), return, end
+            box = app.Controls.gridSize;
+            if ~all(isvalid(box)), return, end
+            box(1).Enable = matlab.lang.OnOffSwitchState( ...
+                strcmp(app.arrayKind(), 'Grid'));
         end
 
         function name = arrayKind(app)
@@ -1608,11 +1623,71 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.redrawAll();
         end
 
-        function notWiredYet(app)
-            %NOTWIREDYET  Say so, rather than do nothing at all.
+        function fitPressed(app)
+            %FITPRESSED  Fit the model to the selected voxels.
+            %
+            %   The size and spacing come from the three boxes above the
+            %   button, and the kind from the Type beside them - the same
+            %   three the Index button reads. IELEC.FITARRAY proposes the
+            %   array and IELEC.ACCEPTARRAY puts it in, as they are paired
+            %   for Index and as the old window pairs them.
+            %
+            %   THE ANCHORS ARE NOT USED YET. IELEC.FITARRAY holds a fit to
+            %   them only when it is told which contact of the array each
+            %   one is - cfg.nailNumbers - and the table the old window
+            %   asks that in has no counterpart here yet. Leaving
+            %   cfg.useNailedContacts at false leaves the anchors where
+            %   they are rather than consuming them into a fit that was
+            %   not actually held to them, and the message says so, so
+            %   that an anchor nobody used is not mistaken for one that
+            %   was.
+            %
+            %   TWO OF THE OLD DIALOG'S QUESTIONS ARE NOT ASKED HERE, and
+            %   both take their default rather than erroring: cfg.overlap,
+            %   which the old window asks for a grid and a strip
+            %   (electrodes_gui.m:3089, :3104) and which defaults to 0,
+            %   and cfg.firstSecondSpacing, the first-to-second gap of a
+            %   Behnke-Fried depth (:3119), which defaults to [] and so to
+            %   the same as cfg.spacing. An overlapping grid and a
+            %   Behnke-Fried electrode therefore fit as if they were
+            %   ordinary ones. Neither has a box in this panel yet.
             if ~app.hasProject(), return, end
-            app.showMessage(['Fit the model is not wired yet - ' ...
-                'ielec.fitArray is the first call behind it.']);
+
+            kind = lower(app.arrayKind());
+            cfg = [];
+            cfg.type    = kind;
+            cfg.rows    = app.Controls.gridSize(1).Value;
+            cfg.columns = app.Controls.gridSize(2).Value;
+            cfg.spacing = app.Controls.gridSize(3).Value;
+            if ~strcmp(kind, 'grid')
+                % a strip and a depth are one row, which is what
+                % IELEC.FITARRAY's help asks for
+                cfg.rows = 1;
+            end
+
+            try
+                [app.Project, app.Work, array] = ielec.fitArray( ...
+                    cfg, app.Project, app.Work);
+                [app.Project, app.Work, where] = ielec.acceptArray( ...
+                    [], app.Project, app.Work, array);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            app.Work.selection.array = where;
+            said = sprintf('%s of %d contacts fitted and added as array %d.', ...
+                [upper(kind(1)) kind(2:end)], numel(array.x), where);
+            nAnchor = size(fieldOrNumeric(app.Work, 'anchors'), 1);
+            if nAnchor > 0
+                said = sprintf(['%s %d anchor(s) were not used - the fit ' ...
+                    'is held to an anchor only when it is told which ' ...
+                    'contact the anchor is, and that is not wired yet.'], ...
+                    said, nAnchor);
+            end
+            app.showMessage(said);
+            app.redrawAll();
+            app.fillContactTable();
         end
 
         function yes = hasProject(app)
@@ -2141,11 +2216,24 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     app.Controls.addAnchor.ButtonPushedFcn = ...
                         @(~,~) app.addHere('anchors', 'anchor');
 
-                    % Fit the model has nothing behind it yet, and it is
-                    % the largest button on the panel. Saying so is worth
-                    % more than a press that does nothing at all.
                     app.Controls.fitNow.ButtonPushedFcn = ...
-                        @(~,~) app.notWiredYet();
+                        @(~,~) app.fitPressed();
+
+                    % The three boxes are what the fit is asked for, and
+                    % they start at 1. Without limits, pressing Fit
+                    % without touching them builds a one-contact depth
+                    % 1 mm long and reports it as a success - a wrong
+                    % array that looks like a right one. The old window
+                    % asked in an empty dialog, so an untouched box was a
+                    % complaint rather than a number.
+                    box = app.Controls.gridSize;
+                    box(1).Limits = [1 Inf];   % rows
+                    box(2).Limits = [1 Inf];   % columns
+                    box(1).RoundFractionalValues = 'on';
+                    box(2).RoundFractionalValues = 'on';
+                    box(3).Limits = [0 Inf];   % spacing, in mm
+                    box(3).LowerLimitInclusive = 'off';
+                    app.showRowsBox();
                     app.Controls.clusterNow.ButtonPushedFcn = ...
                         @(~,~) app.clusterPressed();
                     app.Controls.addByHand.ButtonPushedFcn = ...
