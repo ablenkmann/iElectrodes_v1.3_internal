@@ -198,6 +198,14 @@ of this window.
   *Done:* it keeps it, by the same capture-and-restore, with its own
   `FrameVoxelsNext`. A cloud turned to line a region up survives a
   threshold moving, which is the one thing brushing needs of it.
+- `work.selection.contact` is left pointing at a contact of the array that
+  was selected before. Nothing in the new window reads it yet, so there is
+  no visible effect - but `work` is saved with the project, so the stored
+  selection is inconsistent, and the old window pairs its two
+  (`electrodes_gui.m:3499-3500`). Whoever wires contact selection meets
+  this first.
+- `choicesFor('model3d')` is dead: the row's control kind is `'model'`,
+  which hardcodes its own list. Two lists for one control, agreeing today.
 - 1.020 can switch the lattice off - `PlotConnCheckbox`, gating both
   `electrodes_gui.m:1963` and `:2104` - and the new window draws it
   unconditionally. A dense plan is a lot of lines: the example's 8x8

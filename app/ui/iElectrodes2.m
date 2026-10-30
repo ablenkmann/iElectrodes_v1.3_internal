@@ -1398,6 +1398,121 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.redrawAll();
         end
 
+        function pickArrayKind(app, src)
+            %PICKARRAYKIND  One of the three, never none and never two.
+            kinds = app.Controls.arrayType;
+            for i = 1:numel(kinds)
+                kinds(i).Value = kinds(i) == src;
+            end
+        end
+
+        function name = arrayKind(app)
+            %ARRAYKIND  Which of Grid, Strip and Depth is chosen.
+            name = 'Depth';
+            if ~isfield(app.Controls, 'arrayType'), return, end
+            kinds = app.Controls.arrayType;
+            for i = 1:numel(kinds)
+                if isvalid(kinds(i)) && kinds(i).Value
+                    name = kinds(i).Text;
+                    return
+                end
+            end
+        end
+
+        function n = contactsToNumber(app, cfg)
+            %CONTACTSTONUMBER  How many contacts the Index button is about.
+            %
+            %   The ones in progress when there are any, and otherwise the
+            %   ones of the array being numbered again - the same two cases
+            %   INDEXPRESSED tells apart.
+            gs = fieldOrNumeric(app.Work, 'GS');
+            if ~isempty(gs)
+                n = size(gs, 1);
+                return
+            end
+            n = 0;
+            arrays = fieldOrEmpty(app.Project, 'electrodes');
+            if isfield(cfg, 'index') && cfg.index >= 1 && ...
+                    cfg.index <= numel(arrays)
+                n = numel(arrays{cfg.index}.x);
+            end
+        end
+
+        function indexPressed(app)
+            %INDEXPRESSED  Number the contacts, and put the array in.
+            %
+            %   The old window's Index button is two buttons in one, told
+            %   apart by whether there are contacts in progress: with them,
+            %   they are numbered and become a new array; without them, the
+            %   array on show is numbered again from its own coordinates,
+            %   which is how a grid that came out in the wrong order is put
+            %   right. IELEC.INDEXARRAY takes both through cfg.index.
+            if ~app.hasProject(), return, end
+
+            cfg   = [];
+            fresh = ~isempty(fieldOrNumeric(app.Work, 'GS'));
+            if ~fresh
+                % which array is on show is kept where the layer keeps it,
+                % and where FILLCONTACTTABLE reads it from
+                cfg.index = 0;
+                if isfield(app.Work, 'selection') && ...
+                        isfield(app.Work.selection, 'array')
+                    cfg.index = app.Work.selection.array;
+                end
+            end
+
+            switch app.arrayKind()
+                case 'Grid'
+                    cfg.shape   = 'grid';
+                    cfg.rows    = app.Controls.gridSize(1).Value;
+                    cfg.columns = app.Controls.gridSize(2).Value;
+
+                case 'Strip'
+                    % A STRIP IS A GRID OF ONE ROW, and it has to be asked
+                    % for that way. Sent as a depth electrode it comes back
+                    % Type 'depth' - INDEXDEPTHELECTRODES sets that and
+                    % nothing else can - and a strip stored as a depth
+                    % array is then skipped, silently, by the brain-shift
+                    % projection, which carries grids and strips and
+                    % nothing else (arrayProjectionState.m:38). Asked for
+                    % as a grid of one row, INDEXGRIDELECTRODES sees the
+                    % one row and records Type 'strip'.
+                    %
+                    % This is how the old window represents a strip too:
+                    % electrodes_gui.m:3102-3112 presses the Grid button
+                    % and sets rows to 1.
+                    cfg.shape   = 'grid';
+                    cfg.rows    = 1;
+                    cfg.columns = app.contactsToNumber(cfg);
+
+                otherwise
+                    cfg.shape = 'depth';
+            end
+
+            try
+                [app.Project, app.Work, array] = ielec.indexArray( ...
+                    cfg, app.Project, app.Work);
+                acceptCfg = [];
+                if ~fresh, acceptCfg.index = cfg.index; end
+                [app.Project, app.Work, where] = ielec.acceptArray( ...
+                    acceptCfg, app.Project, app.Work, array);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            app.Work.selection.array = where;
+            if fresh
+                app.showMessage(sprintf( ...
+                    '%d contacts numbered and added as array %d.', ...
+                    numel(array.x), where));
+            else
+                app.showMessage(sprintf('Array %d numbered again.', where));
+            end
+            app.redrawAll();
+            app.fillContactTable();
+        end
+
         function addHere(app, group, word)
             %ADDHERE  Put a contact or an anchor where the cursor is.
             if ~app.hasProject(), return, end
@@ -1874,9 +1989,9 @@ classdef iElectrodes2 < matlab.apps.AppBase
                             'Index the contacts',         'button', 'indexNow'}
                         'gridfit',   'Fit a grid model (GridFit)', {
                             'Type',                       'segment', 'arrayType'
-                            'Rows / Columns / Spacing',   'numbers', ''
-                            'Add anchor by hand',         'button',  ''
-                            'Fit the model',              'accent',  ''}
+                            'Rows / Columns / Spacing',   'numbers', 'gridSize'
+                            'Add anchor by hand',         'button',  'addAnchor'
+                            'Fit the model',              'accent',  'fitNow'}
                         };
                 case 'Arrays'
                     spec = {
@@ -1966,6 +2081,21 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     app.Controls.denoise.Limits = [1 5];   % as the old slider
 
                     app.Controls.nContacts.Limits = [1 Inf];
+
+                    % Three state buttons are three switches until
+                    % something makes them one choice. Depth is the one
+                    % that starts down: clustering is how a depth
+                    % electrode is found, where a grid is usually found by
+                    % fitting the model to it.
+                    kinds = app.Controls.arrayType;
+                    for i = 1:numel(kinds)
+                        kinds(i).Value = strcmp(kinds(i).Text, 'Depth');
+                        kinds(i).ValueChangedFcn = ...
+                            @(src,~) app.pickArrayKind(src);
+                    end
+
+                    app.Controls.indexNow.ButtonPushedFcn = ...
+                        @(~,~) app.indexPressed();
                     app.Controls.clusterNow.ButtonPushedFcn = ...
                         @(~,~) app.clusterPressed();
                     app.Controls.addByHand.ButtonPushedFcn = ...
@@ -2613,7 +2743,7 @@ switch name
     case 'arrayType'                         % ielec.fitArray, cfg.type
         items = {'Grid', 'Strip', 'Depth'};
     case 'model3d'
-        items = {'Dots', 'Spheres'};
+        items = {'Dots', 'Spheres', 'True size'};
     otherwise
         items = {};
 end
