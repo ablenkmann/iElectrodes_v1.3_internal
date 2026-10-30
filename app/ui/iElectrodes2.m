@@ -32,13 +32,23 @@ classdef iElectrodes2 < matlab.apps.AppBase
 %   contacts, and the slices in space, and a click on the brain takes a
 %   slice there.
 %
+%   The Localize step goes the whole way: threshold, brush, cluster
+%   (ielec.cluster), add and remove contacts and anchors by hand, number
+%   them (ielec.indexArray) or fit a model to them (ielec.fitArray), and
+%   the array is put in the project (ielec.acceptArray). On the Arrays
+%   step the arrays are listed, one can be picked, named
+%   (ielec.nameContacts) and removed (ielec.deleteArray).
+%
 %   WHAT DOES NOT
 %
-%   The controls of the Arrays, Anatomy, Planning and Export steps are
-%   placeholders. "Radiological convention" is built and disabled on
-%   purpose: which way round the planes are drawn is the one thing here
-%   that can be wrong without looking wrong, and the old window has no such
-%   switch to copy.
+%   On the Arrays step, "Name from a list", "Rotate / Flip" and "Index by
+%   hand" are not wired. The Anatomy, Planning and Export steps are
+%   placeholders throughout. A fit is not held to its anchors yet - that
+%   needs the table saying which contact each anchor is.
+%
+%   "Radiological convention" is built and disabled on purpose: which way
+%   round the planes are drawn is the one thing here that can be wrong
+%   without looking wrong, and the old window has no such switch to copy.
 %
 %   WHY A CLASSDEF AND NOT A .mlapp
 %
@@ -210,6 +220,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.FileLabel.Text = [name ext];
             app.showMessage(sprintf('Opened %s - %d x %d x %d', [name ext], D));
             app.redrawPlanes();
+
+            % The Arrays step keeps two things that REDRAWPLANES does not
+            % touch: the list of arrays and the name box. Left alone, a
+            % second project opened while that step is showing lists the
+            % first project's arrays and holds the first project's name -
+            % and Name would then rename this project's array after one
+            % belonging to another. They are refreshed here rather than in
+            % REDRAWPLANES because filling the table clears its selection,
+            % and REDRAWPLANES runs on every move of the cursor.
+            app.fillArrayTable();
+            app.showSelectedName();
+
             app.resetThresholds();
             if ~isfield(app.Project, 'TAC') || isempty(app.Project.TAC)
                 % no CT in this project: clear whatever the last one left,
@@ -618,6 +640,147 @@ classdef iElectrodes2 < matlab.apps.AppBase
             [px, py, pz] = app.contactCoords(array);
             app.plotPoints2D(ax, [px(:) py(:) pz(:)], pl, v, inPlane, ...
                 col, marker);
+        end
+
+        function fillArrayTable(app)
+            %FILLARRAYTABLE  Every localized array, one to a row.
+            %
+            %   The contact table below shows one array at a time; this is
+            %   the list it is one of. Name, kind and how many contacts -
+            %   the three things that tell two arrays apart at a glance.
+            if ~isfield(app.Controls, 'arrayTable') || ...
+                    ~isvalid(app.Controls.arrayTable)
+                return
+            end
+            arrays = fieldOrEmpty(app.Project, 'electrodes');
+            rows = cell(numel(arrays), 3);
+            for k = 1:numel(arrays)
+                a = arrays{k};
+                rows{k,1} = fieldOrText(a, 'Name');
+                rows{k,2} = fieldOrText(a, 'Type');
+                rows{k,3} = numel(fieldOrEmpty(a, 'x'));
+            end
+            app.Controls.arrayTable.Data = rows;
+
+            % and the row for the array the rest of the window is showing
+            i = app.selectedArray();
+            if i >= 1 && i <= numel(arrays)
+                app.Controls.arrayTable.Selection = i;
+            end
+        end
+
+        function i = selectedArray(app)
+            %SELECTEDARRAY  Which array the window is showing, or 0.
+            i = 0;
+            if isfield(app.Work, 'selection') && ...
+                    isfield(app.Work.selection, 'array')
+                i = app.Work.selection.array;
+            end
+        end
+
+        function selectArray(app, i)
+            %SELECTARRAY  Show array I, and start at its first contact.
+            %
+            %   The two move together. The old window never sets one
+            %   without the other - electrodes_gui.m:3499, :4282, :4128 -
+            %   and nothing here reads selection.contact yet, which is
+            %   exactly why it is worth setting now rather than when
+            %   something does and finds it pointing into another array.
+            app.Work.selection.array = i;
+            if i >= 1
+                app.Work.selection.contact = 1;
+            else
+                app.Work.selection.contact = 0;
+            end
+        end
+
+        function arrayPicked(app, src)
+            %ARRAYPICKED  Show the array whose row was clicked.
+            if isempty(src.Selection), return, end
+            app.selectArray(src.Selection(1));
+            app.showSelectedName();
+            app.fillContactTable();
+            app.redrawAll();
+        end
+
+        function showSelectedName(app)
+            %SHOWSELECTEDNAME  Put the array's own name in the box.
+            if ~isfield(app.Controls, 'baseName') || ...
+                    ~isvalid(app.Controls.baseName)
+                return
+            end
+            arrays = fieldOrEmpty(app.Project, 'electrodes');
+            i = app.selectedArray();
+            if i >= 1 && i <= numel(arrays)
+                app.Controls.baseName.Value = fieldOrText(arrays{i}, 'Name');
+            else
+                app.Controls.baseName.Value = '';
+            end
+        end
+
+        function namePressed(app)
+            %NAMEPRESSED  Give the selected array the name in the box.
+            if ~app.hasProject(), return, end
+            i = app.selectedArray();
+            if i < 1 || i > numel(fieldOrEmpty(app.Project, 'electrodes'))
+                % the same answer REMOVEARRAYPRESSED gives. Without it the
+                % layer answers instead, and it answers in cfg fields.
+                app.showMessage('Choose an array in the list first.');
+                return
+            end
+            try
+                [app.Project, app.Work] = ielec.nameContacts( ...
+                    struct('index', i, ...
+                           'baseName', app.Controls.baseName.Value), ...
+                    app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            a = app.Project.electrodes{i};
+            app.showMessage(sprintf('Array %d is %s now - %s1 to %s%d.', ...
+                i, a.Name, a.Name, a.Name, numel(a.x)));
+            app.fillArrayTable();
+            app.fillContactTable();
+            app.redrawAll();
+        end
+
+        function removeArrayPressed(app)
+            %REMOVEARRAYPRESSED  Take the selected array out of the project.
+            if ~app.hasProject(), return, end
+            i = app.selectedArray();
+            arrays = fieldOrEmpty(app.Project, 'electrodes');
+            if i < 1 || i > numel(arrays)
+                app.showMessage('Choose an array in the list first.');
+                return
+            end
+            gone = fieldOrText(arrays{i}, 'Name');
+
+            % An array is work that was done, and the layer keeps no undo
+            % for it the way it does for the contacts in progress, so this
+            % is the one thing in the window that asks first.
+            answer = uiconfirm(app.UIFigure, ...
+                sprintf('Remove %s and its %d contacts from the project?', ...
+                        gone, numel(fieldOrEmpty(arrays{i}, 'x'))), ...
+                'Remove array', 'Options', {'Remove', 'Cancel'}, ...
+                'DefaultOption', 2, 'CancelOption', 2, 'Icon', 'warning');
+            if ~strcmp(answer, 'Remove'), return, end
+
+            try
+                [app.Project, app.Work, next] = ielec.deleteArray( ...
+                    struct('index', i), app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            % which array to show next is the layer's answer, not a guess
+            app.selectArray(next);
+            app.showMessage(sprintf('%s removed - %d array(s) left.', ...
+                gone, numel(fieldOrEmpty(app.Project, 'electrodes'))));
+            app.fillArrayTable();
+            app.showSelectedName();
+            app.fillContactTable();
+            app.redrawAll();
         end
 
         function fillContactTable(app)
@@ -1516,7 +1679,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 return
             end
 
-            app.Work.selection.array = where;
+            app.selectArray(where);
             if fresh
                 app.showMessage(sprintf( ...
                     '%d contacts numbered and added as array %d.', ...
@@ -1675,7 +1838,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 return
             end
 
-            app.Work.selection.array = where;
+            app.selectArray(where);
             said = sprintf('%s of %d contacts fitted and added as array %d.', ...
                 [upper(kind(1)) kind(2:end)], numel(array.x), where);
             nAnchor = size(fieldOrNumeric(app.Work, 'anchors'), 1);
@@ -2108,13 +2271,13 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 case 'Arrays'
                     spec = {
                         'name',     'Name the contacts', {
-                            'Base name',                  'edit'
-                            'Name / Name from a list',    'pair'
-                            'Rotate / Flip',              'pair'
-                            'Index by hand',              'button'}
+                            'Base name',                  'edit',   'baseName'
+                            'Name / Name from a list',    'pair',   'naming'
+                            'Rotate / Flip',              'pair',   ''
+                            'Index by hand',              'button', ''}
                         'arraylist', 'Arrays in this project', {
-                            'arrays',                     'table'
-                            'Remove array',               'button'}
+                            'arrays',                     'table',  'arrayTable'
+                            'Remove array',               'button', 'removeArray'}
                         };
                 case 'Anatomy'
                     spec = {
@@ -2244,6 +2407,30 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     edit(1).ButtonPushedFcn = @(~,~) app.removeHere();
                     edit(2).ButtonPushedFcn = @(~,~) app.clearHere();
                     edit(3).ButtonPushedFcn = @(~,~) app.undoHere();
+
+                case 'Arrays'
+                    % whole rows, and said before the table is filled:
+                    % FILLARRAYTABLE puts the selection on the array the
+                    % window is showing, and a row number is not a valid
+                    % selection while the table still selects cells
+                    app.Controls.arrayTable.SelectionType = 'row';
+                    app.Controls.arrayTable.Multiselect = 'off';
+                    app.fillArrayTable();
+                    app.Controls.arrayTable.SelectionChangedFcn = ...
+                        @(src,~) app.arrayPicked(src);
+                    app.Controls.removeArray.ButtonPushedFcn = ...
+                        @(~,~) app.removeArrayPressed();
+
+                    % the first of the pair; the second reads a file and
+                    % is not wired yet
+                    naming = app.Controls.naming;
+                    naming(1).ButtonPushedFcn = @(~,~) app.namePressed();
+                    naming(2).Enable = 'off';
+
+                    % the name the selected array already has, so the box
+                    % says what is true rather than nothing
+                    app.showSelectedName();
+
             end
 
             % the view block belongs to no step, so it is wired once, the
@@ -2942,6 +3129,15 @@ for k = 1:numel(arrays)
     if isfield(arrays{k}, 'x')
         n = n + numel(arrays{k}.x);
     end
+end
+end
+
+function t = fieldOrText(s, name)
+% a field that should be text, or '' - a planning file need not have it
+if isstruct(s) && isfield(s, name) && (ischar(s.(name)) || isstring(s.(name)))
+    t = char(s.(name));
+else
+    t = '';
 end
 end
 
