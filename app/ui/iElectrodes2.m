@@ -80,6 +80,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
         DenoiseK    double = 1      % and the denoise kernel beside them
         SurfaceAlpha double = 0.5  % the old AlphaSlider's own default
         FrameNext   logical = true  % the next 3-D draw places the camera
+        FrameVoxelsNext logical = true  % and the next voxel draw
         SavedSteps  double = 0      % history length when last opened or saved
         MixValue    double = 0.5   % 0 the MRI alone, 1 the CT alone
         Mixed       = []        % the blended volume IELVIEW.MIXIMAGES makes
@@ -199,6 +200,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.Scatter   = [];
             app.Thr       = [];
             app.FrameNext = true;     % a new brain is framed afresh
+            app.FrameVoxelsNext = true;
 
             app.Mixed = app.blendVolumes();
             D = size(app.Project.T1.img);
@@ -734,7 +736,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     col = c.electrodesDepth3D;
                 end
                 [cx, cy, cz] = app.contactCoords(a);
-                app.drawContacts3D(ax, cx, cy, cz, col);
+                app.drawContacts3D(ax, cx, cy, cz, col, a.Type);
 
                 % The lines between neighbouring contacts, which is what
                 % makes an array read as an array rather than as loose
@@ -780,7 +782,11 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     t = targets{k};
                     if ~isfield(t, 'x') || isempty(t.x), continue, end
                     [tx, ty, tz] = app.targetCoords(t);
-                    app.drawContacts3D(ax, tx, ty, tz, c.target3D);
+                    % a planning file is not normalised on the way in,
+                    % so it can reach here without a Type at all
+                    kind = '';
+                    if isfield(t, 'Type'), kind = t.Type; end
+                    app.drawContacts3D(ax, tx, ty, tz, c.target3D, kind);
                     app.latticeFor(ax, [tx(:) ty(:) tz(:)], t, c.cylColorTargets);
                     shown = shown + 1;
                 end
@@ -932,7 +938,37 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 'PickableParts', 'none');
         end
 
-        function drawContacts3D(app, ax, x, y, z, col)
+        function r = contactRadius(app, kind)
+            %CONTACTRADIUS  How big to draw a contact, in millimetres.
+            %
+            %   SPHERES draws every contact 2 mm across the radius, which
+            %   is a marker: it can be seen at any zoom and on any array.
+            %   TRUE SIZE draws the contact at the size the electrode
+            %   really is, which is not the same for the two kinds:
+            %
+            %     subdural grid or strip   2.3 mm across the exposed face
+            %     depth (SEEG) contact     0.8 mm across
+            %
+            %   These are typical clinical values, not measurements of this
+            %   patient's electrodes: the project structure carries no
+            %   contact dimensions at all (CHECKELECTRODESTRUCTURE), so
+            %   there is nothing in the file to read them from. What the
+            %   file does say is the kind, and the spacing confirms it -
+            %   the example's grid and strip are 10 mm apart and its two
+            %   depth electrodes 5 mm, which is subdural and SEEG. Written
+            %   down in docs/TODO.md as the thing to record properly.
+            if ~strcmp(app.contactShape(), 'True size')
+                r = 2;
+                return
+            end
+            if strcmp(kind, 'depth')
+                r = 0.4;
+            else
+                r = 1.15;
+            end
+        end
+
+        function drawContacts3D(app, ax, x, y, z, col, kind)
             %DRAWCONTACTS3D  Contacts, as dots or as spheres.
             %
             %   A dot is a flat disc that the lights do not touch, the same
@@ -948,9 +984,10 @@ classdef iElectrodes2 < matlab.apps.AppBase
             %   measurement: an exposed subdural contact is about that
             %   across, and a depth contact is smaller, but one size that
             %   can be seen beats two that cannot.
+            if nargin < 7, kind = ''; end
             x = x(:); y = y(:); z = z(:);
 
-            if ~strcmp(app.contactShape(), 'Spheres') || ...
+            if strcmp(app.contactShape(), 'Dots') || ...
                     numel(x) + app.SphereCount > 600
                 % Dots, either because they were asked for or because a
                 % sphere each would be hundreds of surfaces - a planning
@@ -963,7 +1000,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             end
 
             [ux, uy, uz] = sphere(14);
-            r = 2;
+            r = app.contactRadius(kind);
             for i = 1:numel(x)
                 h = surface(ax, x(i) + r*ux, y(i) + r*uy, z(i) + r*uz, ...
                     'FaceColor', col, 'EdgeColor', 'none', ...
@@ -1987,6 +2024,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
         function drawVoxels(app)
             ax = app.Views.voxels.axes;
+
+            % as in DRAW3D: a threshold moving is not a reason to undo a
+            % cloud the user turned to line a region up before brushing it
+            keep = [];
+            if ~app.FrameVoxelsNext && ~isempty(ax.Children)
+                keep = struct('pos', ax.CameraPosition, ...
+                              'tgt', ax.CameraTarget, ...
+                              'up',  ax.CameraUpVector, ...
+                              'va',  ax.CameraViewAngle, ...
+                              'x',   ax.XLim, 'y', ax.YLim, 'z', ax.ZLim);
+            end
+
             cla(ax);
             app.Scatter = [];
 
@@ -2024,8 +2073,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
             % and it is also how a region is lined up before brushing it
             enableDefaultInteractivity(ax);
             ax.Interactions = [rotateInteraction, zoomInteraction];
-            view(ax, -135, 25);
-            axis(ax, 'image');
+            if isempty(keep)
+                view(ax, -135, 25);
+                axis(ax, 'image');
+                app.FrameVoxelsNext = false;
+            else
+                ax.DataAspectRatio = [1 1 1];
+                ax.XLim = keep.x; ax.YLim = keep.y; ax.ZLim = keep.z;
+                ax.CameraPosition  = keep.pos;
+                ax.CameraTarget    = keep.tgt;
+                ax.CameraUpVector  = keep.up;
+                ax.CameraViewAngle = keep.va;
+            end
             ax.XTick = []; ax.YTick = []; ax.ZTick = [];
             app.Views.voxels.caption.Text = sprintf('%d voxels', size(crd,1));
         end
@@ -2245,7 +2304,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     % built, so it is not on the list: a dropdown that
                     % offers something and then draws a dot instead is
                     % worse than a shorter dropdown.
-                    uidropdown(c, 'Items', {'Dots', 'Spheres'});
+                    uidropdown(c, 'Items', {'Dots', 'Spheres', 'True size'});
 
                 case 'arrays'
                     c = uigridlayout(parent, [1 3]);

@@ -194,24 +194,33 @@ of this window.
 
 **Still open, found on the way.**
 
-- The voxel view resets its camera the same way the 3-D view used to -
-  `drawVoxels` calls `view` and `axis image` on every pass, so a cloud
-  turned to line up a region snaps back when a threshold moves. The fix is
-  the one already written for the 3-D view.
+- ~~The voxel view resets its camera the same way the 3-D view used to.~~
+  *Done:* it keeps it, by the same capture-and-restore, with its own
+  `FrameVoxelsNext`. A cloud turned to line a region up survives a
+  threshold moving, which is the one thing brushing needs of it.
 - 1.020 can switch the lattice off - `PlotConnCheckbox`, gating both
   `electrodes_gui.m:1963` and `:2104` - and the new window draws it
   unconditionally. A dense plan is a lot of lines: the example's 8x8
   planning grid alone is 112 of the 285. The drawing already falls back
   from spheres to dots past 600 contacts for the same reason, so the box
   this wants is the one 1.020 has.
-- Contacts are drawn 4 mm across whatever they are. Measured from the
-  contacts themselves, the example's arrays are 10 mm apart for the grid
-  and strip and 5 mm for the two depth electrodes - subdural and SEEG. A
-  subdural contact's exposed face is about 2.3 mm and an SEEG contact is a
-  cylinder about 0.8 mm across and 2 mm long, so one 4 mm sphere for both
-  is wrong in different directions. The project structure carries no
-  contact dimensions (`checkElectrodeStructure.m`), so the size would have
-  to come from the type and the measured spacing.
+- **The project does not record how big a contact is.** "Contacts drawn
+  as" now offers *True size* beside Dots and Spheres, which draws a
+  subdural contact 2.3 mm across the exposed face and a depth contact
+  0.8 mm - but those are typical clinical values written into the window,
+  not anything read from the patient's file. `checkElectrodeStructure.m`
+  has no field for them. The file does say the kind, and the spacing
+  agrees with it (10 mm for the example's grid and strip, 5 mm for its two
+  depth electrodes, which is subdural and SEEG), so the guess is a good
+  one - but a guess in the frontend is the wrong place for a number that
+  belongs to the electrode. The right fix is a field on the array, written
+  when it is built and carried in the .iel, which is a layer change and
+  Alejandro's to approve.
+
+  Still a marker, not a model: a contact is a sphere at true size, where a
+  subdural contact is a disc lying on the surface and an SEEG contact a
+  cylinder along its own shaft. The shaft is already drawn, as the lattice
+  chain.
 
 The 1.020 window asks none of these questions of itself, so there is
 nothing to be faithful to here; this is the one piece of the frontend being
