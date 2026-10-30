@@ -1534,18 +1534,33 @@ classdef iElectrodes2 < matlab.apps.AppBase
             %REMOVEHERE  Take out the contact nearest the cursor.
             if ~app.hasProject(), return, end
             mm = mesh2AnatSpace(app.Voxel, app.Project.S2);
+
+            % Contacts first, anchors after: the old window's Delete took
+            % a contact and could not make an anchor at all, so taking a
+            % contact when there is one under the cursor is what it did.
+            % But the Add anchor button makes them now, and a point that
+            % can be put down and not picked up is a trap - work.anchors
+            % reaches the .iel, and an anchor left in one silently holds
+            % the next fit to itself.
             try
                 [app.Project, app.Work, gone] = ielec.removeCoordinate( ...
                     struct('coordinate', mm), app.Project, app.Work);
+                word = 'Contact';
+                if ~gone
+                    [app.Project, app.Work, gone] = ielec.removeCoordinate( ...
+                        struct('coordinate', mm, 'group', 'anchors'), ...
+                        app.Project, app.Work);
+                    word = 'Anchor';
+                end
             catch err
                 app.showMessage(err.message);
                 return
             end
             if gone
-                app.showMessage('Contact removed.');
+                app.showMessage([word ' removed.']);
             else
                 % the layer reports rather than raises, so say so plainly
-                app.showMessage('Nothing within 2 mm of the cursor.');
+                app.showMessage('No contact or anchor within 2 mm of the cursor.');
             end
             app.redrawAll();
         end
@@ -1559,7 +1574,17 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 app.showMessage(err.message);
                 return
             end
-            app.showMessage('Cleared. Undo brings them back.');
+            left = size(fieldOrNumeric(app.Work, 'anchors'), 1);
+            if left > 0
+                % anchors are a separate list and clearCoordinates empties
+                % one at a time. Leaving them is the old behaviour; saying
+                % so is what stops them being forgotten.
+                app.showMessage(sprintf( ...
+                    ['Contacts cleared - Undo brings them back. ' ...
+                     '%d anchor(s) still set; Delete takes one back.'], left));
+            else
+                app.showMessage('Cleared. Undo brings them back.');
+            end
             app.redrawAll();
         end
 
@@ -1573,9 +1598,21 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 return
             end
             % Undo is a swap: pressing it again puts them back as they were
-            app.showMessage(sprintf('Undone - %d contacts in progress.', ...
-                size(fieldOrNumeric(app.Work, 'GS'), 1)));
+            said = sprintf('Undone - %d contacts in progress', ...
+                size(fieldOrNumeric(app.Work, 'GS'), 1));
+            nAnchor = size(fieldOrNumeric(app.Work, 'anchors'), 1);
+            if nAnchor > 0
+                said = sprintf('%s, %d anchor(s)', said, nAnchor);
+            end
+            app.showMessage([said '.']);
             app.redrawAll();
+        end
+
+        function notWiredYet(app)
+            %NOTWIREDYET  Say so, rather than do nothing at all.
+            if ~app.hasProject(), return, end
+            app.showMessage(['Fit the model is not wired yet - ' ...
+                'ielec.fitArray is the first call behind it.']);
         end
 
         function yes = hasProject(app)
@@ -2096,6 +2133,19 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
                     app.Controls.indexNow.ButtonPushedFcn = ...
                         @(~,~) app.indexPressed();
+
+                    % An anchor is a point a fit is held to. It is the
+                    % same call as a contact by hand, into the other list
+                    % - IELEC.ADDCOORDINATE's cfg.group - and the views
+                    % already draw work.anchors as squares.
+                    app.Controls.addAnchor.ButtonPushedFcn = ...
+                        @(~,~) app.addHere('anchors', 'anchor');
+
+                    % Fit the model has nothing behind it yet, and it is
+                    % the largest button on the panel. Saying so is worth
+                    % more than a press that does nothing at all.
+                    app.Controls.fitNow.ButtonPushedFcn = ...
+                        @(~,~) app.notWiredYet();
                     app.Controls.clusterNow.ButtonPushedFcn = ...
                         @(~,~) app.clusterPressed();
                     app.Controls.addByHand.ButtonPushedFcn = ...
