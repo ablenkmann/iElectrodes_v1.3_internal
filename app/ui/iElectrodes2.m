@@ -521,8 +521,15 @@ classdef iElectrodes2 < matlab.apps.AppBase
             if app.checked('planned')
                 targets = fieldOrEmpty(app.Project, 'targets');
                 for k = 1:numel(targets)
-                    app.plotArray2D(ax, targets{k}, pl, v, inPlane, ...
-                        c.target2D, c.targetMarker2D);
+                    % the guard PLOTARRAY2D applied before this loop
+                    % stopped going through it, and the one the view in
+                    % space still applies
+                    if ~isfield(targets{k}, 'x') || isempty(targets{k}.x)
+                        continue
+                    end
+                    [tx, ty, tz] = app.targetCoords(targets{k});
+                    app.plotPoints2D(ax, [tx(:) ty(:) tz(:)], pl, v, ...
+                        inPlane, c.target2D, c.targetMarker2D);
                 end
             end
 
@@ -772,7 +779,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 for k = 1:numel(targets)
                     t = targets{k};
                     if ~isfield(t, 'x') || isempty(t.x), continue, end
-                    [tx, ty, tz] = app.contactCoords(t);
+                    [tx, ty, tz] = app.targetCoords(t);
                     app.drawContacts3D(ax, tx, ty, tz, c.target3D);
                     app.latticeFor(ax, [tx(:) ty(:) tz(:)], t, c.cylColorTargets);
                     shown = shown + 1;
@@ -790,9 +797,9 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
             if isempty(keep)
                 % AXIS IMAGE fits everything in, and what is furthest out
-                % is usually a planned array sitting well clear of the
-                % head, so the brain ends up small in the middle of its own
-                % view. Frame on the surfaces instead: a box around them,
+                % is usually an unfitted planned array, sitting where a
+                % hand left it rather than on the brain, so the brain ends
+                % up small in the middle of its own view. Frame on the surfaces instead: a box around them,
                 % which puts the brain the same size in the view whichever
                 % surface is drawn, and leaves what is outside it outside.
                 axis(ax, 'image');
@@ -968,6 +975,53 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 h.SpecularColorReflectance = 0.3;
             end
             app.SphereCount = app.SphereCount + numel(x);
+        end
+
+        function [x, y, z] = targetCoords(~, target)
+            %TARGETCOORDS  Where to draw a planned array.
+            %
+            %   A planned grid is put on the surface by hand and then
+            %   fitted to it, and the fit is what the toolbox keeps in
+            %   target.projection. The old window draws the fit whenever
+            %   there is one and offers no choice about it - a plan that
+            %   has been fitted is the fitted plan - and only a target that
+            %   has never been fitted is drawn where it was first put.
+            %
+            %   This is not the rule for a localized array. There, where
+            %   the contact was found and where it projects are two
+            %   different claims about a real electrode, and which one is
+            %   on screen is the Projected box's to say. A planned grid has
+            %   no found position to compete with the fitted one.
+            %
+            %   Measured on the example: drawn as planned, its six targets
+            %   stand up to 23 mm off the brain; drawn as fitted, every one
+            %   of them is 0.0 mm from the envelope.
+            x = target.x; y = target.y; z = target.z;
+
+            % ISCELL as well as ISEMPTY: a projection read straight out of
+            % an older planning file is a struct, not a cell, and brace
+            % indexing one raises. CHECKELECTRODESTRUCTURE converts it, and
+            % everything the window has seen so far has been through that -
+            % but IELEC.LOADTARGETS does not normalise, so the day the Load
+            % planning button is wired, one would arrive here as a struct.
+            if ~isfield(target, 'projection') || ~iscell(target.projection) ...
+                    || isempty(target.projection)
+                return
+            end
+            fit = target.projection{1};
+            if ~isfield(fit, 'x') || ~isfield(fit, 'y') || ~isfield(fit, 'z')
+                return
+            end
+            if isempty(fit.x) || numel(fit.x) ~= numel(x)
+                % A fit with a different number of contacts is not this
+                % array's fit. The old window would draw it anyway and then
+                % reshape it by this array's rows and columns; what comes
+                % of that is either a wrong lattice or an error. Falling
+                % back to where the grid was planned is the same rule
+                % CONTACTCOORDS already applies to a localized array.
+                return
+            end
+            x = fit.x; y = fit.y; z = fit.z;
         end
 
         function [x, y, z] = contactCoords(app, array)
