@@ -192,6 +192,37 @@ of this window.
    moves, including once on the first visit to the Localize step, so
    counting it asked the user to save a project nobody had touched.
 
+**The window and the right-hand column, 5 November 2026.** Four things
+from using it, landed in f8d2be7 - which carries the previous commit's
+message, "The contacts can be written out", because it was committed
+before that message was replaced. The history was left alone; this is
+where the reasons are.
+
+- **It opened off the top of the screen.** The size was a number, 1560 by
+  940 at [60 60], and the screen it was opened on is 1536 by 864 - what a
+  1920 by 1080 panel at 125 per cent scaling comes to. So the window was
+  24 points wider than the desktop and its top edge sat 136 points above
+  the top of it, taking the title bar and the maximise and close buttons
+  with it; the only way to resize it was to drag an edge. It is sized to
+  the screen now, at most 94 per cent in each direction, and centred.
+  Measured here afterwards: 1444 by 812 at [47 27].
+- **The contacts sat at the head of the right column**, above the step's
+  own controls, pushing the work of whatever step was showing down the
+  column. They are at its foot now - the step is the work and the table
+  is a reading of it. The folding sizer followed them; it was writing
+  row 1, which is the step stack now.
+- **The views take three quarters of the width**, where they took 2.4
+  parts in 3.4.
+- **The window comes back to the front after a file dialog.** `uigetfile`
+  and `uiputfile` are native modal dialogs and the window they belong to
+  does not necessarily come back with them: opening a project sent this
+  one behind whatever else was open.
+
+And the three view-block sections are quieter than a step's own - a
+thinner bar, a lighter face, a header that blends into the panel. They
+stay where the design notes put them, applying to every step and so
+reachable from all of them, without reading as part of the step.
+
 **Still open, found on the way.**
 
 - **An anatomical label has nowhere to be seen.** The Anatomy step computes

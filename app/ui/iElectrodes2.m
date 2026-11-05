@@ -3082,12 +3082,27 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 end
                 row = used + 1;
             end
+            % A section of the view block is quieter than a step's own.
+            % Those three apply to every step, so they sit under every
+            % step - the design notes make them a peer of Localization
+            % rather than one of the five - and three bold bars under each
+            % step's controls read as more of the step than they are. They
+            % keep their place and give up their weight: a thinner bar, a
+            % lighter face, and a header that blends into the panel rather
+            % than standing on it like a button to press.
+            quiet = ~isempty(app.ViewBlock) && isvalid(app.ViewBlock) && ...
+                    isequal(parent, app.ViewBlock);
+
             p = uipanel(parent);
             p.Layout.Row    = row;
             p.Layout.Column = 1;
 
             g = uigridlayout(p, [2 1]);
-            g.RowHeight   = {24, 'fit'};
+            if quiet
+                g.RowHeight = {20, 'fit'};
+            else
+                g.RowHeight = {24, 'fit'};
+            end
             g.ColumnWidth = {'1x'};
             g.Padding     = [8 8 8 8];
             g.RowSpacing  = 6;
@@ -3095,8 +3110,14 @@ classdef iElectrodes2 < matlab.apps.AppBase
             head = uibutton(g, 'Text', headerText(title, true));
             head.Layout.Row = 1;
             head.HorizontalAlignment = 'left';
-            head.FontSize = 11;
-            head.FontWeight = 'bold';
+            if quiet
+                head.Tag        = 'quiet';
+                head.FontSize   = 10;
+                head.FontWeight = 'normal';
+            else
+                head.FontSize   = 11;
+                head.FontWeight = 'bold';
+            end
 
             inner = uigridlayout(g, [size(rows,1) 1]);
             inner.Layout.Row  = 2;
@@ -3459,6 +3480,12 @@ classdef iElectrodes2 < matlab.apps.AppBase
                         if strcmp(c.Tag, 'accent')
                             c.BackgroundColor = t.acc;
                             c.FontColor       = t.accInk;
+                        elseif strcmp(c.Tag, 'quiet')
+                            % blends into the panel rather than standing
+                            % on it, and in the muted ink the panel
+                            % titles use
+                            c.BackgroundColor = t.panel;
+                            c.FontColor       = t.mut;
                         else
                             c.BackgroundColor = t.panel2;
                             c.FontColor       = t.ink;
