@@ -3119,6 +3119,13 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 head.FontWeight = 'bold';
             end
 
+            % What a folded bar comes to: the padding above and below, the
+            % header itself, and the spacing between the two rows. It was
+            % the literal 46, which is that sum for a 24-point header - so
+            % a 20-point one carried four points of slack, in the state
+            % these three are usually in.
+            folded = g.Padding(2) + g.RowHeight{1} + g.RowSpacing + g.Padding(4);
+
             inner = uigridlayout(g, [size(rows,1) 1]);
             inner.Layout.Row  = 2;
             inner.ColumnWidth = {'1x'};
@@ -3136,7 +3143,8 @@ classdef iElectrodes2 < matlab.apps.AppBase
             end
             inner.RowHeight = h;
 
-            app.Sections.(name) = struct('panel', p, 'head', head, ...
+            app.Sections.(name) = struct('folded', folded, ...
+                'panel', p, 'head', head, ...
                                          'inner', inner, 'open', true, ...
                                          'row', row, 'parent', parent, ...
                                          'sizer', [], 'title', title);
@@ -3340,7 +3348,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             elseif s.open
                 s.parent.RowHeight{s.row} = 'fit';
             else
-                s.parent.RowHeight{s.row} = 46;
+                s.parent.RowHeight{s.row} = foldedHeight(s);
             end
         end
 
@@ -3554,6 +3562,19 @@ switch name
         items = {'Dots', 'Spheres', 'True size'};
     otherwise
         items = {};
+end
+end
+
+function h = foldedHeight(s)
+%FOLDEDHEIGHT  How tall a section is with nothing but its header showing.
+%
+%   The sections built by PANELWITHHEADER predate this and do not carry
+%   the figure, so they keep the 46 that was written for them - which is
+%   the same sum for a 24-point header.
+if isfield(s, 'folded') && ~isempty(s.folded)
+    h = s.folded;
+else
+    h = 46;
 end
 end
 

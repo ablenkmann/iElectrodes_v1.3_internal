@@ -192,7 +192,7 @@ of this window.
    moves, including once on the first visit to the Localize step, so
    counting it asked the user to save a project nobody had touched.
 
-**The window and the right-hand column, 5 November 2026.** Four things
+**The window and the right-hand column, 6 November 2026.** Four things
 from using it, landed in f8d2be7 - which carries the previous commit's
 message, "The contacts can be written out", because it was committed
 before that message was replaced. The history was left alone; this is
@@ -218,10 +218,13 @@ where the reasons are.
   does not necessarily come back with them: opening a project sent this
   one behind whatever else was open.
 
-And the three view-block sections are quieter than a step's own - a
-thinner bar, a lighter face, a header that blends into the panel. They
-stay where the design notes put them, applying to every step and so
-reachable from all of them, without reading as part of the step.
+**The view switches, the commit after it.** The three view-block
+sections are quieter than a step's own - a thinner bar, a lighter face, a
+header that blends into the panel. They stay where the design notes put
+them, applying to every step and so reachable from all of them, without
+reading as part of the step. Which sections are quiet is decided by where
+they are built rather than by name, so a section that moves changes with
+it.
 
 **Still open, found on the way.**
 
