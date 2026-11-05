@@ -1184,10 +1184,46 @@ requires them to be refused the same way rather than to produce the same file.
 
 **Decision needed:** whether the targets were a struct array in some older
 version - in which case a project saved then still opens - or the loop was
-simply never run against a cell. The fix is `targets{n}` throughout the
-function, four lines, and its own commit with a test that writes a report.
+simply never run against a cell.
 
-**Status: open.** Present in v1.020.
+**And `targets{n}` is not the whole fix.** Measured again on 5 November
+2026, wiring the new window's Export step, which offers this as the
+`targetLabels` format. Every other format writes:
+
+    structure              44 contacts, 136924 bytes
+    eeglab                 44 contacts,   2086 bytes
+    fieldtrip              44 contacts,   1693 bytes
+    bids                   44 contacts,   4257 bytes
+    bidsCoordinateSystem   44 contacts,    344 bytes
+    labels                 44 contacts,   2431 bytes
+    targetLabels           REFUSED MATLAB:structRefFromNonStruct
+
+Past the indexing, the writer reads four more things the structure does not
+have, and one it has emptied:
+
+- `targets(n).n` - the structure has `nElectrodes`
+- `targets(n).alpha` - the structure has `delta`
+- `targets(n).coordinates(i,1:3)` - `checkElectrodeStructure` converts
+  `coordinates` into `x`, `y`, `z` and then re-adds the field **empty**, so
+  there is nothing to index
+- `targets(n).name` - the structure has `Name`
+
+and `frameDown`, `framePosition`, `targetIn`, `targetOut`, `azimut` and
+`elevation` are only created for a planning array of Type 'depth'. The
+example's six targets are all grids, so even with every one of the above
+repaired, this writer could not write the project it is measured on.
+
+`targetIn.x` and `targetOut.x` *are* still there for a depth target - that
+part of the writer is current, and an earlier draft of this note said
+otherwise.
+
+**The new window refuses this format** rather than letting the subscript
+error through, and says so in a sentence naming this item. It is the one
+place the window refuses an export before the layer does.
+
+**Status: open.** Present in v1.020. The question is now also whether the
+format is wanted at all, or whether the planning report belongs to the
+Planning step rather than to Export.
 
 ---
 
@@ -2704,3 +2740,4 @@ Two ways to settle it, and they are not equivalent:
 
 **Status: open, for Alejandro.** The second is a change to the science and
 the first is a change to a sentence, so it is his call which one it is.
+

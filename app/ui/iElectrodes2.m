@@ -643,6 +643,148 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 col, marker);
         end
 
+        function showCoordinateChoice(app)
+            %SHOWCOORDINATECHOICE  Grey the choice the format does not read.
+            %
+            %   IELEC.EXPORT says so itself: 'structure' and 'targetLabels'
+            %   "write what they write and ignore it". A choice that is
+            %   read for five formats and ignored for two should not look
+            %   the same in all seven.
+            if ~isfield(app.Controls, 'exportCoordinates'), return, end
+            reads = ~ismember(app.Controls.exportFormat.Value, ...
+                              {'structure', 'targetLabels'});
+            coords = app.Controls.exportCoordinates;
+            for i = 1:numel(coords)
+                if isvalid(coords(i))
+                    coords(i).Enable = matlab.lang.OnOffSwitchState(reads);
+                end
+            end
+        end
+
+        function exportPressed(app)
+            %EXPORTPRESSED  Write the contacts out in the chosen format.
+            if ~app.hasProject(), return, end
+
+            format = app.Controls.exportFormat.Value;
+            if strcmp(format, 'targetLabels')
+                % Refused outright, because it cannot work on any project
+                % this toolbox writes. ALABELSTARGETS2TXT_NEW indexes the
+                % targets as a struct array, and past that reads .n,
+                % .alpha, .name and a .coordinates that
+                % CHECKELECTRODESTRUCTURE empties - and the fields it
+                % wants beyond those exist only for a planning array of
+                % Type 'depth'. A cell raises on the first dot; a struct
+                % array gets as far as opening the file and then raises
+                % on the second field, leaving an orphan behind. The old
+                % window fails the same way and
+                % tests/test_ielecExport.m pins it.
+                %
+                % Refusing before the layer is a departure from the rule
+                % that the layer says what it will not do. It is made
+                % here because the layer's answer is a subscript error
+                % and because the failure is total rather than a matter
+                % of this project's contents.
+                app.showMessage(['targetLabels cannot be written: its ' ...
+                    'writer expects a target structure the toolbox no ' ...
+                    'longer uses. docs/OPEN_QUESTIONS.md item 28.']);
+                return
+            end
+
+            file = app.askWhereToWrite(format);
+            if isempty(file), return, end
+
+            cfg = struct('file', file, 'format', format, ...
+                         'coordinates', app.chosenIn('exportCoordinates', ...
+                                                     'contacts'));
+            try
+                [app.Project, app.Work, report] = ielec.export( ...
+                    cfg, app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            app.showMessage(app.wroteWhat(report));
+
+            % BIDS is two files: the coordinates and the json beside them
+            % saying what they mean. The old window asks for both names in
+            % a row rather than deriving the second (electrodes_gui.m:833).
+            if strcmp(format, 'bids')
+                app.showMessage(['BIDS needs the coordinate system file ' ...
+                    'beside it - choose where it goes, or cancel.']);
+                drawnow;   % or the line is not up before the dialog blocks
+
+                % offered beside the file it belongs to, which is where
+                % the old window offers it: it records the folder the
+                % first dialog chose (electrodes_gui.m:775) and opens the
+                % second one there
+                json = app.askWhereToWrite('bidsCoordinateSystem', ...
+                    fileparts(report.file));
+                if isempty(json), return, end
+                cfg.file   = json;
+                cfg.format = 'bidsCoordinateSystem';
+                try
+                    [app.Project, app.Work, report] = ielec.export( ...
+                        cfg, app.Project, app.Work);
+                catch err
+                    app.showMessage(err.message);
+                    return
+                end
+                app.showMessage(['and ' app.wroteWhat(report)]);
+            end
+        end
+
+        function said = wroteWhat(~, report)
+            %WROTEWHAT  What was written, where, and in what.
+            %
+            %   The folder as well as the name: the dialog starts in the
+            %   project's folder and the user is free to go elsewhere, so
+            %   a window that says only the name never says where it went.
+            %
+            %   And the coordinates only for the formats that read them.
+            %   IELEC.EXPORT reports back whatever it was given, so naming
+            %   it for 'structure' - which ignores it - would be a true
+            %   field in a false sentence: that file is the same whichever
+            %   way the segment is set.
+            [folder, name, ext] = fileparts(report.file);
+            said = sprintf('%d contacts written to %s%s in %s - %s', ...
+                report.contacts, name, ext, folder, report.format);
+            if ~ismember(report.format, {'structure', 'targetLabels'})
+                said = sprintf('%s, %s', said, report.coordinates);
+            end
+            said = [said '.'];
+        end
+
+        function file = askWhereToWrite(app, format, startIn)
+            %ASKWHERETOWRITE  The save dialog, with the format's own suffix.
+            %
+            %   The suffixes are IELEC.EXPORT's own, listed in its help.
+            switch format
+                case {'structure', 'fieldtrip'},  suffix = '*.mat';
+                case 'bids',                      suffix = '*.tsv';
+                case 'bidsCoordinateSystem',      suffix = '*.json';
+                otherwise,                        suffix = '*.txt';
+            end
+            % A folder, not a folder with a wildcard on the end. MATLAB
+            % accepts the wildcard as the third argument - it is kept for
+            % backward compatibility - but it uses it as the *file name*,
+            % so the name box opens holding the literal text "*.mat".
+            % The old window passes the bare folder
+            % (electrodes_gui.m:733), and so does SAVEPROJECT.
+            if nargin < 3 || isempty(startIn)
+                startIn = '';
+                if isfield(app.Work, 'PathName') && ...
+                        ~isempty(app.Work.PathName)
+                    startIn = app.Work.PathName;
+                end
+            end
+            [f, d] = uiputfile(suffix, ['Write the ' format ' file'], startIn);
+            if isequal(f, 0)
+                file = '';
+                return
+            end
+            file = fullfile(d, f);
+        end
+
         function labelPressed(app)
             %LABELPRESSED  Give every contact its anatomical label.
             if ~app.hasProject(), return, end
@@ -2539,7 +2681,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                         'exp',      'Write the contacts out', {
                             'Format',                     'dropdown', 'exportFormat'
                             'Coordinates',                'segment',  'exportCoordinates'
-                            'Write the file',             'accent',   ''}
+                            'Write the file',             'accent',   'exportNow'}
                         };
             end
 
@@ -2674,6 +2816,20 @@ classdef iElectrodes2 < matlab.apps.AppBase
                         @(~,~) app.buildEnvelopePressed();
                     app.Controls.projectNow.ButtonPushedFcn = ...
                         @(~,~) app.projectPressed();
+
+                case 'Export'
+                    coords = app.Controls.exportCoordinates;
+                    for i = 1:numel(coords)
+                        coords(i).Value = strcmp(coords(i).Text, 'contacts');
+                        coords(i).ValueChangedFcn = ...
+                            @(src,~) app.pickOne(src, 'exportCoordinates');
+                    end
+                    app.Controls.exportFormat.ValueChangedFcn = ...
+                        @(~,~) app.showCoordinateChoice();
+                    app.showCoordinateChoice();
+
+                    app.Controls.exportNow.ButtonPushedFcn = ...
+                        @(~,~) app.exportPressed();
 
                 case 'Arrays'
                     % whole rows, and said before the table is filled:
