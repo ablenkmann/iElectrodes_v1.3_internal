@@ -1065,6 +1065,43 @@ classdef iElectrodes2 < matlab.apps.AppBase
             end
         end
 
+        function reorderPressed(app, change)
+            %REORDERPRESSED  Change which contact of the array is which.
+            %
+            %   The five of IELEC.REORDERARRAY that are a named change.
+            %   The sixth, 'order', is an order given contact by contact -
+            %   that is the Index by hand button, and it is not wired.
+            %
+            %   What the contacts are called does not move with them: the
+            %   labels stay where they are and the coordinates are what is
+            %   reordered, which is what makes this the fix for an array
+            %   that came out numbered the wrong way round.
+            if ~app.hasProject(), return, end
+            i = app.selectedArray();
+            if i < 1 || i > numel(fieldOrEmpty(app.Project, 'electrodes'))
+                app.showMessage('Choose an array in the list first.');
+                return
+            end
+
+            try
+                [app.Project, app.Work] = ielec.reorderArray( ...
+                    struct('index', i, 'change', change), ...
+                    app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            a = app.Project.electrodes{i};
+            said = sprintf('%s reordered - %s', fieldOrText(a, 'Name'), change);
+            if a.rows >= 1 && a.columns >= 1
+                said = sprintf('%s, %d by %d', said, a.rows, a.columns);
+            end
+            app.showMessage([said '.']);
+            app.fillContactTable();
+            app.redrawAll();
+        end
+
         function namePressed(app)
             %NAMEPRESSED  Give the selected array the name in the box.
             if ~app.hasProject(), return, end
@@ -2680,7 +2717,8 @@ classdef iElectrodes2 < matlab.apps.AppBase
                         'name',     'Name the contacts', {
                             'Base name',                  'edit',   'baseName'
                             'Name / Name from a list',    'pair',   'naming'
-                            'Rotate / Flip',              'pair',   ''
+                            'Rotate left / Rotate right', 'pair',   'rotate'
+                            'Flip L-R / Flip U-D / Reverse', 'triple', 'flips'
                             'Index by hand',              'button', ''}
                         'arraylist', 'Arrays in this project', {
                             'arrays',                     'table',  'arrayTable'
@@ -2886,6 +2924,22 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     % the name the selected array already has, so the box
                     % says what is true rather than nothing
                     app.showSelectedName();
+
+                    % IELEC.REORDERARRAY's five named changes, left to
+                    % right as the labels read them
+                    turn = app.Controls.rotate;
+                    turn(1).ButtonPushedFcn = ...
+                        @(~,~) app.reorderPressed('rotateLeft');
+                    turn(2).ButtonPushedFcn = ...
+                        @(~,~) app.reorderPressed('rotateRight');
+
+                    flip = app.Controls.flips;
+                    flip(1).ButtonPushedFcn = ...
+                        @(~,~) app.reorderPressed('flipLeftRight');
+                    flip(2).ButtonPushedFcn = ...
+                        @(~,~) app.reorderPressed('flipUpDown');
+                    flip(3).ButtonPushedFcn = ...
+                        @(~,~) app.reorderPressed('reverse');
 
             end
 
