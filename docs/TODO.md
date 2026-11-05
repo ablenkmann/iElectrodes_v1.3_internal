@@ -194,6 +194,13 @@ of this window.
 
 **Still open, found on the way.**
 
+- **An anatomical label has nowhere to be seen.** The Anatomy step computes
+  them and says how many it gave, but the contact table is label, x, y, z
+  (`fillContactTable`) and the cursor panel is hard-coded to "(no
+  anatomical label yet)". The old window shows the label of the contact
+  under the cursor. Until that is wired, the labels are in the project and
+  invisible.
+
 - ~~The voxel view resets its camera the same way the 3-D view used to.~~
   *Done:* it keeps it, by the same capture-and-restore, with its own
   `FrameVoxelsNext`. A cloud turned to line a region up survives a

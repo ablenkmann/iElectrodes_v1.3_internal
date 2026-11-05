@@ -2665,3 +2665,42 @@ Three places it could be fixed, and they are not equivalent:
 
 **Status: open, for Alejandro.** A 1.020 fault, in his own function, and the
 first option changes behaviour for everyone who labels near an edge.
+
+---
+
+## 53. The labelling radius is in voxels, and the layer's help calls it millimetres
+
+**Where:** `src/+ielec/label.m`, `src/+ielec/pointLabel.m`,
+`src/+ielec/private/resolveLabelling.m`
+
+`cfg.radius` is documented as "how far around a contact to look, in
+millimetres". It is not. It reaches `anatomicLabelFS` as `opt.radio` and is
+used there as an index offset into the parcellation:
+
+    valMat = atlas.img(posMat(1,i)-opt.radio : posMat(1,i)+opt.radio, ...
+
+`anatomicLabelFS.m:16` says so - "optional radio distance for look arround
+in voxel dimension in the matrix space (not in mm)" - and
+`default_ielectrodes_options.m` agrees, "number of voxels to look arround".
+
+On the example it makes no difference: the parcellation is resliced onto
+the MRI's grid, which is 1 mm isotropic, so a voxel is a millimetre. On a
+parcellation that is not isotropic the two part company, and the number the
+caller is asked for is not the number that is used.
+
+**Found** wiring the new window's Anatomy step, which is the first place a
+*user* is shown the unit rather than a programmer. The window's box asks
+for voxels and its message says voxels, which matches the behaviour and
+disagrees with the layer's help.
+
+Two ways to settle it, and they are not equivalent:
+
+- say voxels in the layer's help as well. Nothing changes for anyone, and
+  the documentation stops promising a conversion that does not happen.
+- convert: divide by the parcellation's voxel size and keep the promise of
+  millimetres. That changes what every existing call does, including the
+  ones recorded in the history of projects already saved - a radius of 2
+  would stop meaning what it meant.
+
+**Status: open, for Alejandro.** The second is a change to the science and
+the first is a change to a sentence, so it is his call which one it is.

@@ -231,6 +231,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             % and REDRAWPLANES runs on every move of the cursor.
             app.fillArrayTable();
             app.showSelectedName();
+            app.showAnatomySpace();   % and which space this one is in
 
             app.resetThresholds();
             if ~isfield(app.Project, 'TAC') || isempty(app.Project.TAC)
@@ -640,6 +641,195 @@ classdef iElectrodes2 < matlab.apps.AppBase
             [px, py, pz] = app.contactCoords(array);
             app.plotPoints2D(ax, [px(:) py(:) pz(:)], pl, v, inPlane, ...
                 col, marker);
+        end
+
+        function labelPressed(app)
+            %LABELPRESSED  Give every contact its anatomical label.
+            if ~app.hasProject(), return, end
+
+            % 'most probable' and 'probabilistic' are what the panel says;
+            % 'mode' and 'prob' are what the layer takes. The mapping is
+            % here because CHOICESFOR says it belongs to whoever wires it.
+            if strcmp(app.Controls.inclusionMode.Value, 'most probable')
+                mode = 'mode';
+            else
+                mode = 'prob';
+            end
+
+            % The space is the project's, and the two settings belong
+            % to the parcellation alone. IELEC.LABEL refuses radius and
+            % mode in MNI rather than ignoring them - the MNI atlas is
+            % probabilistic and has neither - so sending them there would
+            % make MNI labelling impossible from this window. The old
+            % window sent the space and nothing else
+            % (electrodes_gui.m:1028).
+            cfg = struct('space', fieldOrText(app.Project, 'currentSpace'));
+            if ~strcmp(cfg.space, 'MNI')
+                cfg.radius = app.Controls.labelRadius.Value;
+                cfg.mode   = mode;
+            end
+            try
+                [app.Project, app.Work] = ielec.label( ...
+                    cfg, app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            % What it did, counted rather than claimed. Every contact
+            % comes back with something: one outside the anatomy is
+            % 'unknown', and with no parcellation loaded every one of them
+            % is 'no atlas loaded' - LABELELECTRODESNATIVE fills that in
+            % and returns successfully. Counting non-empty answers would
+            % therefore report 44 of 44 for a project with no atlas at
+            % all, which is the opposite of what happened.
+            %
+            % The column-major read is deliberate: in 'prob' mode aLabels
+            % is N-by-M, and the first N linear indices are its first
+            % column - the most probable label of each contact.
+            arrays  = fieldOrEmpty(app.Project, 'electrodes');
+            nothing = {'unknown', 'no atlas loaded'};
+            named = 0; total = 0; example = '';
+            for k = 1:numel(arrays)
+                a = arrays{k};
+                n = numel(fieldOrEmpty(a, 'x'));
+                total = total + n;
+                if ~isfield(a, 'aLabels'), continue, end
+                for c = 1:min(n, numel(a.aLabels))
+                    this = char(string(a.aLabels{c}));
+                    if isempty(this), continue, end
+                    % 'prob' mode writes "97% ctx-rh-..." - the share is
+                    % the answer, not part of the region's name
+                    bare = strtrim(regexprep(this, '^\s*\d+%\s*', ''));
+                    if any(strcmpi(bare, nothing)), continue, end
+                    named = named + 1;
+                    if isempty(example), example = this; end
+                end
+            end
+
+            said = sprintf('%d of %d contacts given a region, %s space', ...
+                named, total, cfg.space);
+            if isfield(cfg, 'radius')
+                said = sprintf('%s, %g voxels around each', said, cfg.radius);
+            end
+            said = [said '.'];
+            if ~isempty(example)
+                said = sprintf('%s First: %s', said, example);
+            elseif total > 0
+                said = [said ' None of them - is an atlas loaded?'];
+            end
+            app.showMessage(said);
+        end
+
+        function buildEnvelopePressed(app)
+            %BUILDENVELOPEPRESSED  Wrap the pial surfaces in a smooth one.
+            if ~app.hasProject(), return, end
+
+            % Building over one that is already there costs the same
+            % minutes and throws away what was loaded or built before -
+            % PUTSURFACES overwrites the four fields without asking - so
+            % the one case where that can happen is the one that asks.
+            if has(app.Project, 'vertices_SCE_R') || ...
+                    has(app.Project, 'vertices_SCE_L')
+                answer = uiconfirm(app.UIFigure, ...
+                    ['This project already has an envelope. Building ' ...
+                     'another replaces it, and takes minutes per ' ...
+                     'hemisphere.'], 'Build the envelope', ...
+                    'Options', {'Build it again', 'Cancel'}, ...
+                    'DefaultOption', 2, 'CancelOption', 2);
+                if ~strcmp(answer, 'Build it again'), return, end
+            end
+
+            % BUILDSCE rasterises each hemisphere and closes it with a
+            % ball the size of the session's radius, which on a real brain
+            % is minutes rather than seconds - measured at around four
+            % minutes a hemisphere at radius 50. The window has no way to
+            % show progress and MATLAB will not repaint while it runs, so
+            % the one honest thing is to say so before it starts, and
+            % flush the message so it is actually on screen.
+            app.showMessage(['Building the envelope - this takes ' ...
+                'minutes per hemisphere, and the window will not ' ...
+                'respond while it runs.']);
+
+            % DRAWNOW is what puts that message on screen, and it is also
+            % an interruption point: a second click would otherwise run
+            % nested here and build twice over. The button is held down
+            % and restored whatever happens.
+            button = app.Controls.buildNow;
+            button.Enable = 'off';
+            restore = onCleanup(@() set(button, 'Enable', 'on'));
+            drawnow;
+
+            try
+                [app.Project, app.Work] = ielec.buildEnvelope( ...
+                    [], app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            app.showMessage(sprintf( ...
+                'Envelope built - %d and %d vertices.', ...
+                size(fieldOrEmpty(app.Project, 'vertices_SCE_R'), 1), ...
+                size(fieldOrEmpty(app.Project, 'vertices_SCE_L'), 1)));
+            app.redrawAll();
+        end
+
+        function projectPressed(app)
+            %PROJECTPRESSED  Carry the contacts onto the envelope.
+            if ~app.hasProject(), return, end
+
+            % what there is to do, before doing it: the layer reports it
+            % and the old window asked the same question of its checkbox
+            try
+                [~, ~, before] = ielec.projectionState( ...
+                    [], app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            if ~any(before.projectable)
+                app.showMessage(['Nothing to project - a grid or a strip ' ...
+                    'is carried onto the envelope, a depth electrode is ' ...
+                    'not.']);
+                return
+            end
+
+            % Everything already projected and nothing said would make
+            % this press a no-op reported as a success:
+            % IELEC.PROJECTARRAYS returns without doing anything unless it
+            % is told to recalculate. Building a better envelope and
+            % projecting onto it again is the ordinary reason to press
+            % this twice, and the old window asked the same question
+            % (electrodes_gui.m:3916).
+            cfg = [];
+            if any(before.alreadyDone)
+                answer = uiconfirm(app.UIFigure, ...
+                    sprintf(['%d array(s) already carry a projection. ' ...
+                             'Do them again as well?'], ...
+                            sum(before.alreadyDone)), ...
+                    'Project the arrays', ...
+                    'Options', {'All of them', 'Only the new ones', 'Cancel'}, ...
+                    'DefaultOption', 2, 'CancelOption', 3);
+                switch answer
+                    case 'All of them',      cfg.recalculateAll = true;
+                    case 'Only the new ones' % the layer's own default
+                    otherwise,               return
+                end
+            end
+
+            try
+                [app.Project, app.Work] = ielec.projectArrays( ...
+                    cfg, app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+            [~, ~, after] = ielec.projectionState([], app.Project, app.Work);
+            app.showMessage(sprintf( ...
+                '%d of %d projectable array(s) now carry a projection.', ...
+                sum(after.alreadyDone & after.projectable), ...
+                sum(after.projectable)));
+            app.redrawAll();
         end
 
         function fillArrayTable(app)
@@ -1561,12 +1751,55 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.redrawAll();
         end
 
+        function showAnatomySpace(app)
+            %SHOWANATOMYSPACE  Show which space the project is in.
+            %
+            %   Not a choice. A contact is stored in one space, and
+            %   IELEC.LABEL does not transform anything - it reads x, y
+            %   and z as they are and asks the atlas of the space it is
+            %   told. Told the wrong one it answers confidently and
+            %   wrongly, which is why the old window never offered this as
+            %   a switch: it derived it from the project every time
+            %   (electrodes_gui.m:891, :1028, :3950). The buttons show
+            %   which space this project is in, and are disabled.
+            if ~isfield(app.Controls, 'anatomySpace'), return, end
+            here = fieldOrText(app.Project, 'currentSpace');
+            spaces = app.Controls.anatomySpace;
+            for i = 1:numel(spaces)
+                if ~isvalid(spaces(i)), continue, end
+                spaces(i).Value  = strcmp(spaces(i).Text, here);
+                spaces(i).Enable = 'off';
+            end
+        end
+
+        function pickOne(app, src, name)
+            %PICKONE  Make a row of state buttons one choice.
+            %
+            %   A segment is built as several state buttons, which are
+            %   several switches until something says they are one answer.
+            if ~isfield(app.Controls, name), return, end
+            group = app.Controls.(name);
+            for i = 1:numel(group)
+                group(i).Value = group(i) == src;
+            end
+        end
+
+        function name = chosenIn(app, control, fallback)
+            %CHOSENIN  Which button of a segment is down.
+            name = fallback;
+            if ~isfield(app.Controls, control), return, end
+            group = app.Controls.(control);
+            for i = 1:numel(group)
+                if isvalid(group(i)) && group(i).Value
+                    name = group(i).Text;
+                    return
+                end
+            end
+        end
+
         function pickArrayKind(app, src)
             %PICKARRAYKIND  One of the three, never none and never two.
-            kinds = app.Controls.arrayType;
-            for i = 1:numel(kinds)
-                kinds(i).Value = kinds(i) == src;
-            end
+            app.pickOne(src, 'arrayType');
             app.showRowsBox();
         end
 
@@ -1586,15 +1819,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
         function name = arrayKind(app)
             %ARRAYKIND  Which of Grid, Strip and Depth is chosen.
-            name = 'Depth';
-            if ~isfield(app.Controls, 'arrayType'), return, end
-            kinds = app.Controls.arrayType;
-            for i = 1:numel(kinds)
-                if isvalid(kinds(i)) && kinds(i).Value
-                    name = kinds(i).Text;
-                    return
-                end
-            end
+            name = app.chosenIn('arrayType', 'Depth');
         end
 
         function n = contactsToNumber(app, cfg)
@@ -1871,7 +2096,14 @@ classdef iElectrodes2 < matlab.apps.AppBase
         end
 
         function showMessage(app, line)
+            %SHOWMESSAGE  Say something in the Messages box, and show it.
+            %
+            %   The box is a short footer panel and the log only grows, so
+            %   without the scroll a new line lands below the fold. That
+            %   matters most for the one message nobody would otherwise
+            %   see: the warning that a slow call is about to start.
             app.MessageBox.Value = [app.MessageBox.Value; {line}];
+            scroll(app.MessageBox, 'bottom');
         end
 
         % ----------------------------------------------------------
@@ -2283,12 +2515,12 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     spec = {
                         'atlas',    'Anatomical labelling', {
                             'Anatomy from',               'segment',  'anatomySpace'
-                            'Inclusion distance, mm',     'spin',     ''
+                            'Inclusion distance, voxels', 'spin',     'labelRadius'
                             'Inclusion mode',             'dropdown', 'inclusionMode'
-                            'Label the contacts',         'accent',   ''}
+                            'Label the contacts',         'accent',   'labelNow'}
                         'shift',    'Brain shift', {
-                            'Build the envelope',         'button'
-                            'Project the arrays',         'accent'}
+                            'Build the envelope',         'button',   'buildNow'
+                            'Project the arrays',         'accent',   'projectNow'}
                         };
                 case 'Planning'
                     spec = {
@@ -2407,6 +2639,41 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     edit(1).ButtonPushedFcn = @(~,~) app.removeHere();
                     edit(2).ButtonPushedFcn = @(~,~) app.clearHere();
                     edit(3).ButtonPushedFcn = @(~,~) app.undoHere();
+
+                case 'Anatomy'
+                    app.showAnatomySpace();
+
+                    % The session's own labelling settings, so the boxes
+                    % say what the next press will actually use.
+                    %
+                    % The radius is whole numbers: ANATOMICLABELFS uses it
+                    % as an index offset into the parcellation, so 2.5
+                    % reaches MATLAB as a fractional subscript and raises
+                    % where a complaint belongs. The ceiling is the same
+                    % one the old configuration file suggests is sane; a
+                    % typed 999 would run off the end of the volume.
+                    opt = fieldOrStruct(app.Work, 'options');
+                    app.Controls.labelRadius.Limits = [0 20];
+                    app.Controls.labelRadius.RoundFractionalValues = 'on';
+                    if isfield(opt, 'atlasLabelingRadio')
+                        app.Controls.labelRadius.Value = opt.atlasLabelingRadio;
+                    end
+                    % left alone when the session holds no mode, rather
+                    % than asserting one it does not have
+                    if isfield(opt, 'atlasLabelingMode')
+                        if strcmp(opt.atlasLabelingMode, 'mode')
+                            app.Controls.inclusionMode.Value = 'most probable';
+                        else
+                            app.Controls.inclusionMode.Value = 'probabilistic';
+                        end
+                    end
+
+                    app.Controls.labelNow.ButtonPushedFcn = ...
+                        @(~,~) app.labelPressed();
+                    app.Controls.buildNow.ButtonPushedFcn = ...
+                        @(~,~) app.buildEnvelopePressed();
+                    app.Controls.projectNow.ButtonPushedFcn = ...
+                        @(~,~) app.projectPressed();
 
                 case 'Arrays'
                     % whole rows, and said before the table is filled:
@@ -3129,6 +3396,15 @@ for k = 1:numel(arrays)
     if isfield(arrays{k}, 'x')
         n = n + numel(arrays{k}.x);
     end
+end
+end
+
+function v = fieldOrStruct(s, name)
+% a struct field, or an empty struct - so ISFIELD on the result is safe
+if isstruct(s) && isfield(s, name) && isstruct(s.(name))
+    v = s.(name);
+else
+    v = struct();
 end
 end
 
