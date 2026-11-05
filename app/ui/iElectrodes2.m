@@ -186,6 +186,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             %OPENPROJECT  Open a .iel and draw it.
             if nargin < 2 || isempty(file)
                 [f, d] = uigetfile('*.iel', 'Open an iElectrodes project');
+                app.toFront();
                 if isequal(f, 0), return, end
                 file = fullfile(d, f);
             end
@@ -327,6 +328,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     end
                 end
                 [f, d] = uiputfile('*.iel', 'Save the project', suggestion);
+                app.toFront();
                 if isequal(f, 0), return, end
                 file = fullfile(d, f);
             end
@@ -422,7 +424,19 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function buildWindow(app)
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Name = 'iElectrodes 2';
-            app.UIFigure.Position = [60 60 1560 940];
+
+            % Sized to the screen rather than to a number. 1560 by 940 at
+            % [60 60] was taller than a 1536 by 864 desktop - which is
+            % what a 1920 by 1080 screen at 125 per cent scaling comes to
+            % - so the top of the window sat 136 points above the top of
+            % the screen and its title bar, with the maximise and close
+            % buttons on it, could not be reached. Measured there; it
+            % would have been off any laptop screen.
+            screen = get(groot, 'ScreenSize');
+            wh     = min([1560 940], round(screen(3:4) * 0.94));
+            app.UIFigure.Position = [ ...
+                screen(1) + round((screen(3) - wh(1)) / 2), ...
+                screen(2) + round((screen(4) - wh(2)) / 2), wh];
 
             app.Root = uigridlayout(app.UIFigure, [3 1]);
             app.Root.RowHeight   = {44, '1x', 26};
@@ -434,7 +448,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.Body.Layout.Row    = 2;
             % the views take what the panels do not need: they are the
             % work, and the boxes beside them are what is said about it
-            app.Body.ColumnWidth   = {'2.4x', '1x'};
+            app.Body.ColumnWidth   = {'3x', '1x'};
             app.Body.RowHeight     = {'1x'};
             app.Body.Padding       = [0 0 0 0];
             app.Body.ColumnSpacing = 10;
@@ -778,6 +792,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                 end
             end
             [f, d] = uiputfile(suffix, ['Write the ' format ' file'], startIn);
+            app.toFront();
             if isequal(f, 0)
                 file = '';
                 return
@@ -2220,6 +2235,18 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.fillContactTable();
         end
 
+        function toFront(app)
+            %TOFRONT  Put the window back in front.
+            %
+            %   UIGETFILE and UIPUTFILE are native modal dialogs, and when
+            %   one closes the window it belongs to does not necessarily
+            %   come back with it - opening a project sent this one behind
+            %   whatever was behind it, and it had to be found again.
+            if isvalid(app.UIFigure)
+                figure(app.UIFigure);
+            end
+        end
+
         function yes = hasProject(app)
             yes = ~isempty(app.Mixed);
             if ~yes
@@ -2453,41 +2480,47 @@ classdef iElectrodes2 < matlab.apps.AppBase
         function buildRight(app)
             app.RightCol = uigridlayout(app.Body, [3 1]);
             app.RightCol.Layout.Column = 2;
-            app.RightCol.RowHeight   = {app.TABLEHEIGHT, '1x', 'fit'};
+            % The step's own controls first, the view switches under
+            % them, and the contacts last. The step is the work and the
+            % table is a reading of it, and a reading belongs under the
+            % thing it reads rather than above it, where it pushed the
+            % controls down the column.
+            app.RightCol.RowHeight   = {'1x', 'fit', app.TABLEHEIGHT};
             app.RightCol.ColumnWidth = {'1x'};
             app.RightCol.Padding     = [0 0 0 0];
             app.RightCol.RowSpacing  = 10;
 
-            % the contacts stay whatever step is current, because every step
-            % is about them
-            [cp, cg] = app.panelWithHeader(app.RightCol, 'contacts', 'Contacts');
-            cp.Layout.Row = 1;
-            app.ContactTable = uitable(cg, 'Data', cell(0,4), ...
-                'ColumnName', {'Label', 'x', 'y', 'z'});
-            app.ContactTable.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            app.setSizer('contacts', @(open) app.sizeContactsPanel(open));
-
             app.StepStack = uigridlayout(app.RightCol, [1 1]);
-            app.StepStack.Layout.Row  = 2;
+            app.StepStack.Layout.Row  = 1;
             app.StepStack.ColumnWidth = {'1x'};
             app.StepStack.Padding     = [0 0 0 0];
             app.StepStack.RowSpacing  = 8;
             app.StepStack.Scrollable  = 'on';
 
             app.ViewBlock = uigridlayout(app.RightCol, [3 1]);
-            app.ViewBlock.Layout.Row  = 3;
+            app.ViewBlock.Layout.Row  = 2;
             app.ViewBlock.ColumnWidth = {'1x'};
             app.ViewBlock.RowHeight   = {'fit', 'fit', 'fit'};
             app.ViewBlock.Padding     = [0 0 0 0];
             app.ViewBlock.RowSpacing  = 8;
             app.buildViewBlock();
+
+            % the contacts stay whatever step is current, because every
+            % step is about them - at the foot of the column, not its head
+            [cp, cg] = app.panelWithHeader(app.RightCol, 'contacts', 'Contacts');
+            cp.Layout.Row = 3;
+            app.ContactTable = uitable(cg, 'Data', cell(0,4), ...
+                'ColumnName', {'Label', 'x', 'y', 'z'});
+            app.ContactTable.ColumnWidth = {'1x', '1x', '1x', '1x'};
+            app.setSizer('contacts', @(open) app.sizeContactsPanel(open));
         end
 
         function sizeContactsPanel(app, open)
+            % row 3 now: the contacts sit at the foot of the column
             if open
-                app.RightCol.RowHeight{1} = app.TABLEHEIGHT;
+                app.RightCol.RowHeight{3} = app.TABLEHEIGHT;
             else
-                app.RightCol.RowHeight{1} = 46;
+                app.RightCol.RowHeight{3} = 46;
             end
         end
 
