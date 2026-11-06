@@ -275,3 +275,58 @@ The 1.020 window asks none of these questions of itself, so there is
 nothing to be faithful to here; this is the one piece of the frontend being
 designed rather than ported - which is also why being faithful to it where
 it *has* an answer, as in 2 and 4, turned out to be the right instinct.
+
+**Index by hand, 6 November 2026.** The sixth of `ielec.reorderArray`'s
+changes, and the last button in the Arrays step that looked live and did
+nothing. The other five are a named turn or mirror, and between them they
+reach eight of a *square* grid's orders - and only four of a rectangle's,
+because `ielec.reorderArray` refuses a quarter turn unless the array is
+square, which leaves the two mirrors and the reverse. The example's own `G`
+is 4 by 5, so on that array the five buttons reach four of twenty
+factorial. This one takes any permutation, so it is what is left for an
+array that came out in an order no turn reaches.
+
+(Name from a list is still `Enable 'off'` - disabled rather than dead, and
+next in the queue.)
+
+The interaction is the one `movelist` gave the 1.020 window - the contacts
+in a list, one of them moved up or down - rebuilt as a modal `uifigure` so
+it is themed and sized like the rest of this window rather than opening a
+GUIDE figure inside it. It gives back the same permutation 1.020 handed the
+layer, in the layer's own convention: the contact at position *i*
+afterwards is the one that was at `order(i)`.
+
+Two things it does that 1.020 did not. The list reads as positions - the
+number is the place and the name beside it is who is in that place now -
+which is the way round the reorder actually works, and it also makes every
+line distinct for an array whose contacts have not been named yet. And an
+order that was not changed is not sent: the layer accepts an identity
+permutation quite happily, but it would go into `project.history` as a
+reorder that reordered nothing.
+
+Driven end to end to check the convention rather than argued: on the
+example's `G`, two Move up presses on row 3 list `G3, G1, G2, G4`, the
+window reports three of twenty contacts moved, and the contact table keeps
+the names `G1 G2 G3 G4` while the x column goes from
+`17.7 16.4 15.1 13.2` to `15.1 17.7 16.4 13.2`. The names stay with their
+positions and the coordinates move, which is what makes this a repair for
+an array numbered the wrong way round rather than a renaming. The
+anatomical labels move with the contact, as they should - they belong to
+the tissue, not to the channel number.
+
+What that run checked was the coordinates, the names and the anatomical
+labels. It did not check the voxel-to-contact map, and that one does not
+follow: `docs/OPEN_QUESTIONS.md` item 54 is the inherited fault in
+`reorderElectrodes`, which renumbers the clusters with the forward
+permutation where the inverse is wanted. Every change that is not its own
+inverse hits it, so a hand order hits it whenever it is not an involution
+- measured on `G` with this order, the points per contact come out
+`52 55 52 52` where the coordinates ask for `55 52 52 52`. Nothing on
+screen is wrong, because nothing reads an accepted array's clusters, but
+the `.iel` and the structure export persist a map that no longer matches
+its contacts. This button does not introduce it and cannot avoid it; it
+does make it ordinary rather than reachable only through a quarter turn on
+a square array, which is one more reason to take that one line.
+
+`themeTree` had no case for a listbox, so it gained one, beside the other
+boxes one types or picks in.

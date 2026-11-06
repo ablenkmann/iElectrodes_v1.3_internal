@@ -1070,7 +1070,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
             %
             %   The five of IELEC.REORDERARRAY that are a named change.
             %   The sixth, 'order', is an order given contact by contact -
-            %   that is the Index by hand button, and it is not wired.
+            %   that is the Index by hand button, INDEXBYHANDPRESSED.
             %
             %   What the contacts are called does not move with them: the
             %   labels stay where they are and the coordinates are what is
@@ -1112,6 +1112,222 @@ classdef iElectrodes2 < matlab.apps.AppBase
             app.showMessage([said '.']);
             app.fillContactTable();
             app.redrawAll();
+        end
+
+        function indexByHandPressed(app)
+            %INDEXBYHANDPRESSED  Put the contacts in an order given by hand.
+            %
+            %   IELEC.REORDERARRAY's sixth change. The other five are a
+            %   named turn or mirror, and between them they reach eight of
+            %   a square grid's orders and only four of a rectangle's -
+            %   IELEC.REORDERARRAY refuses a quarter turn unless the array
+            %   is square, which leaves the two mirrors and the reverse.
+            %   This one is any permutation at all, so it is what is left
+            %   for an array that came out in an order no turn reaches.
+            if ~app.hasProject(), return, end
+            i = app.selectedArray();
+            arrays = fieldOrEmpty(app.Project, 'electrodes');
+            if i < 1 || i > numel(arrays)
+                app.showMessage('Choose an array in the list first.');
+                return
+            end
+
+            a = arrays{i};
+            name = fieldOrText(a, 'Name');
+            if isempty(name), name = 'the array'; end
+
+            n = numel(a.x);
+            if n < 2
+                app.showMessage(sprintf( ...
+                    'An array of %d contacts has only one order.', n));
+                return
+            end
+            labels = fieldOrEmpty(a, 'ch_label');
+            if ~iscell(labels) || numel(labels) ~= n
+                % an array can reach here before it has been named
+                labels = repmat({'(unnamed)'}, n, 1);
+            end
+
+            [order, how] = app.askContactOrder(labels, name);
+            if isempty(order)
+                % closing the dialog is not an outcome worth reporting,
+                % and the old window was silent on Cancel too. Moving
+                % nothing and then pressing Reorder is worth a word,
+                % because that one looks like it did something.
+                if strcmp(how, 'unchanged')
+                    app.showMessage('The order was left as it was.');
+                end
+                return
+            end
+
+            try
+                [app.Project, app.Work] = ielec.reorderArray( ...
+                    struct('index', i, 'change', 'order', 'order', order), ...
+                    app.Project, app.Work);
+            catch err
+                app.showMessage(err.message);
+                return
+            end
+
+            moved = sum(order(:)' ~= 1:n);
+            app.showMessage(sprintf( ...
+                '%s reordered by hand - %d of %d contacts moved.', ...
+                name, moved, n));
+            app.fillContactTable();
+            app.redrawAll();
+        end
+
+        function [order, how] = askContactOrder(app, labels, name)
+            %ASKCONTACTORDER  The contacts in a list, to be put in order.
+            %
+            %   order = app.askContactOrder(labels, name) shows the
+            %   array's contacts in the order they are in and lets one be
+            %   moved up or down. It gives back the order in
+            %   IELEC.REORDERARRAY's convention - the contact at position
+            %   i afterwards is the one that was at order(i) - and HOW,
+            %   which is 'reordered', 'unchanged' if nothing was moved, or
+            %   'cancelled' if Cancel was pressed or the window was
+            %   closed. ORDER is empty for both of the last two, so the
+            %   caller only needs HOW to tell them apart.
+            %
+            %   The list reads as positions: the number is the place, and
+            %   the name beside it is which contact is in that place now.
+            %   That is the way round the reorder works. The names stay
+            %   with their positions and the coordinates are what move,
+            %   which is what makes this the repair for an array numbered
+            %   the wrong way round rather than a renaming.
+            %
+            %   This is the interaction MOVELIST gave the old window, and
+            %   it gives back the same permutation, so the layer is
+            %   called with what it was called with before.
+            t     = app.Theme;
+            n     = numel(labels);
+            live  = (1:n)';     % LIVE(i) is the contact now shown at row i
+            order = [];
+            how   = 'cancelled';
+
+            d = uifigure('Name', ['Index by hand - ' name], ...
+                'WindowStyle', 'modal', 'Resize', 'off', 'Visible', 'off');
+
+            % Until it is shown the dialog has no frame to be closed by,
+            % so anything that raises while it is being built would leave
+            % a modal figure behind that nothing can reach. The file's own
+            % idiom for that is ONCLEANUP, and it serves for the ordinary
+            % ending as well.
+            closeIt = onCleanup(@() delete(d(isvalid(d))));
+            wh  = [360 480];
+            own = app.UIFigure.Position;
+            d.Position = [own(1) + round((own(3) - wh(1)) / 2), ...
+                          own(2) + round((own(4) - wh(2)) / 2), wh];
+            d.Color = t.bg;
+
+            g = uigridlayout(d, [3 2]);
+            g.RowHeight     = {'fit', '1x', 'fit'};
+            g.ColumnWidth   = {'1x', 104};
+            g.Padding       = [12 12 12 12];
+            g.RowSpacing    = 10;
+            g.ColumnSpacing = 10;
+
+            says = uilabel(g, 'Text', sprintf([ ...
+                'Move a contact to the position it should have. The %d ' ...
+                'names stay where they are - it is the coordinates that ' ...
+                'move.'], n));
+            says.Layout.Row    = 1;
+            says.Layout.Column = [1 2];
+            says.WordWrap      = 'on';
+
+            lb = uilistbox(g, 'Items', rowText(), 'Multiselect', 'off');
+            lb.Layout.Row    = 2;
+            lb.Layout.Column = 1;
+            lb.ValueIndex    = 1;
+            lb.FontName      = t.monoFont;
+
+            side = uigridlayout(g, [4 1]);
+            side.Layout.Row    = 2;
+            side.Layout.Column = 2;
+            side.RowHeight     = {30, 30, 30, '1x'};
+            side.ColumnWidth   = {'1x'};
+            side.Padding       = [0 0 0 0];
+            side.RowSpacing    = 6;
+            uibutton(side, 'Text', 'Move up', ...
+                'ButtonPushedFcn', @(~,~) move(-1));
+            uibutton(side, 'Text', 'Move down', ...
+                'ButtonPushedFcn', @(~,~) move(+1));
+            uibutton(side, 'Text', 'Reset', ...
+                'ButtonPushedFcn', @(~,~) startAgain());
+
+            foot = uigridlayout(g, [1 3]);
+            foot.Layout.Row    = 3;
+            foot.Layout.Column = [1 2];
+            foot.ColumnWidth   = {'1x', 104, 104};
+            foot.RowHeight     = {32};
+            foot.Padding       = [0 0 0 0];
+            foot.ColumnSpacing = 8;
+            no = uibutton(foot, 'Text', 'Cancel', ...
+                'ButtonPushedFcn', @(~,~) finish(false));
+            no.Layout.Column = 2;
+            yes = uibutton(foot, 'Text', 'Reorder', ...
+                'ButtonPushedFcn', @(~,~) finish(true));
+            yes.Layout.Column = 3;
+            yes.Tag = 'accent';
+
+            % a modal window closed by its frame has to give the main
+            % window back, so closing it is Cancel
+            d.CloseRequestFcn = @(~,~) finish(false);
+
+            app.themeTree(d, t);
+            % THEMETREE gives every grid the panel face, which is right
+            % for a grid inside a panel and wrong for the one that is the
+            % window. APPLYTHEME puts the window's own structural grids
+            % back to the page colour afterwards, and this is that line.
+            g.BackgroundColor = t.bg;
+            d.Visible = 'on';
+            uiwait(d);
+
+            function txt = rowText()
+                % the position, then whoever is in it. The number makes
+                % every line different, which a list of contacts that
+                % have not been named yet would not be.
+                txt = cell(n, 1);
+                for k = 1:n
+                    txt{k} = sprintf('%3d.  %s', k, labels{live(k)});
+                end
+            end
+
+            function refresh(pick)
+                lb.Items      = rowText();
+                lb.ValueIndex = max(1, min(n, pick));
+            end
+
+            function move(by)
+                v = lb.ValueIndex;
+                w = v + by;
+                if w < 1 || w > n, return, end
+                live([v w]) = live([w v]);
+                refresh(w);          % the selection follows what it moved
+            end
+
+            function startAgain()
+                live = (1:n)';
+                refresh(lb.ValueIndex);
+            end
+
+            function finish(take)
+                % nothing moved is not a reorder: the layer takes an
+                % identity permutation quite happily, but it would go into
+                % PROJECT.HISTORY as a reorder that reordered nothing
+                if ~take
+                    order = [];
+                    how   = 'cancelled';
+                elseif isequal(live(:)', 1:n)
+                    order = [];
+                    how   = 'unchanged';
+                else
+                    order = live;
+                    how   = 'reordered';
+                end
+                uiresume(d);
+            end
         end
 
         function namePressed(app)
@@ -2731,7 +2947,7 @@ classdef iElectrodes2 < matlab.apps.AppBase
                             'Name / Name from a list',    'pair',   'naming'
                             'Rotate left / Rotate right', 'pair',   'rotate'
                             'Flip L-R / Flip U-D / Reverse', 'triple', 'flips'
-                            'Index by hand',              'button', ''}
+                            'Index by hand',              'button', 'byHand'}
                         'arraylist', 'Arrays in this project', {
                             'arrays',                     'table',  'arrayTable'
                             'Remove array',               'button', 'removeArray'}
@@ -2952,6 +3168,10 @@ classdef iElectrodes2 < matlab.apps.AppBase
                         @(~,~) app.reorderPressed('flipUpDown');
                     flip(3).ButtonPushedFcn = ...
                         @(~,~) app.reorderPressed('reverse');
+
+                    % and the sixth change, which is not a named one
+                    app.Controls.byHand.ButtonPushedFcn = ...
+                        @(~,~) app.indexByHandPressed();
 
             end
 
@@ -3569,7 +3789,8 @@ classdef iElectrodes2 < matlab.apps.AppBase
                     case {'matlab.ui.control.NumericEditField', ...
                           'matlab.ui.control.EditField', ...
                           'matlab.ui.control.Spinner', ...
-                          'matlab.ui.control.DropDown'}
+                          'matlab.ui.control.DropDown', ...
+                          'matlab.ui.control.ListBox'}
                         c.BackgroundColor = t.panel2;
                         c.FontColor       = t.ink;
                     case 'matlab.ui.control.TextArea'
