@@ -2741,3 +2741,105 @@ Two ways to settle it, and they are not equivalent:
 **Status: open, for Alejandro.** The second is a change to the science and
 the first is a change to a sentence, so it is his call which one it is.
 
+---
+
+## 54. Reordering an array renumbers its voxels with the forward permutation where the inverse is wanted
+
+**Where:** `src/localization/reorderElectrodes.m:13-19`, reached from
+`ielec.reorderArray`
+
+The coordinates are moved by indexing - `electrodes.x = electrodes.x(newOrder)`
+- so after the call the contact at position `i` is the one that was at
+`newOrder(i)`. The voxel-to-contact numbers are then renumbered the other
+way round:
+
+```matlab
+for i = 1:length(newOrder)
+    tmp(electrodes.clusters == i) = newOrder(i);
+end
+```
+
+A voxel that belonged to old contact `newOrder(i)` should come out saying
+`i`. This says `newOrder(i)` for the voxels of old contact `i`, which is
+the forward permutation where the inverse is wanted.
+
+**Which changes it spoils.** Every one that is not its own inverse. A
+permutation that is its own inverse does not notice the difference, and
+three of `ielec.reorderArray`'s six changes are involutions. Measured
+through the layer on a 2 by 2 grid whose coordinates say which contact
+they are, one voxel per contact:
+
+    change          x after      clusters after   voxels still point at their own contact
+    flipLeftRight   [2 1 4 3]    [2 1 4 3]        yes
+    flipUpDown      [3 4 1 2]    [3 4 1 2]        yes
+    reverse         [4 3 2 1]    [4 3 2 1]        yes
+    rotateLeft      [3 1 4 2]    [3 1 4 2]        NO
+    rotateRight     [2 4 1 3]    [2 4 1 3]        NO
+
+After `rotateLeft`, voxel 1 still belongs to the contact whose coordinate
+was 1, but it says contact 3, and contact 3 now holds the coordinate that
+was 4.
+
+The sixth change, `'order'`, takes an arbitrary permutation, so it is
+spoiled by any hand order that is not an involution - the test's own
+`byHand = [(2:n) 1]` is one. The old window wires it
+(`electrodes_gui.m:3681-3690`, through `movelist`); the new window's
+Index by hand button is not wired yet, so when it is, this is waiting
+for it.
+
+**The layer already does this correctly elsewhere.**
+`src/+ielec/indexArray.m:148` and `:160` are the same job in the form
+this one wants:
+
+```matlab
+work.clusters(before == order(i)) = i;
+```
+
+So the inconsistency is inside the layer, not between the layer and an
+ideal.
+
+**Why nothing has shown it.** Not for want of voxels - all four arrays
+in `examples/exampleNativeSpace.iel` carry them (`G` 1089, `TR` 162,
+`TL` 369, `s` 47). It is that none of the four is square, and
+`ielec.reorderArray` refuses a quarter turn on anything that is not, so
+the two rotations are only ever exercised on the square array
+`test_ielecReorder` synthesizes for them.
+
+**The test does not pin this.** Worth saying, because it is the opposite
+of the usual reason for leaving an inherited line alone.
+`tests/test_ielecReorder.m:294-316` keeps the five buttons' own
+arithmetic, but only as far as `newOrder` - at line 320 it calls the
+live `reorderElectrodes`. The faulty line therefore sits on both sides
+of every `isequaln`, and fixing it changes what is expected and what is
+measured identically. `test_ielecReorder` passes either way. The four
+quarter turns at line 180 are blind to it too, since a permutation and
+its inverse both come back to the start after four. A test that could
+catch it has to build the expected map itself.
+
+**What it costs.** Less than it first looks, and in a different place.
+Nothing in the repository reads an accepted array's `clusters` at all -
+`grep -rn clusters` over `app/`, `src/+ielview/`, `extras/`, `tools/`,
+`legacy/` and `electrodes_gui.m` finds nothing, and
+`ielec.removeCoordinate` touches only `work.clusters`, the contacts in
+progress, which this never reorders. So nothing on screen is wrong
+today.
+
+What is wrong is what gets written down. `src/export/writeElectrodeStructure.m:17`
+saves the array structures verbatim - its own help calls it the export
+that keeps everything - and `src/io/readElectrodeStructure.m:43` reads
+them back, as does the saved `.iel`. A rotated array therefore persists
+a map that no longer matches its contacts, for whatever later reads it.
+The coordinates and the labels are right either way, so this is a stale
+record rather than a wrong measurement.
+
+**The fix** is one line, `tmp(electrodes.clusters == newOrder(i)) = i;`,
+and a test that reorders an array carrying voxels and checks the map
+against one it computed itself rather than against
+`reorderElectrodes`'s own answer.
+
+**Status: open, for Alejandro.** The line is kept verbatim from the old
+window, which has the same two rotate buttons, so this has always been
+reachable there; what is new is that this window wires them too. One
+line, no test to renegotiate, and `indexArray` to copy - but it changes
+what the old window does, which is why it is written down rather than
+taken.

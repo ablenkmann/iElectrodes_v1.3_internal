@@ -1094,8 +1094,20 @@ classdef iElectrodes2 < matlab.apps.AppBase
 
             a = app.Project.electrodes{i};
             said = sprintf('%s reordered - %s', fieldOrText(a, 'Name'), change);
-            if a.rows >= 1 && a.columns >= 1
-                said = sprintf('%s, %d by %d', said, a.rows, a.columns);
+            % Guarded the way LATTICEFOR guards the same two fields, and
+            % for the same reason: CHECKELECTRODESTRUCTURE fills rows in
+            % only when the field is absent, so an empty one survives, and
+            % 'reverse' is the one change IELEC.REORDERARRAY does not read
+            % the layout for - it is the change meant for an array that
+            % never had rows and columns set. This line runs after the
+            % array has already been changed, so raising here would leave
+            % the contacts reordered with the table and the two views
+            % still drawing the order from before. An array that cannot
+            % say its size says the change alone.
+            r = fieldOrNumber(a, 'rows');
+            k = fieldOrNumber(a, 'columns');
+            if ~isempty(r) && ~isempty(k) && r >= 1 && k >= 1
+                said = sprintf('%s, %d by %d', said, r, k);
             end
             app.showMessage([said '.']);
             app.fillContactTable();
@@ -3705,6 +3717,18 @@ if isstruct(s) && isfield(s, name) && (ischar(s.(name)) || isstring(s.(name)))
     t = char(s.(name));
 else
     t = '';
+end
+end
+
+function v = fieldOrNumber(s, name)
+% one number, or empty. FIELDOREMPTY gives {} for a missing field, which is
+% right for a list of arrays and wrong for a count, and FIELDORNUMERIC is
+% for an N-by-3 of points. This is the one for rows, columns and the like.
+if isstruct(s) && isfield(s, name) && isnumeric(s.(name)) && ...
+        isscalar(s.(name))
+    v = s.(name);
+else
+    v = [];
 end
 end
 
